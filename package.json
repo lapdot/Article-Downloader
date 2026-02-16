@@ -1,0 +1,38 @@
+{
+  "name": "article-downloader",
+  "version": "0.1.0",
+  "description": "Download, parse, and upload web articles to Notion",
+  "type": "module",
+  "bin": {
+    "article-downloader": "dist/cli.js"
+  },
+  "main": "dist/index.js",
+  "types": "dist/index.d.ts",
+  "engines": {
+    "node": ">=20"
+  },
+  "scripts": {
+    "build": "tsc -p tsconfig.json",
+    "dev": "tsx src/cli.ts",
+    "run:url": "tsx src/cli.ts run --cookies ../SocialMediaFormatter/configs/cookies.json --out ./output --notion-config ../SocialMediaFormatter/configs/notion.config.json --json --url",
+    "test": "vitest run",
+    "test:watch": "vitest",
+    "typecheck": "tsc -p tsconfig.json --noEmit"
+  },
+  "dependencies": {
+    "@notionhq/client": "^2.3.0",
+    "@tryfabric/martian": "^1.2.4",
+    "cheerio": "^1.1.2",
+    "commander": "^14.0.1",
+    "tough-cookie": "^6.0.0",
+    "turndown": "^7.2.0",
+    "undici": "^7.16.0"
+  },
+  "devDependencies": {
+    "@types/node": "^24.3.0",
+    "@types/turndown": "^5.0.5",
+    "tsx": "^4.20.5",
+    "typescript": "^5.9.2",
+    "vitest": "^3.2.4"
+  }
+}
