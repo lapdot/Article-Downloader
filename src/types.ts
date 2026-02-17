@@ -3,7 +3,14 @@ export type ErrorCode =
   | "E_FETCH_HTTP"
   | "E_PARSE_SELECTOR"
   | "E_PARSE_UNSUPPORTED_SITE"
-  | "E_NOTION_API";
+  | "E_NOTION_API"
+  | "E_INGEST_INVALID_HTML"
+  | "E_INGEST_INVALID_SOURCE_URL"
+  | "E_INGEST_UNSUPPORTED_INPUT"
+  | "E_INGEST_SANITIZE_FAILED"
+  | "E_INGEST_LEDGER_DIFF"
+  | "E_INGEST_SECRET_PATTERN"
+  | "E_INGEST_TARGET_EXISTS";
 
 export interface Cookie {
   name: string;
@@ -173,4 +180,100 @@ export interface SelectorSet {
   authorMetaContainer: string;
   timeContainer: string;
   timeLink: string;
+}
+
+export type ValueClass =
+  | "empty"
+  | "plain_text"
+  | "url"
+  | "long_numeric_id"
+  | "token_like"
+  | "timestamp_like"
+  | "email_like"
+  | "path_like";
+
+export interface LedgerNode {
+  nodePath: string;
+  tagName: string;
+  attributesPresent: string[];
+  attributeValueClass: Record<string, ValueClass>;
+  textClass?: ValueClass;
+}
+
+export interface StructureLedger {
+  policyVersion: string;
+  nodes: LedgerNode[];
+}
+
+export type SanitizationCategory = "person" | "content_id" | "token" | "cookie" | "tracking";
+export type SanitizationSourceType = "text" | "attr" | "url_part" | "query";
+
+export interface SanitizationMapEntry {
+  placeholder: string;
+  category: SanitizationCategory;
+  sourceType: SanitizationSourceType;
+}
+
+export interface SanitizationResult {
+  sanitizedHtml: string;
+  map: SanitizationMapEntry[];
+  rawLedger: StructureLedger;
+  sanitizedLedger: StructureLedger;
+}
+
+export interface IngestInput {
+  htmlPath: string;
+  sourceUrl: string;
+  fixture: string;
+  outFixturesDir?: string;
+  policyVersion?: string;
+  debugLedger?: boolean;
+}
+
+export interface IngestResult {
+  ok: boolean;
+  input: {
+    htmlPath: string;
+    sourceUrl: string;
+    fixture: string;
+  };
+  artifacts: {
+    rawArchivePath: string;
+    sanitizedHtmlPath: string;
+    mapPath: string;
+    ledgerPath?: string;
+  };
+  stats: {
+    replacements: number;
+    ledgerNodesRaw: number;
+    ledgerNodesSanitized: number;
+    diffWarnings: number;
+  };
+}
+
+export interface CaptureFixtureInput {
+  url: string;
+  fixture: string;
+  runtimeConfig: ResolvedRuntimeConfig;
+  outDir?: string;
+  outFixturesDir?: string;
+  policyVersion?: string;
+  debugLedger?: boolean;
+}
+
+export interface CaptureFixtureResult {
+  ok: boolean;
+  reason?: string;
+  ingestError?: string;
+  fetch: {
+    outputDir?: string;
+    htmlPath?: string;
+    result: DownloadResult;
+  };
+  ingest?: IngestResult;
+  handoff?: {
+    sourceUrl: string;
+    htmlPath: string;
+    copiedArtifactsDir: string;
+  };
 }

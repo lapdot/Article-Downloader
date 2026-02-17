@@ -144,6 +144,8 @@ Core content inputs always come from CLI parameters and are never read from env 
 - `parse`: `--html`, `--url`
 - `transform-notion`: `--md`
 - `upload-notion`: `--blocks`
+- `ingest`: `--html`, `--source-url`, `--fixture`
+- `capture-fixture`: `--url`, `--fixture`
 
 ### Roadmap Note
 
@@ -226,6 +228,56 @@ npm run run:url -- "https://zhuanlan.zhihu.com/p/123"
 
 inside `output/<YYYYMMDD-HHmmss>-<slug>/`.
 
+### 8) Ingest HTML fixture with sanitization (HTML-only)
+
+```bash
+npx tsx src/cli.ts ingest \
+  --html ./output/<run>/page.html \
+  --source-url "https://zhuanlan.zhihu.com/p/123" \
+  --fixture zhihu-zhuanlan-new
+```
+
+`ingest` is offline and HTML-only in v1. It rejects `--url` input mode with `E_INGEST_UNSUPPORTED_INPUT`.
+
+For authenticated pages, use a two-step flow:
+
+1. Collect HTML via `fetch` or `run` (with cookies).
+2. Sanitize and generate committable fixtures via `ingest --html ...`.
+
+`ingest` writes:
+
+- raw local archive: `.local/raw-imports/<timestamp>-<fixture>/raw.html` (untracked)
+- sanitized fixture: `tests/fixtures/<fixture>.html`
+- sanitization map: `tests/fixtures/<fixture>.map.json`
+
+### 9) Capture fixture (canonical producer-to-sanitizer workflow)
+
+```bash
+npx tsx src/cli.ts capture-fixture \
+  --url "https://zhuanlan.zhihu.com/p/123" \
+  --fixture zhihu-zhuanlan-new \
+  --config ./config/public.config.json \
+  --cookies-secrets ./config/cookies.secrets.local.json
+```
+
+`capture-fixture` is the recommended end-to-end fixture workflow:
+
+1. fetch HTML with cookie-aware config
+2. sanitize via ingest policy
+3. copy sanitized artifacts into the fetch run directory for traceability
+
+Artifacts produced:
+
+- fetch raw HTML: `output/<run>/page.html`
+- ingest raw archive: `.local/raw-imports/<timestamp>-<fixture>/raw.html` (untracked)
+- canonical fixture artifacts: `tests/fixtures/<fixture>.html`, `tests/fixtures/<fixture>.map.json`
+- linked copies: `output/<run>/ingest/<fixture>.html`, `output/<run>/ingest/<fixture>.map.json`
+
+Failure semantics:
+
+- fetch failure stops before ingest
+- ingest failure returns non-zero and preserves fetch artifacts for inspection
+
 ## Cookie Secrets Format
 
 Cookie secrets use list-only format:
@@ -264,6 +316,8 @@ import {
   uploadNotionBlocksToNotion,
   markdownToNotionBlocks,
   runPipeline,
+  runIngest,
+  runCaptureFixture,
   resolveRuntimeConfig,
 } from "article-downloader";
 ```
@@ -276,6 +330,13 @@ import {
 - `E_PARSE_SELECTOR`
 - `E_PARSE_UNSUPPORTED_SITE`
 - `E_NOTION_API`
+- `E_INGEST_INVALID_HTML`
+- `E_INGEST_INVALID_SOURCE_URL`
+- `E_INGEST_UNSUPPORTED_INPUT`
+- `E_INGEST_SANITIZE_FAILED`
+- `E_INGEST_LEDGER_DIFF`
+- `E_INGEST_SECRET_PATTERN`
+- `E_INGEST_TARGET_EXISTS`
 
 ## Test
 
@@ -293,7 +354,7 @@ npm run test:closed-loop
 
 This command enforces:
 - localhost-only network calls during tests (external hosts are blocked)
-- preflight checks for obvious secret leaks in env vars and fixtures
+- preflight checks for obvious secret leaks in env vars and fixture artifacts (`.html` + `.map.json`)
 - full test suite execution with existing redaction/upload behavior checks
 - test URL sanitization policy: keep safe generic endpoints (for example `/settings/account`) and sanitize long Zhihu content IDs with deterministic placeholders
 

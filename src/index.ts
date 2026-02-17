@@ -13,6 +13,8 @@ export {
   markdownToNotionBlocksMartian,
 } from "./core/notion.js";
 export { runPipeline } from "./core/pipeline.js";
+export { runIngest } from "./core/ingest.js";
+export { runCaptureFixture } from "./core/capture-fixture.js";
 export {
   assertValidCookies,
   createCookieJar,
@@ -41,4 +43,13 @@ export type {
   PipelineResult,
   ZhihuContentType,
   SelectorSet,
+  ValueClass,
+  LedgerNode,
+  StructureLedger,
+  SanitizationMapEntry,
+  SanitizationResult,
+  IngestInput,
+  IngestResult,
+  CaptureFixtureInput,
+  CaptureFixtureResult,
 } from "./types.js";

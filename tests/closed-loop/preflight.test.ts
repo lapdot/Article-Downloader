@@ -61,7 +61,9 @@ describe("closed-loop preflight", () => {
 
   runWhenClosedLoop("ensures committed fixtures do not contain obvious secret markers", () => {
     const fixtureDir = path.join("tests", "fixtures");
-    const fixtureFiles = readdirSync(fixtureDir).filter((name) => name.endsWith(".html"));
+    const fixtureFiles = readdirSync(fixtureDir).filter(
+      (name) => name.endsWith(".html") || name.endsWith(".map.json"),
+    );
     const violations: string[] = [];
 
     for (const fileName of fixtureFiles) {

@@ -2,6 +2,7 @@ node_modules/
 dist/
 coverage/
 output/
+.local/
 ai_materials/
 .env
 .DS_Store
