@@ -20,6 +20,19 @@ export async function readJsonFile<T>(filePath: string): Promise<T> {
   return JSON.parse(raw) as T;
 }
 
+export function isNotFoundError(error: unknown): boolean {
+  return (
+    !!error &&
+    typeof error === "object" &&
+    "code" in error &&
+    (error as { code?: string }).code === "ENOENT"
+  );
+}
+
+export function formatMissingFileError(kind: string, filePath: string): Error {
+  return new Error(`E_FILE_NOT_FOUND: ${kind}: ${filePath}`);
+}
+
 export async function writeJsonFile(filePath: string, value: unknown): Promise<void> {
   await writeTextFile(filePath, `${JSON.stringify(value, null, 2)}\n`);
 }

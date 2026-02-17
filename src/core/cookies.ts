@@ -14,44 +14,100 @@ function normalizeCookieDomain(domain?: string): string | undefined {
   return trimmed.startsWith(".") ? trimmed.slice(1) : trimmed;
 }
 
-export function validateCookies(value: unknown): value is Cookie[] {
-  if (!Array.isArray(value) || value.length === 0) {
-    return false;
+function debugValue(value: unknown): string {
+  if (typeof value === "string") {
+    return JSON.stringify(value);
   }
-  return value.every((cookie) => {
+  if (
+    typeof value === "number" ||
+    typeof value === "boolean" ||
+    value === null ||
+    value === undefined
+  ) {
+    return String(value);
+  }
+  if (Array.isArray(value)) {
+    return `[array length=${value.length}]`;
+  }
+  if (typeof value === "object") {
+    return `[object keys=${Object.keys(value as Record<string, unknown>).join(",")}]`;
+  }
+  return `[type=${typeof value}]`;
+}
+
+function validateCookiesWithReason(value: unknown): { valid: true; cookies: Cookie[] } | { valid: false; reason: string } {
+  if (!Array.isArray(value)) {
+    return { valid: false, reason: `input must be an array, got ${debugValue(value)}` };
+  }
+  if (value.length === 0) {
+    return { valid: false, reason: "input must be a non-empty array" };
+  }
+
+  for (const [index, cookie] of value.entries()) {
     if (!cookie || typeof cookie !== "object") {
-      return false;
+      return {
+        valid: false,
+        reason: `cookie[${index}] must be an object, got ${debugValue(cookie)}`,
+      };
     }
+
     const c = cookie as Record<string, unknown>;
     if (typeof c.name !== "string" || c.name.length === 0 || typeof c.value !== "string") {
-      return false;
+      return {
+        valid: false,
+        reason: `cookie[${index}] requires non-empty string name and string value, got name=${debugValue(c.name)}, value=${debugValue(c.value)}`,
+      };
     }
     if (c.domain !== undefined && typeof c.domain !== "string") {
-      return false;
+      return {
+        valid: false,
+        reason: `cookie[${index}].domain must be a string when provided, got ${debugValue(c.domain)}`,
+      };
     }
     if (typeof c.domain === "string") {
       const normalizedDomain = normalizeCookieDomain(c.domain);
       if (!normalizedDomain) {
-        return false;
+        return {
+          valid: false,
+          reason: `cookie[${index}].domain must not be empty, got ${debugValue(c.domain)}`,
+        };
       }
       if (!normalizedDomain.includes(".")) {
-        return false;
+        return {
+          valid: false,
+          reason: `cookie[${index}].domain must include a dot, got ${debugValue(c.domain)}`,
+        };
       }
     }
     if (c.path !== undefined && typeof c.path !== "string") {
-      return false;
+      return {
+        valid: false,
+        reason: `cookie[${index}].path must be a string when provided, got ${debugValue(c.path)}`,
+      };
     }
     if (typeof c.path === "string" && !c.path.startsWith("/")) {
-      return false;
+      return {
+        valid: false,
+        reason: `cookie[${index}].path must start with "/", got ${debugValue(c.path)}`,
+      };
     }
     if (c.expires !== undefined && typeof c.expires !== "number") {
-      return false;
+      return {
+        valid: false,
+        reason: `cookie[${index}].expires must be a number when provided, got ${debugValue(c.expires)}`,
+      };
     }
     if (c.httpOnly !== undefined && typeof c.httpOnly !== "boolean") {
-      return false;
+      return {
+        valid: false,
+        reason: `cookie[${index}].httpOnly must be a boolean when provided, got ${debugValue(c.httpOnly)}`,
+      };
     }
     if (c.secure !== undefined && typeof c.secure !== "boolean") {
-      return false;
+      return {
+        valid: false,
+        reason: `cookie[${index}].secure must be a boolean when provided, got ${debugValue(c.secure)}`,
+      };
     }
     if (
       c.sameSite !== undefined &&
@@ -61,19 +117,40 @@ export function validateCookies(value: unknown): value is Cookie[] {
       c.sameSite !== "unspecified" &&
       c.sameSite !== "no_restriction"
     ) {
-      return false;
+      return {
+        valid: false,
+        reason:
+          `cookie[${index}].sameSite must be one of Strict|Lax|None|unspecified|no_restriction, ` +
+          `got ${debugValue(c.sameSite)}`,
+      };
     }
-    return true;
-  });
+  }
+
+  return { valid: true, cookies: value as Cookie[] };
+}
+
+export function validateCookies(value: unknown): value is Cookie[] {
+  function debug(reason: string): void {
+    console.error(`[validateCookies] ${reason}`);
+  }
+
+  const result = validateCookiesWithReason(value);
+  if (!result.valid) {
+    debug(result.reason);
+    return false;
+  }
+  return true;
 }
 
 export function assertValidCookies(value: unknown): Cookie[] {
-  if (!validateCookies(value)) {
+  const result = validateCookiesWithReason(value);
+  if (!result.valid) {
+    console.error(`[validateCookies] ${result.reason}`);
     throw new Error(
-      "E_COOKIE_INVALID: expected a non-empty JSON array of cookies with name and value fields",
+      `E_COOKIE_INVALID: ${result.reason}`,
     );
   }
-  return value;
+  return result.cookies;
 }
 
 function mapSameSite(

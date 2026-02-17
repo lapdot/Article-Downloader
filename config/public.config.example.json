@@ -1,0 +1,24 @@
+{
+  "pipeline": {
+    "outDir": "output",
+    "useHtmlStyleForImage": false,
+    "userAgent": "Mozilla/5.0 (Macintosh; Intel Mac OS X 10_15_7) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/123.0.0.0 Safari/537.36"
+  },
+  "cookies": {
+    "publicEntries": [
+      {
+        "name": "_ga",
+        "value": "GA1.2.example",
+        "domain": ".zhihu.com",
+        "path": "/",
+        "secure": true
+      },
+      {
+        "name": "z_c0",
+        "domain": ".zhihu.com",
+        "path": "/",
+        "secure": true
+      }
+    ]
+  }
+}

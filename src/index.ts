@@ -1,7 +1,12 @@
 export { verifyZhihuCookies } from "./adapters/zhihu.js";
 export { downloadHtml } from "./core/fetcher.js";
 export { parseHtmlToMarkdown, parseHtmlToMetadata } from "./core/parser.js";
-export { readNotionConfig } from "./core/notion-config.js";
+export {
+  resolveRuntimeConfig,
+  readPublicConfig,
+  readCookiesSecretsConfig,
+  readNotionSecretsConfig,
+} from "./core/runtime-config.js";
 export {
   uploadNotionBlocksToNotion,
   markdownToNotionBlocks,
@@ -25,7 +30,11 @@ export type {
   MetadataInput,
   HtmlMetadata,
   MetadataResult,
-  NotionConfig,
+  PublicCookieEntry,
+  PublicConfig,
+  CookiesSecretsConfig,
+  NotionSecretsConfig,
+  ResolvedRuntimeConfig,
   UploadInput,
   UploadResult,
   PipelineInput,

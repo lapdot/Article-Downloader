@@ -82,7 +82,7 @@ export function getSelectorsForZhihuType(type: ZhihuContentType): SelectorSet {
   return ZHIHU_SELECTORS_BY_TYPE[type];
 }
 
-export async function verifyZhihuCookies(cookies: Cookie[]): Promise<VerifyResult> {
+export async function verifyZhihuCookies(cookies: Cookie[], userAgent?: string): Promise<VerifyResult> {
   const fetchedAt = toIsoNow();
   const verifyUrl = "https://www.zhihu.com/settings/account";
   try {
@@ -90,7 +90,7 @@ export async function verifyZhihuCookies(cookies: Cookie[]): Promise<VerifyResul
       method: "GET",
       headers: {
         cookie: toCookieHeaderForUrl(cookies, verifyUrl),
-        "user-agent": ZHIHU_USER_AGENT,
+        "user-agent": userAgent ?? ZHIHU_USER_AGENT,
       },
       redirect: "manual",
     });

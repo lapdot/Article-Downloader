@@ -35,9 +35,6 @@ async function withRateLimitRetry<T>(fn: () => Promise<T>): Promise<T> {
 
 interface UploadBlocksInput {
   blocks: NotionBlock[];
-  title: string;
-  sourceUrl: string;
-  fetchedAt: string;
   notionToken: string;
   databaseId: string;
 }

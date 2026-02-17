@@ -2,7 +2,6 @@
 import path from "node:path";
 import { Command } from "commander";
 import { verifyZhihuCookies } from "./adapters/zhihu.js";
-import { assertValidCookies } from "./core/cookies.js";
 import { downloadHtml } from "./core/fetcher.js";
 import { parseHtmlToMarkdown, parseHtmlToMetadata } from "./core/parser.js";
 import {
@@ -11,27 +10,32 @@ import {
   type NotionBlock,
 } from "./core/notion.js";
 import { runPipeline } from "./core/pipeline.js";
-import { readNotionConfig } from "./core/notion-config.js";
+import { resolveRuntimeConfig } from "./core/runtime-config.js";
 import {
   createOutputDir,
+  formatMissingFileError,
+  isNotFoundError,
   readJsonFile,
   readTextFile,
   writeJsonFile,
   writeTextFile,
 } from "./utils/fs.js";
 import { logError, logInfo } from "./utils/log.js";
-import type { PipelineResult } from "./types.js";
+import type { PipelineResult, ResolvedRuntimeConfig } from "./types.js";
 
-async function loadCookies(cookiesPath: string) {
-  const raw = await readJsonFile<unknown>(cookiesPath);
-  return assertValidCookies(raw);
+function assertNoDeprecatedFlags(argv: string[]): void {
+  const hasDeprecatedCookiesFlag = argv.some((arg) => arg === "--cookies" || arg.startsWith("--cookies="));
+  const hasDeprecatedNotionFlag = argv.some(
+    (arg) => arg === "--notion-config" || arg.startsWith("--notion-config="),
+  );
+  if (hasDeprecatedCookiesFlag || hasDeprecatedNotionFlag) {
+    throw new Error(
+      "deprecated flags detected: use --config with optional --cookies-secrets and --notion-secrets",
+    );
+  }
 }
 
-function printResult(value: unknown, json: boolean): void {
-  if (json) {
-    logInfo(JSON.stringify(value, null, 2));
-    return;
-  }
+function printResult(value: unknown): void {
   logInfo(JSON.stringify(value, null, 2));
 }
 
@@ -61,19 +65,100 @@ function assertNotionBlocks(value: unknown): NotionBlock[] {
   return value as NotionBlock[];
 }
 
+async function readRequiredTextInput(kind: string, filePath: string): Promise<string> {
+  try {
+    return await readTextFile(filePath);
+  } catch (error) {
+    if (isNotFoundError(error)) {
+      throw formatMissingFileError(kind, filePath);
+    }
+    throw error;
+  }
+}
+
+async function readRequiredJsonInput<T>(kind: string, filePath: string): Promise<T> {
+  try {
+    return await readJsonFile<T>(filePath);
+  } catch (error) {
+    if (isNotFoundError(error)) {
+      throw formatMissingFileError(kind, filePath);
+    }
+    throw error;
+  }
+}
+
+interface RuntimeConfigOptions {
+  config?: string;
+  cookiesSecrets?: string;
+  notionSecrets?: string;
+  requireCookies?: boolean;
+  requireNotion?: boolean;
+}
+
+async function loadRuntimeConfig(options: RuntimeConfigOptions): Promise<ResolvedRuntimeConfig> {
+  return resolveRuntimeConfig({
+    configPath: options.config,
+    cookiesSecretsPath: options.cookiesSecrets,
+    notionSecretsPath: options.notionSecrets,
+    requireCookies: options.requireCookies,
+    requireNotion: options.requireNotion,
+  });
+}
+
+async function loadRuntimeConfigForRun(options: RuntimeConfigOptions): Promise<{
+  runtimeConfig: ResolvedRuntimeConfig;
+  notionSetupError?: string;
+}> {
+  try {
+    const runtimeConfig = await loadRuntimeConfig({
+      ...options,
+      requireNotion: true,
+    });
+    return { runtimeConfig };
+  } catch (error) {
+    const message = error instanceof Error ? error.message : "unknown error";
+    const runtimeConfig = await loadRuntimeConfig({
+      ...options,
+      requireNotion: false,
+    });
+    return { runtimeConfig, notionSetupError: message };
+  }
+}
+
+function getRequiredNotionSecrets(runtimeConfig: ResolvedRuntimeConfig): {
+  notionToken: string;
+  databaseId: string;
+} {
+  if (!runtimeConfig.notion.notionToken || !runtimeConfig.notion.databaseId) {
+    throw new Error("missing notion secrets");
+  }
+
+  return {
+    notionToken: runtimeConfig.notion.notionToken,
+    databaseId: runtimeConfig.notion.databaseId,
+  };
+}
+
 export function createProgram(): Command {
   const program = new Command();
   program.name("article-downloader").description("Download and process articles").version("0.1.0");
 
   program
     .command("verify-zhihu")
-    .requiredOption("--cookies <path>", "path to cookies JSON")
-    .option("--json", "json output", false)
+    .option("--config <path>", "path to public config JSON")
+    .option("--cookies-secrets <path>", "path to cookies secrets JSON")
     .action(async (opts) => {
       try {
-        const cookies = await loadCookies(opts.cookies);
-        const result = await verifyZhihuCookies(cookies);
-        printResult(result, opts.json);
+        const runtimeConfig = await loadRuntimeConfig({
+          config: opts.config,
+          cookiesSecrets: opts.cookiesSecrets,
+          requireCookies: true,
+        });
+        const result = await verifyZhihuCookies(
+          runtimeConfig.cookies,
+          runtimeConfig.pipeline.userAgent,
+        );
+        printResult(result);
         if (!result.ok) {
           process.exitCode = 1;
         }
@@ -86,20 +171,29 @@ export function createProgram(): Command {
   program
     .command("fetch")
     .requiredOption("--url <url>", "target URL")
-    .requiredOption("--cookies <path>", "path to cookies JSON")
-    .option("--out <dir>", "output base directory", "output")
-    .option("--json", "json output", false)
+    .option("--config <path>", "path to public config JSON")
+    .option("--cookies-secrets <path>", "path to cookies secrets JSON")
+    .option("--out <dir>", "output base directory")
     .action(async (opts) => {
       try {
-        const cookies = await loadCookies(opts.cookies);
-        const result = await downloadHtml({ url: opts.url, cookies });
+        const runtimeConfig = await loadRuntimeConfig({
+          config: opts.config,
+          cookiesSecrets: opts.cookiesSecrets,
+          requireCookies: true,
+        });
+        const result = await downloadHtml({
+          url: opts.url,
+          cookies: runtimeConfig.cookies,
+          userAgent: runtimeConfig.pipeline.userAgent,
+        });
         if (!result.ok || !result.html) {
-          printResult(result, opts.json);
+          printResult(result);
           process.exitCode = 1;
           return;
         }
 
-        const outputDir = await createOutputDir(opts.out, opts.url);
+        const outputBaseDir = opts.out ?? runtimeConfig.pipeline.outDir;
+        const outputDir = await createOutputDir(outputBaseDir, opts.url);
         const htmlPath = path.join(outputDir, "page.html");
         await writeTextFile(htmlPath, result.html);
         await writeJsonFile(path.join(outputDir, "meta.json"), {
@@ -109,7 +203,7 @@ export function createProgram(): Command {
           },
         });
 
-        printResult({ ...result, htmlPath }, opts.json);
+        printResult({ ...result, htmlPath });
       } catch (error) {
         logError(error instanceof Error ? error.message : "unknown error");
         process.exitCode = 1;
@@ -121,16 +215,15 @@ export function createProgram(): Command {
     .requiredOption("--html <path>", "path to input HTML")
     .requiredOption("--url <url>", "original URL")
     .option("--out <dir>", "output base directory", "output")
-    .option("--json", "json output", false)
     .action(async (opts) => {
       try {
-        const html = await readTextFile(opts.html);
+        const html = await readRequiredTextInput("input html", opts.html);
         const result = await parseHtmlToMetadata({
           html,
           sourceUrl: opts.url,
         });
         if (!result.ok || !result.metadata) {
-          printResult(result, opts.json);
+          printResult(result);
           process.exitCode = 1;
           return;
         }
@@ -142,7 +235,7 @@ export function createProgram(): Command {
           metadata: result,
         });
 
-        printResult({ ...result, metadataPath }, opts.json);
+        printResult({ ...result, metadataPath });
       } catch (error) {
         logError(error instanceof Error ? error.message : "unknown error");
         process.exitCode = 1;
@@ -159,17 +252,16 @@ export function createProgram(): Command {
       "use HTML img output instead of markdown image",
       false,
     )
-    .option("--json", "json output", false)
     .action(async (opts) => {
       try {
-        const html = await readTextFile(opts.html);
+        const html = await readRequiredTextInput("input html", opts.html);
         const result = await parseHtmlToMarkdown({
           html,
           sourceUrl: opts.url,
           useHtmlStyleForImage: opts.useHtmlStyleForImage,
         });
         if (!result.ok || !result.markdown) {
-          printResult(result, opts.json);
+          printResult(result);
           process.exitCode = 1;
           return;
         }
@@ -184,7 +276,7 @@ export function createProgram(): Command {
           },
         });
 
-        printResult({ ...result, markdownPath }, opts.json);
+        printResult({ ...result, markdownPath });
       } catch (error) {
         logError(error instanceof Error ? error.message : "unknown error");
         process.exitCode = 1;
@@ -195,10 +287,9 @@ export function createProgram(): Command {
     .command("transform-notion")
     .requiredOption("--md <path>", "path to markdown file")
     .option("--out <dir>", "output base directory", "output")
-    .option("--json", "json output", false)
     .action(async (opts) => {
       try {
-        const markdown = await readTextFile(opts.md);
+        const markdown = await readRequiredTextInput("input markdown", opts.md);
         const blocks = markdownToNotionBlocks(markdown);
         const outputDir = await createOutputDir(opts.out, opts.md);
         const blocksPath = path.join(outputDir, "notion-blocks.json");
@@ -211,7 +302,6 @@ export function createProgram(): Command {
             blocksPath,
             blockCount: blocks.length,
           },
-          opts.json,
         );
       } catch (error) {
         logError(error instanceof Error ? error.message : "unknown error");
@@ -222,26 +312,27 @@ export function createProgram(): Command {
   program
     .command("upload-notion")
     .requiredOption("--blocks <path>", "path to Notion blocks JSON file")
-    .requiredOption("--title <title>", "article title")
-    .requiredOption("--source-url <url>", "article source URL")
-    .requiredOption("--fetched-at <iso>", "fetch timestamp in ISO format")
-    .requiredOption("--notion-config <path>", "path to Notion config JSON")
-    .option("--json", "json output", false)
+    .option("--config <path>", "path to public config JSON")
+    .option("--notion-secrets <path>", "path to notion secrets JSON")
     .action(async (opts) => {
       try {
-        const notionConfig = await readNotionConfig(opts.notionConfig);
-        const blocksRaw = await readJsonFile<unknown>(opts.blocks);
+        const runtimeConfig = await loadRuntimeConfig({
+          config: opts.config,
+          notionSecrets: opts.notionSecrets,
+          requireCookies: false,
+          requireNotion: true,
+        });
+        const notionSecrets = getRequiredNotionSecrets(runtimeConfig);
+
+        const blocksRaw = await readRequiredJsonInput<unknown>("input blocks", opts.blocks);
         const blocks = assertNotionBlocks(blocksRaw);
         const result = await uploadNotionBlocksToNotion({
           blocks,
-          title: opts.title,
-          sourceUrl: opts.sourceUrl,
-          fetchedAt: opts.fetchedAt,
-          notionToken: notionConfig.notionToken,
-          databaseId: notionConfig.databaseId,
+          notionToken: notionSecrets.notionToken,
+          databaseId: notionSecrets.databaseId,
         });
 
-        printResult(result, opts.json);
+        printResult(result);
         if (!result.ok) {
           process.exitCode = 1;
         }
@@ -254,30 +345,36 @@ export function createProgram(): Command {
   program
     .command("run")
     .requiredOption("--url <url>", "target URL")
-    .requiredOption("--cookies <path>", "path to cookies JSON")
-    .option("--out <dir>", "output base directory", "output")
-    .option("--notion-config <path>", "path to Notion config JSON")
+    .option("--config <path>", "path to public config JSON")
+    .option("--cookies-secrets <path>", "path to cookies secrets JSON")
+    .option("--notion-secrets <path>", "path to notion secrets JSON")
+    .option("--out <dir>", "output base directory")
     .option(
       "--use-html-style-for-image",
       "use HTML img output instead of markdown image",
-      false,
     )
     .option(
       "--full-result",
       "print full pipeline result (default is simplified result)",
       false,
     )
-    .option("--json", "json output", false)
     .action(async (opts) => {
       try {
+        const { runtimeConfig, notionSetupError } = await loadRuntimeConfigForRun({
+          config: opts.config,
+          cookiesSecrets: opts.cookiesSecrets,
+          notionSecrets: opts.notionSecrets,
+          requireCookies: true,
+        });
+
         const result = await runPipeline({
           url: opts.url,
-          cookiesPath: opts.cookies,
+          runtimeConfig,
           outDir: opts.out,
-          notionConfigPath: opts.notionConfig,
-          useHtmlStyleForImage: opts.useHtmlStyleForImage,
+          useHtmlStyleForImage: opts.useHtmlStyleForImage === true ? true : undefined,
+          notionSetupError,
         });
-        printResult(opts.fullResult ? result : simplifyRunResult(result), opts.json);
+        printResult(opts.fullResult ? result : simplifyRunResult(result));
         if (!result.ok) {
           process.exitCode = 1;
         }
@@ -291,6 +388,7 @@ export function createProgram(): Command {
 }
 
 export async function runCli(argv = process.argv): Promise<void> {
+  assertNoDeprecatedFlags(argv);
   const program = createProgram();
   await program.parseAsync(argv);
 }

@@ -3,29 +3,16 @@ import { verifyZhihuCookies } from "../adapters/zhihu.js";
 import { downloadHtml } from "./fetcher.js";
 import { parseHtmlToMarkdown, parseHtmlToMetadata } from "./parser.js";
 import { markdownToNotionBlocks, uploadNotionBlocksToNotion } from "./notion.js";
-import { readNotionConfig } from "./notion-config.js";
-import { assertValidCookies } from "./cookies.js";
-import { createOutputDir, readJsonFile, writeJsonFile, writeTextFile } from "../utils/fs.js";
-import type { Cookie, PipelineInput, PipelineResult } from "../types.js";
+import { createOutputDir, writeJsonFile, writeTextFile } from "../utils/fs.js";
+import type { PipelineInput, PipelineResult, UploadResult } from "../types.js";
 
 export async function runPipeline(input: PipelineInput): Promise<PipelineResult> {
-  let cookies: Cookie[];
-  try {
-    const cookieJson = await readJsonFile<unknown>(input.cookiesPath);
-    cookies = assertValidCookies(cookieJson);
-  } catch (error) {
-    return {
-      ok: false,
-      verify: {
-        ok: false,
-        reason: error instanceof Error ? error.message : "invalid cookie file",
-        errorCode: "E_COOKIE_INVALID",
-      },
-      reason: "cookie validation failed",
-    };
-  }
+  const cookies = input.runtimeConfig.cookies;
+  const useHtmlStyleForImage =
+    input.useHtmlStyleForImage ?? input.runtimeConfig.pipeline.useHtmlStyleForImage;
+  const baseOutputDir = input.outDir ?? input.runtimeConfig.pipeline.outDir;
 
-  const verify = await verifyZhihuCookies(cookies);
+  const verify = await verifyZhihuCookies(cookies, input.runtimeConfig.pipeline.userAgent);
   if (!verify.ok) {
     return {
       ok: false,
@@ -34,7 +21,11 @@ export async function runPipeline(input: PipelineInput): Promise<PipelineResult>
     };
   }
 
-  const download = await downloadHtml({ url: input.url, cookies });
+  const download = await downloadHtml({
+    url: input.url,
+    cookies,
+    userAgent: input.runtimeConfig.pipeline.userAgent,
+  });
   if (!download.ok || !download.html) {
     return {
       ok: false,
@@ -44,7 +35,6 @@ export async function runPipeline(input: PipelineInput): Promise<PipelineResult>
     };
   }
 
-  const baseOutputDir = input.outDir ?? "output";
   const outputDir = await createOutputDir(baseOutputDir, input.url);
   const htmlPath = path.join(outputDir, "page.html");
   const metadataPath = path.join(outputDir, "metadata.json");
@@ -65,46 +55,58 @@ export async function runPipeline(input: PipelineInput): Promise<PipelineResult>
   const parse = await parseHtmlToMarkdown({
     html: download.html,
     sourceUrl,
-    useHtmlStyleForImage: input.useHtmlStyleForImage,
+    useHtmlStyleForImage,
   });
   if (parse.ok && parse.markdown) {
     await writeTextFile(markdownPath, parse.markdown);
   }
 
-  let upload;
-  let notionErrorReason: string | undefined;
-  if (input.notionConfigPath && parse.ok && parse.markdown) {
-    try {
-      const notionConfig = await readNotionConfig(input.notionConfigPath);
-      const blocks = markdownToNotionBlocks(parse.markdown);
-      await writeJsonFile(notionBlocksPath, blocks);
+  let upload: UploadResult | undefined;
+  const notionToken = input.runtimeConfig.notion.notionToken;
+  const databaseId = input.runtimeConfig.notion.databaseId;
+  const uploadAttempted = parse.ok && Boolean(parse.markdown);
+  if (uploadAttempted && parse.markdown) {
+    const blocks = markdownToNotionBlocks(parse.markdown);
+    await writeJsonFile(notionBlocksPath, blocks);
+    if (input.notionSetupError) {
+      upload = {
+        ok: false,
+        reason: input.notionSetupError,
+        errorCode: "E_NOTION_API",
+      };
+    } else if (!notionToken || !databaseId) {
+      upload = {
+        ok: false,
+        reason: "missing notion secrets",
+        errorCode: "E_NOTION_API",
+      };
+    } else {
       upload = await uploadNotionBlocksToNotion({
         blocks,
-        title: parse.title ?? "Untitled",
-        sourceUrl,
-        fetchedAt: download.fetchedAt,
-        notionToken: notionConfig.notionToken,
-        databaseId: notionConfig.databaseId,
+        notionToken,
+        databaseId,
       });
-    } catch (error) {
-      notionErrorReason = error instanceof Error ? error.message : "invalid notion config";
     }
   }
 
   const resultOk =
     metadata.ok &&
     parse.ok &&
-    (!input.notionConfigPath || (!!upload && upload.ok)) &&
-    !notionErrorReason;
+    (!!upload && upload.ok);
   const reason =
     !metadata.ok ? "metadata failed" :
     !parse.ok ? "parse failed" :
-    notionErrorReason ? notionErrorReason :
     upload && !upload.ok ? "notion upload failed" :
     undefined;
 
   await writeJsonFile(metaPath, {
-    input,
+    input: {
+      url: input.url,
+      outDir: baseOutputDir,
+      useHtmlStyleForImage,
+      notionUploadAttempted: uploadAttempted,
+      cookieCount: cookies.length,
+    },
     verify,
     download: {
       ...download,
@@ -115,7 +117,7 @@ export async function runPipeline(input: PipelineInput): Promise<PipelineResult>
       ...parse,
       markdown: undefined,
     },
-    notionBlocksPath: upload ? notionBlocksPath : undefined,
+    notionBlocksPath: uploadAttempted ? notionBlocksPath : undefined,
     upload,
     reason,
   });
@@ -131,7 +133,7 @@ export async function runPipeline(input: PipelineInput): Promise<PipelineResult>
     htmlPath,
     metadataPath: metadata.ok && metadata.metadata ? metadataPath : undefined,
     markdownPath: parse.ok && parse.markdown ? markdownPath : undefined,
-    notionBlocksPath: input.notionConfigPath && upload ? notionBlocksPath : undefined,
+    notionBlocksPath: uploadAttempted ? notionBlocksPath : undefined,
     metaPath,
     reason,
   };

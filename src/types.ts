@@ -84,9 +84,6 @@ export interface MetadataResult {
 
 export interface UploadInput {
   markdown: string;
-  title: string;
-  sourceUrl: string;
-  fetchedAt: string;
   notionToken: string;
   databaseId: string;
 }
@@ -99,17 +96,56 @@ export interface UploadResult {
   errorCode?: ErrorCode;
 }
 
-export interface NotionConfig {
+export interface PublicCookieEntry {
+  name: string;
+  value: string;
+  domain?: string;
+  path?: string;
+  expires?: number;
+  httpOnly?: boolean;
+  secure?: boolean;
+  sameSite?: "Strict" | "Lax" | "None" | "unspecified" | "no_restriction";
+}
+
+export interface PublicConfig {
+  pipeline?: {
+    outDir?: string;
+    useHtmlStyleForImage?: boolean;
+    userAgent?: string;
+  };
+  cookies?: {
+    publicEntries?: PublicCookieEntry[];
+  };
+}
+
+export interface CookiesSecretsConfig {
+  cookies: Cookie[];
+}
+
+export interface NotionSecretsConfig {
   notionToken: string;
   databaseId: string;
 }
 
+export interface ResolvedRuntimeConfig {
+  cookies: Cookie[];
+  pipeline: {
+    outDir: string;
+    useHtmlStyleForImage: boolean;
+    userAgent?: string;
+  };
+  notion: {
+    notionToken?: string;
+    databaseId?: string;
+  };
+}
+
 export interface PipelineInput {
   url: string;
-  cookiesPath: string;
+  runtimeConfig: ResolvedRuntimeConfig;
   outDir?: string;
-  notionConfigPath?: string;
   useHtmlStyleForImage?: boolean;
+  notionSetupError?: string;
 }
 
 export interface PipelineResult {
