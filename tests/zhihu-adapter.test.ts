@@ -4,23 +4,23 @@ import { detectZhihuContentType, getSelectorsForZhihuType } from "../src/adapter
 describe("zhihu adapter detection", () => {
   test("detects answer type from question/answer path", () => {
     const type = detectZhihuContentType(
-      new URL("https://www.zhihu.com/question/608863165/answer/1933151546000012584"),
+      new URL("https://www.zhihu.com/question/111111111/answer/1111111111111111111"),
     );
     expect(type).toBe("answer");
   });
 
   test("detects pin type from pin path", () => {
-    const type = detectZhihuContentType(new URL("https://www.zhihu.com/pin/2006666135236535079"));
+    const type = detectZhihuContentType(new URL("https://www.zhihu.com/pin/2222222222222222222"));
     expect(type).toBe("pin");
   });
 
   test("detects zhuanlan article from zhuanlan path", () => {
-    const type = detectZhihuContentType(new URL("https://zhuanlan.zhihu.com/p/2002117978997663372"));
+    const type = detectZhihuContentType(new URL("https://zhuanlan.zhihu.com/p/3333333333333333333"));
     expect(type).toBe("zhuanlan_article");
   });
 
   test("returns null for unsupported zhihu path", () => {
-    const type = detectZhihuContentType(new URL("https://www.zhihu.com/question/608863165"));
+    const type = detectZhihuContentType(new URL("https://www.zhihu.com/question/111111111"));
     expect(type).toBeNull();
   });
 });

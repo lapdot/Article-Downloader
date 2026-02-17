@@ -154,16 +154,16 @@ describe("parseHtmlToMarkdown", () => {
   test("extracts title and main content for zhihu", async () => {
     const result = await parseHtmlToMarkdown({
       html: fixture,
-      sourceUrl: "https://www.zhihu.com/question/608863165/answer/1933151546000012584",
+      sourceUrl: "https://www.zhihu.com/question/111111111/answer/1111111111111111111",
     });
 
     expect(result.ok).toBe(true);
     expect(result.title).toBe("Zhihu Fixture Title");
     expect(result.markdown).toContain("# Zhihu Fixture Title");
-    expect(result.markdown).toContain("[Fixture Author](https://www.zhihu.com/people/fixture-author)");
+    expect(result.markdown).toContain("[Sanitized Author A](https://www.zhihu.com/people/sanitized-author-a)");
     expect(result.markdown).toContain("First paragraph.");
     expect(result.markdown).toContain("*   Point A");
-    expect(result.markdown).toContain("https://zhuanlan.zhihu.com/p/123");
+    expect(result.markdown).toContain("https://zhuanlan.zhihu.com/p/333333333");
     expect(result.stats?.removedNodes).toBe(0);
   });
 
@@ -180,7 +180,7 @@ describe("parseHtmlToMarkdown", () => {
   test("fails on unsupported zhihu path", async () => {
     const result = await parseHtmlToMarkdown({
       html: fixture,
-      sourceUrl: "https://www.zhihu.com/question/608863165",
+      sourceUrl: "https://www.zhihu.com/question/111111111",
     });
 
     expect(result.ok).toBe(false);
@@ -281,7 +281,7 @@ describe("parseHtmlToMarkdown", () => {
   test("converts pin sticker image with ascii-bracket alt to emoji text", async () => {
     const result = await parseHtmlToMarkdown({
       html: pinFixtureWithEmojiImage,
-      sourceUrl: "https://www.zhihu.com/pin/2006666135236535079",
+      sourceUrl: "https://www.zhihu.com/pin/2222222222222222222",
     });
 
     expect(result.ok).toBe(true);
@@ -292,7 +292,7 @@ describe("parseHtmlToMarkdown", () => {
   test("converts zhuanlan sticker image with ascii-bracket alt to emoji text", async () => {
     const result = await parseHtmlToMarkdown({
       html: zhuanlanFixtureWithEmojiImage,
-      sourceUrl: "https://zhuanlan.zhihu.com/p/2002117978997663372",
+      sourceUrl: "https://zhuanlan.zhihu.com/p/3333333333333333333",
     });
 
     expect(result.ok).toBe(true);
@@ -325,26 +325,26 @@ describe("parseHtmlToMarkdown", () => {
   test("parses zhihu pin markdown", async () => {
     const result = await parseHtmlToMarkdown({
       html: pinFixture,
-      sourceUrl: "https://www.zhihu.com/pin/2006666135236535079",
+      sourceUrl: "https://www.zhihu.com/pin/2222222222222222222",
     });
 
     expect(result.ok).toBe(true);
-    expect(result.title).toContain("Pin Fixture Title");
+    expect(result.title).toContain("Sanitized Pin Title");
     expect(result.markdown).toContain("Pin first line.");
     expect(result.markdown).toContain("Pin second line");
     expect(result.markdown).toContain("$x+y=z$");
-    expect(result.markdown).toContain("发布于 2026-02-16 09:48");
-    expect(result.markdown).not.toContain("# Pin Fixture Title");
+    expect(result.markdown).toContain("发布于 2026-01-15 10:00");
+    expect(result.markdown).not.toContain("# Sanitized Pin Title");
   });
 
   test("parses zhihu zhuanlan markdown", async () => {
     const result = await parseHtmlToMarkdown({
       html: zhuanlanFixture,
-      sourceUrl: "https://zhuanlan.zhihu.com/p/2002117978997663372",
+      sourceUrl: "https://zhuanlan.zhihu.com/p/3333333333333333333",
     });
 
     expect(result.ok).toBe(true);
-    expect(result.title).toBe("Zhuanlan Fixture Title");
+    expect(result.title).toBe("Sanitized Zhuanlan Title");
     expect(result.markdown).toContain("Zhuanlan first paragraph.");
     expect(result.markdown).toContain("$a^2+b^2=c^2$");
     expect(result.markdown).not.toContain(".css-");
@@ -355,13 +355,13 @@ describe("parseHtmlToMarkdown", () => {
   test("parses zhuanlan sample-like html without css leakage", async () => {
     const result = await parseHtmlToMarkdown({
       html: zhuanlanSampleLikeFixture,
-      sourceUrl: "https://zhuanlan.zhihu.com/p/693980268",
+      sourceUrl: "https://zhuanlan.zhihu.com/p/3333333333333333333",
     });
 
     expect(result.ok).toBe(true);
-    expect(result.title).toBe("在济南");
-    expect(result.markdown).toContain("招待所二楼的夏天");
-    expect(result.markdown).toContain("八九年初夏");
+    expect(result.title).toBe("Sanitized Sample Title");
+    expect(result.markdown).toContain("Sanitized chapter one");
+    expect(result.markdown).toContain("early summer");
     expect(result.markdown).not.toContain(".css-");
     expect(result.markdown).not.toContain("position:absolute");
     expect(result.markdown).not.toContain("<style>");
@@ -384,7 +384,7 @@ describe("parseHtmlToMarkdown", () => {
 </html>`;
     const result = await parseHtmlToMarkdown({
       html,
-      sourceUrl: "https://zhuanlan.zhihu.com/p/2002117978997663372",
+      sourceUrl: "https://zhuanlan.zhihu.com/p/3333333333333333333",
     });
 
     expect(result.ok).toBe(true);
@@ -396,7 +396,7 @@ describe("parseHtmlToMarkdown", () => {
   test("fails fast on selector miss for supported pin content selector", async () => {
     const result = await parseHtmlToMarkdown({
       html: "<html><head><meta property=\"og:title\" content=\"X\" /></head><body><div class=\"PinItem\">no pin content</div></body></html>",
-      sourceUrl: "https://www.zhihu.com/pin/2006666135236535079",
+      sourceUrl: "https://www.zhihu.com/pin/2222222222222222222",
     });
 
     expect(result.ok).toBe(false);
@@ -408,7 +408,7 @@ describe("parseHtmlToMarkdown", () => {
   test("fails fast on zhuanlan selector miss for supported content selector", async () => {
     const result = await parseHtmlToMarkdown({
       html: "<html><head></head><body><h1 class=\"Post-Title\">X</h1><div>no zhuanlan content</div></body></html>",
-      sourceUrl: "https://zhuanlan.zhihu.com/p/2002117978997663372",
+      sourceUrl: "https://zhuanlan.zhihu.com/p/3333333333333333333",
     });
 
     expect(result.ok).toBe(false);
@@ -432,7 +432,7 @@ describe("parseHtmlToMarkdown", () => {
   test("fails fast on strict pin title selector miss", async () => {
     const result = await parseHtmlToMarkdown({
       html: "<html><head><title>X</title></head><body><div class=\"PinItem\"><span class=\"RichText ztext\"><p>Body</p></span></div></body></html>",
-      sourceUrl: "https://www.zhihu.com/pin/2006666135236535079",
+      sourceUrl: "https://www.zhihu.com/pin/2222222222222222222",
     });
 
     expect(result.ok).toBe(false);
@@ -444,7 +444,7 @@ describe("parseHtmlToMarkdown", () => {
   test("fails fast on strict zhuanlan time selector miss", async () => {
     const result = await parseHtmlToMarkdown({
       html: "<html><body><h1 class=\"Post-Title\">X</h1><div class=\"Post-content\"><div class=\"RichText ztext\"><p>Body</p></div></div></body></html>",
-      sourceUrl: "https://zhuanlan.zhihu.com/p/2002117978997663372",
+      sourceUrl: "https://zhuanlan.zhihu.com/p/3333333333333333333",
     });
 
     expect(result.ok).toBe(false);
@@ -464,25 +464,25 @@ describe("parseHtmlToMetadata", () => {
     expect(result.ok).toBe(true);
     expect(result.metadata).toEqual({
       articleUrl: "https://www.zhihu.com/question/1/answer/2",
-      authorId: "Fixture Author",
-      authorHomepage: "https://www.zhihu.com/people/fixture-author",
-      publishTime: "2026-01-01",
-      editTime: "编辑于 2026-01-02",
+      authorId: "Sanitized Author A",
+      authorHomepage: "https://www.zhihu.com/people/sanitized-author-a",
+      publishTime: "2026-01-15",
+      editTime: "编辑于 2026-01-16",
     });
   });
 
   test("extracts metadata for pin", async () => {
     const result = await parseHtmlToMetadata({
       html: pinFixture,
-      sourceUrl: "https://www.zhihu.com/pin/2006666135236535079",
+      sourceUrl: "https://www.zhihu.com/pin/2222222222222222222",
     });
 
     expect(result.ok).toBe(true);
     expect(result.metadata).toEqual({
-      articleUrl: "https://www.zhihu.com/pin/2006666135236535079",
-      authorId: "Pin Fixture Author",
-      authorHomepage: "https://www.zhihu.com/people/pin-fixture-author",
-      publishTime: "发布于 2026-02-16 09:48",
+      articleUrl: "https://www.zhihu.com/pin/2222222222222222222",
+      authorId: "Sanitized Author B",
+      authorHomepage: "https://www.zhihu.com/people/sanitized-author-b",
+      publishTime: "发布于 2026-01-15 10:00",
       editTime: undefined,
     });
   });
@@ -490,15 +490,15 @@ describe("parseHtmlToMetadata", () => {
   test("extracts metadata for zhuanlan article", async () => {
     const result = await parseHtmlToMetadata({
       html: zhuanlanFixture,
-      sourceUrl: "https://zhuanlan.zhihu.com/p/2002117978997663372",
+      sourceUrl: "https://zhuanlan.zhihu.com/p/3333333333333333333",
     });
 
     expect(result.ok).toBe(true);
     expect(result.metadata).toEqual({
-      articleUrl: "https://zhuanlan.zhihu.com/p/2002117978997663372",
-      authorId: "Zhuanlan Fixture Author",
-      authorHomepage: "https://www.zhihu.com/people/zhuanlan-fixture-author",
-      publishTime: "发布于 2026-02-03 20:37",
+      articleUrl: "https://zhuanlan.zhihu.com/p/3333333333333333333",
+      authorId: "Sanitized Author C",
+      authorHomepage: "https://www.zhihu.com/people/sanitized-author-c",
+      publishTime: "发布于 2026-01-20 14:30",
       editTime: undefined,
     });
   });
@@ -633,7 +633,7 @@ describe("parseHtmlToMetadata", () => {
   test("fails fast on metadata selector miss for supported type", async () => {
     const result = await parseHtmlToMetadata({
       html: "<html><body><div>no author/time</div></body></html>",
-      sourceUrl: "https://www.zhihu.com/pin/2006666135236535079",
+      sourceUrl: "https://www.zhihu.com/pin/2222222222222222222",
     });
 
     expect(result.ok).toBe(false);

@@ -42,7 +42,7 @@ describe("fetch + parse integration", () => {
 
     const parsed = await parseHtmlToMarkdown({
       html: download.html ?? "",
-      sourceUrl: "https://www.zhihu.com/question/608863165/answer/1933151546000012584",
+      sourceUrl: "https://www.zhihu.com/question/111111111/answer/1111111111111111111",
     });
 
     expect(parsed.ok).toBe(true);
@@ -68,14 +68,14 @@ describe("fetch + parse integration", () => {
     });
 
     expect(download.ok).toBe(true);
-    expect(download.html).toContain("Zhuanlan Fixture Title");
+    expect(download.html).toContain("Sanitized Zhuanlan Title");
 
     const parsed = await parseHtmlToMarkdown({
       html: download.html ?? "",
-      sourceUrl: "https://zhuanlan.zhihu.com/p/2002117978997663372",
+      sourceUrl: "https://zhuanlan.zhihu.com/p/3333333333333333333",
     });
 
     expect(parsed.ok).toBe(true);
-    expect(parsed.markdown).toContain("Zhuanlan Fixture Title");
+    expect(parsed.markdown).toContain("Sanitized Zhuanlan Title");
   });
 });

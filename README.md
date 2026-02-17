@@ -167,13 +167,13 @@ npx tsx src/cli.ts fetch \
   --config ./config/public.config.json
 ```
 
-### 3a) Extract Metadata From HTML
+### 3) Extract Metadata From HTML
 
 ```bash
 npx tsx src/cli.ts get_metadata --html ./output/<run>/page.html --url "https://zhuanlan.zhihu.com/p/123" --out ./output
 ```
 
-### 3b) Parse HTML to Markdown
+### 4) Parse HTML to Markdown
 
 ```bash
 npx tsx src/cli.ts parse --html ./output/<run>/page.html --url "https://zhuanlan.zhihu.com/p/123" --out ./output --use-html-style-for-image
@@ -181,7 +181,7 @@ npx tsx src/cli.ts parse --html ./output/<run>/page.html --url "https://zhuanlan
 
 `--use-html-style-for-image` is optional. By default, image output uses markdown style (`![](...)`).
 
-### 4a) Transform Markdown to Notion Blocks
+### 5) Transform Markdown to Notion Blocks
 
 ```bash
 npx tsx src/cli.ts transform-notion \
@@ -189,7 +189,7 @@ npx tsx src/cli.ts transform-notion \
   --out ./output
 ```
 
-### 4b) Upload Notion Blocks to Notion
+### 6) Upload Notion Blocks to Notion
 
 ```bash
 npx tsx src/cli.ts upload-notion \
@@ -198,7 +198,7 @@ npx tsx src/cli.ts upload-notion \
   --notion-secrets ./config/notion.secrets.local.json
 ```
 
-### 5) End-to-end run
+### 7) End-to-end run
 
 ```bash
 npx tsx src/cli.ts run \
@@ -282,3 +282,24 @@ import {
 ```bash
 npm test
 ```
+
+## Closed Test Loop
+
+Use the closed loop when you need a local, sealed validation pass before adding features.
+
+```bash
+npm run test:closed-loop
+```
+
+This command enforces:
+- localhost-only network calls during tests (external hosts are blocked)
+- preflight checks for obvious secret leaks in env vars and fixtures
+- full test suite execution with existing redaction/upload behavior checks
+- test URL sanitization policy: keep safe generic endpoints (for example `/settings/account`) and sanitize long Zhihu content IDs with deterministic placeholders
+
+If it fails, treat it as a safety gate:
+- network-guard failures mean a test attempted external access
+- preflight/fixture failures mean sensitive-looking data was detected
+- redaction failures mean runtime artifacts may expose secrets/secret paths
+
+Future note: the loop may split into `closed-loop:required` and `closed-loop:full` when the suite grows.

@@ -6,6 +6,38 @@ import { markdownToNotionBlocks, uploadNotionBlocksToNotion } from "./notion.js"
 import { createOutputDir, writeJsonFile, writeTextFile } from "../utils/fs.js";
 import type { PipelineInput, PipelineResult, UploadResult } from "../types.js";
 
+const REDACTED = "[REDACTED]";
+const SENSITIVE_TEXT_PATTERNS = [
+  /(?:[A-Za-z]:)?[^"\s]*cookies\.secrets\.local\.json/gi,
+  /(?:[A-Za-z]:)?[^"\s]*notion\.secrets\.local\.json/gi,
+  /\bntn_[A-Za-z0-9._-]+\b/gi,
+  /\bsecret[-_][A-Za-z0-9._-]+\b/gi,
+  /\bz_c0\s*[=:]\s*[^;\s"]+/gi,
+];
+
+function redactSensitiveText(value: string): string {
+  let redacted = value;
+  for (const pattern of SENSITIVE_TEXT_PATTERNS) {
+    redacted = redacted.replace(pattern, REDACTED);
+  }
+  return redacted;
+}
+
+function redactForMeta(value: unknown): unknown {
+  if (typeof value === "string") {
+    return redactSensitiveText(value);
+  }
+  if (Array.isArray(value)) {
+    return value.map((item) => redactForMeta(item));
+  }
+  if (!value || typeof value !== "object") {
+    return value;
+  }
+
+  const entries = Object.entries(value).map(([key, nested]) => [key, redactForMeta(nested)]);
+  return Object.fromEntries(entries);
+}
+
 export async function runPipeline(input: PipelineInput): Promise<PipelineResult> {
   const cookies = input.runtimeConfig.cookies;
   const useHtmlStyleForImage =
@@ -99,7 +131,7 @@ export async function runPipeline(input: PipelineInput): Promise<PipelineResult>
     upload && !upload.ok ? "notion upload failed" :
     undefined;
 
-  await writeJsonFile(metaPath, {
+  await writeJsonFile(metaPath, redactForMeta({
     input: {
       url: input.url,
       outDir: baseOutputDir,
@@ -120,7 +152,7 @@ export async function runPipeline(input: PipelineInput): Promise<PipelineResult>
     notionBlocksPath: uploadAttempted ? notionBlocksPath : undefined,
     upload,
     reason,
-  });
+  }));
 
   return {
     ok: resultOk,

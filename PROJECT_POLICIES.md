@@ -133,6 +133,35 @@ Tests are expected to protect:
 - Migration-era tests for removed legacy flags were intentionally pruned.
 - Suite should prioritize current policy guarantees over historical transition checks.
 
+### 7.3 Closed-loop local safety gate
+- The project defines a local closed test loop via `npm run test:closed-loop`.
+- The closed loop runs preflight checks and then the full test suite.
+- Closed-loop execution must not require real secrets.
+- Closed-loop execution enforces localhost-only network access; external hosts are blocked.
+- Test fixtures must not contain real secret material or obvious secret markers.
+- Runtime artifacts (for example `meta.json`) must not expose secret values or secret paths.
+
+### 7.4 Closed-loop evolution note
+- Future growth may split the loop into `closed-loop:required` and `closed-loop:full`.
+- Until explicitly introduced, a single `test:closed-loop` entrypoint remains the default policy.
+
+### 7.5 Test URL sanitization policy
+- Scope:
+  - Applies to URLs in test fixtures and test code (`tests/fixtures/*.html`, `tests/*.test.ts`).
+- Keep generic, non-sensitive endpoints unchanged:
+  - Example: `https://www.zhihu.com/settings/account`.
+  - Rationale: no personal/content-identifying payload in the path.
+- Sanitize content-identifying Zhihu URLs:
+  - Routes: `/question/<id>`, `/question/<id>/answer/<id>`, `/pin/<id>`, `zhuanlan.zhihu.com/p/<id>`.
+  - Rule: sanitize long numeric IDs (9+ digits) to deterministic placeholders.
+- Do not over-sanitize route structure:
+  - Keep Zhihu hostnames and route patterns so parser/adapter route-detection coverage remains valid.
+- Deterministic replacement requirement:
+  - Replacements must be stable and repeatable across fixtures/tests.
+  - Short demo IDs (`1`, `2`, `123`) are allowed when they are synthetic examples.
+- Validation expectation:
+  - Any policy-compliant test update must keep `npm test` and `npm run test:closed-loop` passing.
+
 ## 8. Change Governance
 
 ### 8.1 When changing policy
