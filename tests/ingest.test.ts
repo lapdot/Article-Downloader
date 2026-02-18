@@ -39,6 +39,8 @@ describe("ingest", () => {
         "https://www.zhihu.com/question/111111111/answer/222222222",
         "--fixture",
         "ingest-cli-reject-url",
+        "--out-fixtures-dir",
+        path.join(root, "fixtures"),
         "--url",
         "https://example.com/any",
       ]);
@@ -60,6 +62,8 @@ describe("ingest", () => {
         "https://www.zhihu.com/question/111111111/answer/222222222",
         "--fixture",
         "ingest-cli-missing-html",
+        "--out-fixtures-dir",
+        path.join(tmpdir(), "ingest-missing-html-fixtures"),
       ]);
     });
 

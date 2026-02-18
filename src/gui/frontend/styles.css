@@ -1,0 +1,132 @@
+:root {
+  --bg: #f5f7f8;
+  --panel: #ffffff;
+  --text: #1f2933;
+  --muted: #5f6c7b;
+  --line: #d8dee4;
+  --accent: #0b7285;
+}
+
+* {
+  box-sizing: border-box;
+}
+
+body {
+  margin: 0;
+  font-family: ui-sans-serif, -apple-system, BlinkMacSystemFont, "Segoe UI", sans-serif;
+  color: var(--text);
+  background: linear-gradient(180deg, #edf2f7 0%, var(--bg) 100%);
+}
+
+.layout {
+  max-width: 980px;
+  margin: 0 auto;
+  padding: 24px 16px 40px;
+}
+
+h1 {
+  margin: 0 0 16px;
+  font-size: 24px;
+}
+
+h2 {
+  margin: 0 0 12px;
+  font-size: 18px;
+}
+
+.panel {
+  background: var(--panel);
+  border: 1px solid var(--line);
+  border-radius: 10px;
+  padding: 14px;
+  margin-bottom: 14px;
+}
+
+.help {
+  color: var(--muted);
+  margin: 10px 0 0;
+}
+
+label {
+  display: block;
+  margin-bottom: 6px;
+  font-weight: 600;
+}
+
+input,
+select,
+button {
+  font: inherit;
+}
+
+input[type="text"],
+select {
+  width: 100%;
+  border: 1px solid var(--line);
+  border-radius: 8px;
+  padding: 8px 10px;
+  background: #fff;
+}
+
+.arg-row {
+  margin-bottom: 12px;
+}
+
+.arg-inline {
+  display: flex;
+  gap: 8px;
+}
+
+.arg-inline input {
+  flex: 1;
+}
+
+.arg-meta {
+  margin-top: 4px;
+  color: var(--muted);
+  font-size: 12px;
+}
+
+.actions {
+  display: flex;
+  justify-content: flex-end;
+}
+
+button {
+  border: 0;
+  border-radius: 8px;
+  padding: 10px 14px;
+  background: var(--accent);
+  color: #fff;
+  cursor: pointer;
+}
+
+button.secondary {
+  background: #4b5563;
+}
+
+#output-log {
+  min-height: 220px;
+  max-height: 460px;
+  overflow: auto;
+  margin: 0;
+  background: #0f172a;
+  color: #e2e8f0;
+  border-radius: 8px;
+  padding: 12px;
+  white-space: pre-wrap;
+}
+
+@media (max-width: 680px) {
+  .arg-inline {
+    flex-direction: column;
+  }
+
+  .actions {
+    justify-content: stretch;
+  }
+
+  .actions button {
+    width: 100%;
+  }
+}

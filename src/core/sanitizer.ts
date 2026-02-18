@@ -1,4 +1,5 @@
 import { load, type CheerioAPI } from "cheerio";
+import { isTag, type DataNode, type Element } from "domhandler";
 import type {
   LedgerNode,
   SanitizationCategory,
@@ -100,17 +101,24 @@ function classifyValue(value: string): ValueClass {
   return "plain_text";
 }
 
-function getElementNodePath($: CheerioAPI, element: unknown): string {
+function getElementNodePath($: CheerioAPI, element: Element): string {
   let current = $(element);
   const segments: string[] = [];
   while (current.length > 0) {
-    const tag = current.get(0)?.tagName;
+    const currentNode = current.get(0);
+    if (!currentNode || !isTag(currentNode)) {
+      break;
+    }
+    const tag = currentNode.tagName;
     if (!tag || tag === "html") {
       break;
     }
     const parent = current.parent();
-    const sameTagSiblings = parent.children(tag);
-    const index = sameTagSiblings.toArray().findIndex((node) => node === current.get(0));
+    const sameTagSiblings = parent
+      .children()
+      .toArray()
+      .filter((node) => isTag(node) && node.tagName === tag);
+    const index = sameTagSiblings.findIndex((node) => node === currentNode);
     segments.unshift(`${tag}[${index + 1}]`);
     current = parent;
   }
@@ -118,19 +126,22 @@ function getElementNodePath($: CheerioAPI, element: unknown): string {
 }
 
 export function analyzeStructure(html: string, policyVersion = "v1"): StructureLedger {
-  const $ = load(html, { decodeEntities: false });
+  const $ = load(html);
   const nodes: LedgerNode[] = [];
 
   $("*").each((_i, element) => {
+    if (!isTag(element)) {
+      return;
+    }
     const attrs = element.attribs ?? {};
     const attributesPresent = Object.keys(attrs).sort();
     const attributeValueClass: Record<string, ValueClass> = {};
     for (const attrName of attributesPresent) {
       attributeValueClass[attrName] = classifyValue(attrs[attrName] ?? "");
     }
-    const text = $(element).text().trim();
+    const text = $(element as Element).text().trim();
     nodes.push({
-      nodePath: getElementNodePath($, element),
+      nodePath: getElementNodePath($, element as Element),
       tagName: element.tagName,
       attributesPresent,
       attributeValueClass,
@@ -234,10 +245,13 @@ export function sanitizeHtmlForFixture(
   new URL(sourceUrl);
 
   const rawLedger = analyzeStructure(html, policyVersion);
-  const $ = load(html, { decodeEntities: false });
+  const $ = load(html);
   const store = createPlaceholderStore();
 
   $("*").each((_i, element) => {
+    if (!isTag(element)) {
+      return;
+    }
     const attrs = element.attribs ?? {};
     for (const [key, raw] of Object.entries(attrs)) {
       const value = String(raw ?? "");
@@ -262,6 +276,9 @@ export function sanitizeHtmlForFixture(
   });
 
   $("body, article, main, div, p, span, li, h1, h2, h3, h4").each((_i, element) => {
+    if (!isTag(element)) {
+      return;
+    }
     const node = $(element);
     const text = node.text();
     if (!text || !text.trim()) {
@@ -271,8 +288,11 @@ export function sanitizeHtmlForFixture(
     const sanitizedText = sanitizeScalar(text, store, "text");
     if (sanitizedText !== text) {
       node.contents().each((_j, child) => {
-        if (child.type === "text" && child.data) {
-          child.data = sanitizeScalar(child.data, store, "text");
+        if (child.type === "text") {
+          const textChild = child as DataNode;
+          if (textChild.data) {
+            textChild.data = sanitizeScalar(textChild.data, store, "text");
+          }
         }
       });
     }

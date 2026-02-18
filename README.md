@@ -147,6 +147,15 @@ Core content inputs always come from CLI parameters and are never read from env 
 - `ingest`: `--html`, `--source-url`, `--fixture`
 - `capture-fixture`: `--url`, `--fixture`
 
+### Core Output Paths Are CLI-Only By Default
+
+Core output paths are explicitly provided via CLI flags and are not read from env vars or config files by default:
+
+- `--out`: `fetch`, `get_metadata`, `parse`, `transform-notion`, `run`, `capture-fixture`
+- `--out-fixtures-dir`: `ingest`, `capture-fixture`
+
+Exceptions are allowed only for concrete specialties, and must be explicitly approved, documented, and test-covered per command/flag.
+
 ### Roadmap Note
 
 Future versions may add env-variable support for non-core public configuration parts, but core inputs and explicit `--config` remain mandatory for CLI execution.
@@ -166,7 +175,8 @@ npx tsx src/cli.ts verify-zhihu --config ./config/public.config.json
 ```bash
 npx tsx src/cli.ts fetch \
   --url "https://zhuanlan.zhihu.com/p/123" \
-  --config ./config/public.config.json
+  --config ./config/public.config.json \
+  --out ./output
 ```
 
 ### 3) Extract Metadata From HTML
@@ -178,10 +188,15 @@ npx tsx src/cli.ts get_metadata --html ./output/<run>/page.html --url "https://z
 ### 4) Parse HTML to Markdown
 
 ```bash
-npx tsx src/cli.ts parse --html ./output/<run>/page.html --url "https://zhuanlan.zhihu.com/p/123" --out ./output --use-html-style-for-image
+npx tsx src/cli.ts parse --html ./output/<run>/page.html --url "https://zhuanlan.zhihu.com/p/123" --out ./output
 ```
 
 `--use-html-style-for-image` is optional. By default, image output uses markdown style (`![](...)`).
+Current recommendation: keep `--use-html-style-for-image` off for downstream compatibility.
+
+For core output paths:
+- `--out` is required for `fetch`, `get_metadata`, `parse`, `transform-notion`, `capture-fixture`, `run`.
+- `--out-fixtures-dir` is required for `ingest` and `capture-fixture`.
 
 ### 5) Transform Markdown to Notion Blocks
 
@@ -207,7 +222,8 @@ npx tsx src/cli.ts run \
   --url "https://zhuanlan.zhihu.com/p/123" \
   --config ./config/public.config.json \
   --cookies-secrets ./config/cookies.secrets.local.json \
-  --notion-secrets ./config/notion.secrets.local.json
+  --notion-secrets ./config/notion.secrets.local.json \
+  --out ./output
 ```
 
 `run` always executes the Notion upload stage after markdown generation.  
@@ -217,6 +233,60 @@ Shortcut with fixed defaults (only URL changes):
 
 ```bash
 npm run run:url -- "https://zhuanlan.zhihu.com/p/123"
+```
+
+### 8) Browse Local Path Entries (JSON)
+
+```bash
+npx tsx src/cli.ts browse-path --path .
+```
+
+Returns JSON with minimal entries:
+- `name`
+- `fullPath`
+- `kind` (`file | dir | symlink | other`)
+
+## GUI (V1 local-only)
+
+V1 GUI runs on the same machine as the CLI. It provides:
+- command selection for existing CLI subcommands
+- per-argument recent input history
+- non-enforced path browsing assistance
+- streamed run output in the browser
+
+Start GUI server:
+
+```bash
+npm run gui
+```
+
+If you changed CLI/runtime code, rebuild first so GUI uses the latest `dist` artifacts:
+
+```bash
+npm run build
+npm run gui
+```
+
+Or start with user-controlled directories (recommended for sensitive data separation):
+
+```bash
+npm run gui -- \
+  --workspace-dir=/secure/workspace \
+  --history-dir=/secure/gui-history \
+  --logs-dir=/secure/gui-logs \
+  --output-dir=/secure/gui-output
+```
+
+GUI directory controls:
+- `--workspace-dir`: working directory used by CLI subprocesses launched from GUI.
+- `--history-dir`: where GUI history file is stored (`history.json`).
+- `--logs-dir`: where GUI server log file is stored (`gui-server.log`).
+- `--output-dir`: default output base injected for commands with `--out` / `--out-fixtures-dir` when not explicitly set in form.
+
+Open:
+
+```text
+http://localhost:8787
 ```
 
 `run` writes:
@@ -234,7 +304,8 @@ inside `output/<YYYYMMDD-HHmmss>-<slug>/`.
 npx tsx src/cli.ts ingest \
   --html ./output/<run>/page.html \
   --source-url "https://zhuanlan.zhihu.com/p/123" \
-  --fixture zhihu-zhuanlan-new
+  --fixture zhihu-zhuanlan-new \
+  --out-fixtures-dir ./tests/fixtures
 ```
 
 `ingest` is offline and HTML-only in v1. It rejects `--url` input mode with `E_INGEST_UNSUPPORTED_INPUT`.
@@ -256,6 +327,8 @@ For authenticated pages, use a two-step flow:
 npx tsx src/cli.ts capture-fixture \
   --url "https://zhuanlan.zhihu.com/p/123" \
   --fixture zhihu-zhuanlan-new \
+  --out ./output \
+  --out-fixtures-dir ./tests/fixtures \
   --config ./config/public.config.json \
   --cookies-secrets ./config/cookies.secrets.local.json
 ```

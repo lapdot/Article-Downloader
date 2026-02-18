@@ -60,6 +60,26 @@ Core inputs are not read from config/env fallbacks:
 - Unrelated env vars are ignored silently for commands that do not require them.
 - No warning noise for ignored env vars.
 
+### 3.4 Core output paths are CLI-only by default
+Core output paths must be provided explicitly via CLI flags and are not read from config/env fallbacks by default.
+
+Current core output path flags:
+- `--out`:
+  - `fetch`
+  - `get_metadata`
+  - `parse`
+  - `transform-notion`
+  - `run`
+  - `capture-fixture`
+- `--out-fixtures-dir`:
+  - `ingest`
+  - `capture-fixture`
+
+Exception policy:
+- Exceptions are allowed only when there is concrete operational specialty.
+- Any exception must be command/flag-specific, explicitly approved, documented in both policy and README, and covered by tests.
+- No broad implicit fallback track is allowed for core output paths.
+
 ## 4. Cookie Policy
 
 ### 4.1 Merge-only cookie model
@@ -211,3 +231,8 @@ Tests are expected to protect:
 
 ### 8.2 Backward-compatibility default
 - Prefer strict, explicit contracts unless compatibility is explicitly requested and documented.
+
+### 8.3 Documentation example ordering
+- In user-facing docs (especially `README.md`), examples are best presented `default-first, advanced-later`.
+- The first example for a task should generally be the simplest safe default workflow that works for most users.
+- Advanced, specialized, or compatibility-sensitive variants can follow, with brief context on when they are useful.

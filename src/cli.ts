@@ -12,6 +12,7 @@ import {
 import { runPipeline } from "./core/pipeline.js";
 import { runIngest } from "./core/ingest.js";
 import { runCaptureFixture } from "./core/capture-fixture.js";
+import { browsePath } from "./core/browse-path.js";
 import { resolveRuntimeConfig } from "./core/runtime-config.js";
 import {
   createOutputDir,
@@ -175,7 +176,7 @@ export function createProgram(): Command {
     .requiredOption("--url <url>", "target URL")
     .option("--config <path>", "path to public config JSON")
     .option("--cookies-secrets <path>", "path to cookies secrets JSON")
-    .option("--out <dir>", "output base directory")
+    .requiredOption("--out <dir>", "output base directory")
     .action(async (opts) => {
       try {
         const runtimeConfig = await loadRuntimeConfig({
@@ -194,7 +195,7 @@ export function createProgram(): Command {
           return;
         }
 
-        const outputBaseDir = opts.out ?? runtimeConfig.pipeline.outDir;
+        const outputBaseDir = opts.out;
         const outputDir = await createOutputDir(outputBaseDir, opts.url);
         const htmlPath = path.join(outputDir, "page.html");
         await writeTextFile(htmlPath, result.html);
@@ -216,7 +217,7 @@ export function createProgram(): Command {
     .command("get_metadata")
     .requiredOption("--html <path>", "path to input HTML")
     .requiredOption("--url <url>", "original URL")
-    .option("--out <dir>", "output base directory", "output")
+    .requiredOption("--out <dir>", "output base directory")
     .action(async (opts) => {
       try {
         const html = await readRequiredTextInput("input html", opts.html);
@@ -248,7 +249,7 @@ export function createProgram(): Command {
     .command("parse")
     .requiredOption("--html <path>", "path to input HTML")
     .requiredOption("--url <url>", "original URL")
-    .option("--out <dir>", "output base directory", "output")
+    .requiredOption("--out <dir>", "output base directory")
     .option(
       "--use-html-style-for-image",
       "use HTML img output instead of markdown image",
@@ -288,7 +289,7 @@ export function createProgram(): Command {
   program
     .command("transform-notion")
     .requiredOption("--md <path>", "path to markdown file")
-    .option("--out <dir>", "output base directory", "output")
+    .requiredOption("--out <dir>", "output base directory")
     .action(async (opts) => {
       try {
         const markdown = await readRequiredTextInput("input markdown", opts.md);
@@ -350,7 +351,7 @@ export function createProgram(): Command {
     .requiredOption("--source-url <url>", "original URL for route/type semantics")
     .requiredOption("--fixture <name>", "fixture base name")
     .option("--url <url>", "unsupported in ingest v1")
-    .option("--out-fixtures-dir <dir>", "fixtures output directory", "tests/fixtures")
+    .requiredOption("--out-fixtures-dir <dir>", "fixtures output directory")
     .option("--policy-version <version>", "sanitization policy version", "v1")
     .option("--debug-ledger", "write debug ledger artifact", false)
     .action(async (opts) => {
@@ -374,13 +375,29 @@ export function createProgram(): Command {
     });
 
   program
+    .command("browse-path")
+    .requiredOption("--path <dir>", "directory path to browse")
+    .action(async (opts) => {
+      try {
+        const result = await browsePath(opts.path);
+        printResult(result);
+        if (!result.ok) {
+          process.exitCode = 1;
+        }
+      } catch (error) {
+        logError(error instanceof Error ? error.message : "unknown error");
+        process.exitCode = 1;
+      }
+    });
+
+  program
     .command("capture-fixture")
     .requiredOption("--url <url>", "target URL")
     .requiredOption("--fixture <name>", "fixture base name")
     .option("--config <path>", "path to public config JSON")
     .option("--cookies-secrets <path>", "path to cookies secrets JSON")
-    .option("--out <dir>", "output base directory")
-    .option("--out-fixtures-dir <dir>", "fixtures output directory", "tests/fixtures")
+    .requiredOption("--out <dir>", "output base directory")
+    .requiredOption("--out-fixtures-dir <dir>", "fixtures output directory")
     .option("--policy-version <version>", "sanitization policy version", "v1")
     .option("--debug-ledger", "write debug ledger artifact", false)
     .action(async (opts) => {
@@ -416,7 +433,7 @@ export function createProgram(): Command {
     .option("--config <path>", "path to public config JSON")
     .option("--cookies-secrets <path>", "path to cookies secrets JSON")
     .option("--notion-secrets <path>", "path to notion secrets JSON")
-    .option("--out <dir>", "output base directory")
+    .requiredOption("--out <dir>", "output base directory")
     .option(
       "--use-html-style-for-image",
       "use HTML img output instead of markdown image",

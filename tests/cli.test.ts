@@ -209,22 +209,30 @@ describe("cli", () => {
 
     mustHaveOption(verifyCommand!, "--config");
     mustRequireOption(fetchCommand!, "--url");
+    mustRequireOption(fetchCommand!, "--out");
     mustHaveOption(fetchCommand!, "--config");
     mustRequireOption(metadataCommand!, "--html");
     mustRequireOption(metadataCommand!, "--url");
+    mustRequireOption(metadataCommand!, "--out");
     mustRequireOption(parseCommand!, "--html");
     mustRequireOption(parseCommand!, "--url");
+    mustRequireOption(parseCommand!, "--out");
     mustRequireOption(transformCommand!, "--md");
+    mustRequireOption(transformCommand!, "--out");
     mustRequireOption(uploadCommand!, "--blocks");
     mustHaveOption(uploadCommand!, "--config");
     mustRequireOption(ingestCommand!, "--html");
     mustRequireOption(ingestCommand!, "--source-url");
     mustRequireOption(ingestCommand!, "--fixture");
+    mustRequireOption(ingestCommand!, "--out-fixtures-dir");
     mustRequireOption(captureFixtureCommand!, "--url");
     mustRequireOption(captureFixtureCommand!, "--fixture");
+    mustRequireOption(captureFixtureCommand!, "--out");
+    mustRequireOption(captureFixtureCommand!, "--out-fixtures-dir");
     mustHaveOption(captureFixtureCommand!, "--config");
     mustHaveOption(captureFixtureCommand!, "--cookies-secrets");
     mustRequireOption(runCommand!, "--url");
+    mustRequireOption(runCommand!, "--out");
     mustHaveOption(runCommand!, "--config");
 
     expect(runOptionNames).toContain("--config");
@@ -241,6 +249,8 @@ describe("cli", () => {
         "run",
         "--url",
         "https://zhuanlan.zhihu.com/p/123",
+        "--out",
+        path.join(tmpdir(), "run-out"),
       ]);
     });
 
@@ -360,6 +370,8 @@ describe("cli", () => {
         missingHtmlPath,
         "--url",
         "https://zhuanlan.zhihu.com/p/123",
+        "--out",
+        path.join(tmpdir(), "metadata-out"),
       ]);
     });
 
@@ -375,6 +387,8 @@ describe("cli", () => {
         "transform-notion",
         "--md",
         missingMdPath,
+        "--out",
+        path.join(tmpdir(), "transform-out"),
       ]);
     });
 
@@ -459,6 +473,8 @@ describe("cli", () => {
           "fetch",
           "--url",
           "https://zhuanlan.zhihu.com/p/123",
+          "--out",
+          "./output",
           "--config",
           "./config/public.config.json",
           "--notion-secrets",
@@ -501,6 +517,10 @@ describe("cli", () => {
           "https://zhuanlan.zhihu.com/p/123",
           "--fixture",
           "capture-irrelevant",
+          "--out",
+          "./output",
+          "--out-fixtures-dir",
+          "./tests/fixtures",
           "--config",
           "./config/public.config.json",
           "--notion-secrets",

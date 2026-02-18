@@ -1,0 +1,34 @@
+<!doctype html>
+<html lang="en">
+  <head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <title>ArticleDownloader GUI</title>
+    <link rel="stylesheet" href="/styles.css" />
+  </head>
+  <body>
+    <main class="layout">
+      <h1>ArticleDownloader GUI (V1)</h1>
+      <section class="panel">
+        <label for="command-select">Command</label>
+        <select id="command-select"></select>
+        <p id="command-description" class="help"></p>
+      </section>
+
+      <section class="panel">
+        <h2>Arguments</h2>
+        <form id="args-form"></form>
+      </section>
+
+      <section class="panel actions">
+        <button id="run-btn" type="button">Run</button>
+      </section>
+
+      <section class="panel">
+        <h2>Run Output</h2>
+        <pre id="output-log"></pre>
+      </section>
+    </main>
+    <script type="module" src="/app.js"></script>
+  </body>
+</html>
