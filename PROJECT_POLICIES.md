@@ -249,7 +249,7 @@ Tests are expected to protect:
   - `POST /api/browse-path`
   - `POST /api/run`
 - Frontend assets are served by the bridge from built output artifacts.
-- `handleApi` API behavior remains authoritative and must not be broken by frontend/tooling changes.
+- Bridge server implementation is Fastify-based (`fastify` + `@fastify/static`) and this stack is the default policy for V1.
 
 ### 9.2 GUI execution model policy
 - GUI remains a thin wrapper over existing CLI behavior.
@@ -285,6 +285,9 @@ Tests are expected to protect:
 
 ### 9.6 GUI testing baseline policy
 - GUI behavior coverage includes both unit/integration and browser E2E layers.
+- Bridge contract regression tests are required in `npm test` for:
+  - API route contracts (`/api/commands`, `/api/history`, `/api/browse-path`, `/api/run`)
+  - history persistence behavior (trim, dedupe, cap, malformed-file fallback)
 - Browser E2E baseline is maintained via Playwright and exercised through:
   - `npm run gui:test:e2e`
 - Baseline GUI E2E scenarios must cover at least:
@@ -294,3 +297,21 @@ Tests are expected to protect:
   - browse error visibility with manual-path fallback
   - run-flow output smoke
 - `npm test` and GUI E2E are complementary gates; one does not replace the other.
+
+### 9.7 Bridge request/response validation policy
+- Bridge route boundaries are schema-validated with Zod.
+- Invalid request payloads must fail with explicit `400` responses and stable error shapes.
+
+### 9.8 Bridge run-stream transport policy
+- `POST /api/run` transport is NDJSON:
+  - `Content-Type: application/x-ndjson; charset=utf-8`
+  - line-delimited JSON event records
+- Event contract remains:
+  - `started`, `stdout`, `stderr`, `exited`, `result`
+- Transport format changes require explicit versioning/migration documentation.
+
+### 9.9 Bridge logging and history persistence policy
+- Bridge logging backend uses `pino` with file sink at:
+  - `<logsDir>/gui-server.log`
+- GUI history persistence remains file-based (`history.json`), not database-backed.
+- History file loading must be schema-guarded (Zod) with safe fallback to empty records on malformed content.

@@ -1,5 +1,7 @@
 import path from "node:path";
 import { mkdir, readFile, writeFile } from "node:fs/promises";
+import { z } from "zod";
+import { historyFileSchema } from "./schemas.js";
 
 interface HistoryFile {
   records: Record<string, string[]>;
@@ -10,20 +12,24 @@ const HISTORY_MAX_ITEMS = 8;
 async function loadHistory(historyFilePath: string): Promise<HistoryFile> {
   try {
     const raw = await readFile(historyFilePath, "utf8");
-    const parsed = JSON.parse(raw) as unknown;
-    if (!parsed || typeof parsed !== "object" || !("records" in parsed)) {
+    const rawParsed = JSON.parse(raw) as unknown;
+    const parsed = historyFileSchema.safeParse(rawParsed);
+    if (!parsed.success) {
       return { records: {} };
     }
-    const records = (parsed as { records: unknown }).records;
-    if (!records || typeof records !== "object") {
-      return { records: {} };
-    }
+
+    const records = parsed.data.records;
     const normalized: Record<string, string[]> = {};
-    for (const [key, values] of Object.entries(records as Record<string, unknown>)) {
-      if (!Array.isArray(values)) {
+    for (const [key, values] of Object.entries(records)) {
+      const strictArray = z.array(z.string()).safeParse(values);
+      if (strictArray.success) {
+        normalized[key] = strictArray.data;
         continue;
       }
-      normalized[key] = values.filter((value): value is string => typeof value === "string");
+      const unknownArray = z.array(z.unknown()).safeParse(values);
+      if (unknownArray.success) {
+        normalized[key] = unknownArray.data.filter((value): value is string => typeof value === "string");
+      }
     }
     return { records: normalized };
   } catch {

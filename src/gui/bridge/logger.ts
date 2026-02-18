@@ -1,5 +1,6 @@
 import path from "node:path";
-import { appendFile, mkdir } from "node:fs/promises";
+import { mkdirSync } from "node:fs";
+import pino from "pino";
 
 export interface GuiLogger {
   info(message: string): Promise<void>;
@@ -7,20 +8,26 @@ export interface GuiLogger {
 }
 
 class FileGuiLogger implements GuiLogger {
-  constructor(private readonly logFilePath: string) {}
+  private readonly logger: pino.Logger;
 
-  private async write(level: "INFO" | "ERROR", message: string): Promise<void> {
-    await mkdir(path.dirname(this.logFilePath), { recursive: true });
-    const line = `[${new Date().toISOString()}] [${level}] ${message}\n`;
-    await appendFile(this.logFilePath, line, "utf8");
+  constructor(logFilePath: string) {
+    mkdirSync(path.dirname(logFilePath), { recursive: true });
+    this.logger = pino(
+      { level: "info" },
+      pino.destination({
+        dest: logFilePath,
+        append: true,
+        sync: false,
+      }),
+    );
   }
 
   async info(message: string): Promise<void> {
-    await this.write("INFO", message);
+    this.logger.info(message);
   }
 
   async error(message: string): Promise<void> {
-    await this.write("ERROR", message);
+    this.logger.error(message);
   }
 }
 

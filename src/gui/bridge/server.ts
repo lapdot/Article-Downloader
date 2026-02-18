@@ -1,14 +1,16 @@
-import http, { type IncomingMessage, type ServerResponse } from "node:http";
 import path from "node:path";
-import { access, mkdir, readFile } from "node:fs/promises";
+import { access, mkdir } from "node:fs/promises";
 import { constants as fsConstants } from "node:fs";
 import { fileURLToPath } from "node:url";
+import type { ServerResponse } from "node:http";
+import Fastify, { type FastifyInstance, type FastifyReply, type FastifyRequest } from "fastify";
+import fastifyStatic from "@fastify/static";
 import { browsePath } from "../../core/browse-path.js";
 import { getGuiCommandDescriptors } from "../shared/command-descriptors.js";
-import type { BrowsePathRequest, GuiRunRequest } from "../shared/types.js";
 import { buildHistoryFilePath, getHistoryValues, putHistoryValue } from "./history-store.js";
 import { createGuiLogger } from "./logger.js";
 import { runCliLocal } from "./local-executor.js";
+import { browsePathBodySchema, historyBodySchema, historyQuerySchema, runRequestSchema } from "./schemas.js";
 
 function getProjectRoot(): string {
   const currentFile = fileURLToPath(import.meta.url);
@@ -46,50 +48,6 @@ function resolveServerOptions(input: GuiServerOptions): Required<GuiServerOption
   };
 }
 
-function writeJson(res: ServerResponse, statusCode: number, payload: unknown): void {
-  res.statusCode = statusCode;
-  res.setHeader("Content-Type", "application/json; charset=utf-8");
-  res.end(JSON.stringify(payload));
-}
-
-async function readJsonBody<T>(req: IncomingMessage): Promise<T> {
-  const chunks: Buffer[] = [];
-  for await (const chunk of req) {
-    chunks.push(typeof chunk === "string" ? Buffer.from(chunk) : chunk);
-  }
-  const bodyText = Buffer.concat(chunks).toString("utf8");
-  return JSON.parse(bodyText) as T;
-}
-
-async function serveStaticFile(res: ServerResponse, filePath: string, contentType: string): Promise<void> {
-  try {
-    const content = await readFile(filePath);
-    res.statusCode = 200;
-    res.setHeader("Content-Type", contentType);
-    res.end(content);
-  } catch {
-    writeJson(res, 404, { ok: false, error: "not found" });
-  }
-}
-
-const MIME_BY_EXT: Record<string, string> = {
-  ".html": "text/html; charset=utf-8",
-  ".js": "text/javascript; charset=utf-8",
-  ".css": "text/css; charset=utf-8",
-  ".json": "application/json; charset=utf-8",
-  ".svg": "image/svg+xml",
-  ".png": "image/png",
-  ".jpg": "image/jpeg",
-  ".jpeg": "image/jpeg",
-  ".ico": "image/x-icon",
-  ".woff": "font/woff",
-  ".woff2": "font/woff2",
-};
-
-function getContentType(filePath: string): string {
-  return MIME_BY_EXT[path.extname(filePath).toLowerCase()] ?? "application/octet-stream";
-}
-
 async function exists(filePath: string): Promise<boolean> {
   try {
     await access(filePath, fsConstants.F_OK);
@@ -99,98 +57,66 @@ async function exists(filePath: string): Promise<boolean> {
   }
 }
 
-async function serveFrontendAsset(req: IncomingMessage, res: ServerResponse): Promise<void> {
-  const requestUrl = new URL(req.url ?? "/", "http://localhost");
-  const pathname = decodeURIComponent(requestUrl.pathname);
-  const relativePath = pathname === "/" ? "index.html" : pathname.replace(/^\/+/, "");
-  const candidatePath = path.resolve(FRONTEND_DIST_ROOT, relativePath);
-  const normalizedRoot = path.resolve(FRONTEND_DIST_ROOT);
-  const rootPrefix = `${normalizedRoot}${path.sep}`;
-
-  if (candidatePath !== normalizedRoot && !candidatePath.startsWith(rootPrefix)) {
-    writeJson(res, 400, { ok: false, error: "invalid path" });
-    return;
-  }
-
-  if (await exists(candidatePath)) {
-    await serveStaticFile(res, candidatePath, getContentType(candidatePath));
-    return;
-  }
-
-  const indexPath = path.join(FRONTEND_DIST_ROOT, "index.html");
-  if (await exists(indexPath)) {
-    await serveStaticFile(res, indexPath, "text/html; charset=utf-8");
-    return;
-  }
-
-  writeJson(res, 503, {
-    ok: false,
-    error: "frontend assets not found; run `npm run gui:build` first",
-  });
-}
-
 function writeNdjsonEvent(res: ServerResponse, type: string, data: unknown): void {
   res.write(`${JSON.stringify({ type, data })}\n`);
 }
 
-async function handleApi(
-  req: IncomingMessage,
-  res: ServerResponse,
-  options: Required<GuiServerOptions>,
-): Promise<boolean> {
+function createAssetRelativePath(pathname: string): string {
+  return pathname === "/" ? "index.html" : pathname.replace(/^\/+/, "");
+}
+
+async function registerApiRoutes(app: FastifyInstance, options: Required<GuiServerOptions>): Promise<void> {
   const logger = createGuiLogger(options.logsDir);
   const historyFilePath = buildHistoryFilePath(options.historyDir);
-  const requestUrl = new URL(req.url ?? "/", "http://localhost");
-  const pathname = requestUrl.pathname;
 
-  if (req.method === "GET" && pathname === "/api/commands") {
-    writeJson(res, 200, { ok: true, commands: getGuiCommandDescriptors() });
-    return true;
-  }
+  app.get("/api/commands", async (_req, reply) => {
+    reply.code(200).send({ ok: true, commands: getGuiCommandDescriptors() });
+  });
 
-  if (req.method === "GET" && pathname === "/api/history") {
-    const argKey = requestUrl.searchParams.get("argKey");
-    if (!argKey) {
-      writeJson(res, 400, { ok: false, error: "argKey is required" });
-      return true;
+  app.get("/api/history", async (req, reply) => {
+    const parsed = historyQuerySchema.safeParse(req.query);
+    if (!parsed.success) {
+      reply.code(400).send({ ok: false, error: "argKey is required" });
+      return;
     }
-    const values = await getHistoryValues(historyFilePath, argKey);
-    writeJson(res, 200, { ok: true, values });
-    return true;
-  }
+    const values = await getHistoryValues(historyFilePath, parsed.data.argKey);
+    reply.code(200).send({ ok: true, values });
+  });
 
-  if (req.method === "POST" && pathname === "/api/history") {
-    const body = await readJsonBody<{ argKey?: unknown; value?: unknown }>(req);
-    if (typeof body.argKey !== "string" || typeof body.value !== "string") {
-      writeJson(res, 400, { ok: false, error: "argKey and value must be strings" });
-      return true;
+  app.post("/api/history", async (req, reply) => {
+    const parsed = historyBodySchema.safeParse(req.body);
+    if (!parsed.success) {
+      reply.code(400).send({ ok: false, error: "argKey and value must be strings" });
+      return;
     }
-    await putHistoryValue(historyFilePath, body.argKey, body.value);
-    writeJson(res, 200, { ok: true });
-    return true;
-  }
+    await putHistoryValue(historyFilePath, parsed.data.argKey, parsed.data.value);
+    reply.code(200).send({ ok: true });
+  });
 
-  if (req.method === "POST" && pathname === "/api/browse-path") {
-    const body = await readJsonBody<BrowsePathRequest>(req);
-    if (!body || typeof body.path !== "string") {
-      writeJson(res, 400, { ok: false, error: "path must be a string" });
-      return true;
+  app.post("/api/browse-path", async (req, reply) => {
+    const parsed = browsePathBodySchema.safeParse(req.body);
+    if (!parsed.success) {
+      reply.code(400).send({ ok: false, error: "path must be a string" });
+      return;
     }
-    const result = await browsePath(body.path);
-    writeJson(res, result.ok ? 200 : 400, result);
-    return true;
-  }
+    const result = await browsePath(parsed.data.path);
+    reply.code(result.ok ? 200 : 400).send(result);
+  });
 
-  if (req.method === "POST" && pathname === "/api/run") {
-    const body = await readJsonBody<GuiRunRequest>(req);
-    if (!body || typeof body.command !== "string" || typeof body.args !== "object" || body.args === null) {
-      writeJson(res, 400, { ok: false, error: "invalid run request" });
-      return true;
+  app.post("/api/run", async (req, reply) => {
+    const parsed = runRequestSchema.safeParse(req.body);
+    if (!parsed.success) {
+      reply.code(400).send({ ok: false, error: "invalid run request" });
+      return;
     }
-    res.statusCode = 200;
-    res.setHeader("Content-Type", "application/x-ndjson; charset=utf-8");
-    res.setHeader("Cache-Control", "no-cache");
 
+    reply.hijack();
+    const raw = reply.raw;
+    raw.statusCode = 200;
+    raw.setHeader("Content-Type", "application/x-ndjson; charset=utf-8");
+    raw.setHeader("Cache-Control", "no-cache");
+
+    const body = parsed.data;
     for (const [argKey, argValue] of Object.entries(body.args)) {
       if (typeof argValue === "string" && argValue.trim().length > 0) {
         await putHistoryValue(historyFilePath, `${body.command}.${argKey}`, argValue);
@@ -207,72 +133,123 @@ async function handleApi(
           logger,
         },
         (event) => {
-          writeNdjsonEvent(res, event.type, event.data);
+          writeNdjsonEvent(raw, event.type, event.data);
         },
       );
     } catch (error) {
       await logger.error(`run error: ${error instanceof Error ? error.message : "unknown error"}`);
-      writeNdjsonEvent(res, "result", {
+      writeNdjsonEvent(raw, "result", {
         ok: false,
         exitCode: null,
         stdout: "",
         stderr: error instanceof Error ? error.message : "unknown error",
       });
     }
-    res.end();
-    return true;
-  }
-
-  return false;
+    raw.end();
+  });
 }
 
-export function startGuiServer(input: GuiServerOptions = {}): http.Server {
-  const options = resolveServerOptions(input);
-  const logger = createGuiLogger(options.logsDir);
-  void mkdir(options.historyDir, { recursive: true });
-  void mkdir(options.logsDir, { recursive: true });
-  void mkdir(options.outputDir, { recursive: true });
-  const server = http.createServer((req, res) => {
-    void (async () => {
-      try {
-        if (await handleApi(req, res, options)) {
-          return;
-        }
-        if (req.method === "GET" || req.method === "HEAD") {
-          await serveFrontendAsset(req, res);
-          return;
-        }
-        writeJson(res, 404, { ok: false, error: "not found" });
-      } catch (error) {
-        await logger.error(`request error: ${error instanceof Error ? error.message : "unknown error"}`);
-        writeJson(res, 500, {
-          ok: false,
-          error: error instanceof Error ? error.message : "unknown error",
-        });
+async function registerStaticRoutes(app: FastifyInstance): Promise<void> {
+  await app.register(fastifyStatic, {
+    root: FRONTEND_DIST_ROOT,
+    decorateReply: true,
+    wildcard: false,
+  });
+
+  app.route({
+    method: ["GET", "HEAD"],
+    url: "/*",
+    handler: async (req: FastifyRequest, reply: FastifyReply) => {
+      const requestUrl = new URL(req.url, "http://localhost");
+      const pathname = decodeURIComponent(requestUrl.pathname);
+
+      if (pathname.startsWith("/api/")) {
+        reply.code(404).send({ ok: false, error: "not found" });
+        return;
       }
-    })();
+
+      const relativePath = createAssetRelativePath(pathname);
+      const candidatePath = path.resolve(FRONTEND_DIST_ROOT, relativePath);
+      const normalizedRoot = path.resolve(FRONTEND_DIST_ROOT);
+      const rootPrefix = `${normalizedRoot}${path.sep}`;
+      if (candidatePath !== normalizedRoot && !candidatePath.startsWith(rootPrefix)) {
+        reply.code(400).send({ ok: false, error: "invalid path" });
+        return;
+      }
+
+      if (await exists(candidatePath)) {
+        return reply.sendFile(relativePath);
+      }
+
+      const indexPath = path.join(FRONTEND_DIST_ROOT, "index.html");
+      if (await exists(indexPath)) {
+        reply.type("text/html; charset=utf-8");
+        return reply.sendFile("index.html");
+      }
+
+      reply.code(503).send({
+        ok: false,
+        error: "frontend assets not found; run `npm run gui:build` first",
+      });
+    },
   });
-  server.listen(options.port, () => {
-    process.stdout.write(`GUI server running at http://localhost:${options.port}\n`);
-    process.stdout.write(`workspace-dir: ${options.workspaceDir}\n`);
-    process.stdout.write(`history-dir: ${options.historyDir}\n`);
-    process.stdout.write(`logs-dir: ${options.logsDir}\n`);
-    process.stdout.write(`output-dir: ${options.outputDir}\n`);
+}
+
+export async function startGuiServer(input: GuiServerOptions = {}): Promise<FastifyInstance> {
+  const options = resolveServerOptions(input);
+  await mkdir(options.historyDir, { recursive: true });
+  await mkdir(options.logsDir, { recursive: true });
+  await mkdir(options.outputDir, { recursive: true });
+  const logger = createGuiLogger(options.logsDir);
+
+  const app = Fastify({
+    logger: false,
+    disableRequestLogging: true,
   });
-  void logger.info(
+
+  app.setErrorHandler(async (error, _req, reply) => {
+    await logger.error(`request error: ${error instanceof Error ? error.message : "unknown error"}`);
+    if (!reply.raw.writableEnded) {
+      reply.code(500).send({
+        ok: false,
+        error: error instanceof Error ? error.message : "unknown error",
+      });
+    }
+  });
+
+  await registerApiRoutes(app, options);
+  await registerStaticRoutes(app);
+
+  app.setNotFoundHandler(async (_req, reply) => {
+    reply.code(404).send({ ok: false, error: "not found" });
+  });
+
+  await app.listen({ port: options.port });
+  const address = app.server.address();
+  const resolvedPort = typeof address === "object" && address ? address.port : options.port;
+  process.stdout.write(`GUI server running at http://localhost:${resolvedPort}\n`);
+  process.stdout.write(`workspace-dir: ${options.workspaceDir}\n`);
+  process.stdout.write(`history-dir: ${options.historyDir}\n`);
+  process.stdout.write(`logs-dir: ${options.logsDir}\n`);
+  process.stdout.write(`output-dir: ${options.outputDir}\n`);
+
+  await logger.info(
     `server started: port=${String(options.port)} workspaceDir=${options.workspaceDir} historyDir=${options.historyDir} logsDir=${options.logsDir} outputDir=${options.outputDir}`,
   );
-  return server;
+  return app;
 }
 
 if (import.meta.url === `file://${process.argv[1]}`) {
   const parsedPort = Number(parseArgValue("port"));
   const port = Number.isFinite(parsedPort) ? (parsedPort as number) : 8787;
-  startGuiServer({
+  void startGuiServer({
     port,
     workspaceDir: parseArgValue("workspace-dir"),
     historyDir: parseArgValue("history-dir"),
     logsDir: parseArgValue("logs-dir"),
     outputDir: parseArgValue("output-dir"),
+  }).catch((error) => {
+    process.stderr.write(`${error instanceof Error ? error.message : "unknown error"}\n`);
+    process.exitCode = 1;
   });
 }

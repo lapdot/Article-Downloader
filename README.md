@@ -295,6 +295,7 @@ http://localhost:8787
 ### GUI Commands
 
 GUI frontend stack: `React + Vite + MUI`.
+GUI bridge stack: `Fastify + @fastify/static + pino + zod`.
 
 ```bash
 npm run gui        # build frontend and start bridge server
@@ -334,7 +335,9 @@ GUI uses these bridge API routes:
 
 inside `output/<YYYYMMDD-HHmmss>-<slug>/`.
 
-### 8) Ingest HTML fixture with sanitization (HTML-only)
+## Fixture Workflows
+
+### 9) Ingest HTML fixture with sanitization (HTML-only)
 
 ```bash
 npx tsx src/cli.ts ingest \
@@ -357,7 +360,7 @@ For authenticated pages, use a two-step flow:
 - sanitized fixture: `tests/fixtures/<fixture>.html`
 - sanitization map: `tests/fixtures/<fixture>.map.json`
 
-### 9) Capture fixture (canonical producer-to-sanitizer workflow)
+### 10) Capture fixture (canonical producer-to-sanitizer workflow)
 
 ```bash
 npx tsx src/cli.ts capture-fixture \
