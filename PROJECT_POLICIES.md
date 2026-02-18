@@ -236,3 +236,61 @@ Tests are expected to protect:
 - In user-facing docs (especially `README.md`), examples are best presented `default-first, advanced-later`.
 - The first example for a task should generally be the simplest safe default workflow that works for most users.
 - Advanced, specialized, or compatibility-sensitive variants can follow, with brief context on when they are useful.
+
+## 9. GUI Policy (V1 Local-Only)
+
+### 9.1 Runtime and topology policy
+- GUI V1 is a first-class local runtime:
+  - frontend, bridge, and CLI run on the same machine.
+- Bridge API is the GUI contract surface and remains stable for V1:
+  - `GET /api/commands`
+  - `GET /api/history?argKey=...`
+  - `POST /api/history`
+  - `POST /api/browse-path`
+  - `POST /api/run`
+- Frontend assets are served by the bridge from built output artifacts.
+- `handleApi` API behavior remains authoritative and must not be broken by frontend/tooling changes.
+
+### 9.2 GUI execution model policy
+- GUI remains a thin wrapper over existing CLI behavior.
+- CLI remains source of truth for validation and failure semantics.
+- GUI-side input assistance must not add local enforcement that changes CLI contract outcomes.
+
+### 9.3 GUI argument metadata policy
+- GUI argument descriptors carry UI semantics beyond CLI option shape:
+  - `valueHint`
+  - `pathMode` (`file | dir`) for path inputs
+  - `inputMode` (`name | text`) for non-path interaction hints
+- Explicitly non-path arguments (for example `--fixture`) must not expose path-browse affordances.
+
+### 9.4 Path picker interaction policy
+- Path picker is modal-first with inline fallback for constrained contexts.
+- Manual path input must remain available at all times.
+- Path picker is non-enforced:
+  - GUI must never block execution based on local path existence checks.
+- Prompt-based browser dialogs are not part of the shipped V1 picker interaction model.
+
+### 9.5 GUI tooling and script contract policy
+- V1 GUI frontend stack is:
+  - React
+  - Vite
+  - MUI (+ Emotion)
+- GUI script contracts in `package.json` are policy-level entrypoints:
+  - `gui`
+  - `gui:server`
+  - `gui:dev`
+  - `gui:build`
+  - `gui:test:e2e`
+- Documentation and CI/test guidance must stay aligned with these script names.
+
+### 9.6 GUI testing baseline policy
+- GUI behavior coverage includes both unit/integration and browser E2E layers.
+- Browser E2E baseline is maintained via Playwright and exercised through:
+  - `npm run gui:test:e2e`
+- Baseline GUI E2E scenarios must cover at least:
+  - command rendering/switching
+  - path picker modal interaction
+  - inline fallback behavior
+  - browse error visibility with manual-path fallback
+  - run-flow output smoke
+- `npm test` and GUI E2E are complementary gates; one does not replace the other.

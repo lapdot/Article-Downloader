@@ -251,26 +251,29 @@ Returns JSON with minimal entries:
 V1 GUI runs on the same machine as the CLI. It provides:
 - command selection for existing CLI subcommands
 - per-argument recent input history
-- non-enforced path browsing assistance
+- modal-primary path picker with inline fallback
+- non-enforced path browsing assistance (manual path input always allowed)
 - streamed run output in the browser
 
-Start GUI server:
+Start GUI:
 
 ```bash
 npm run gui
 ```
 
-If you changed CLI/runtime code, rebuild first so GUI uses the latest `dist` artifacts:
+Start bridge only (after build):
 
 ```bash
 npm run build
-npm run gui
+npm run gui:build
+npm run gui:server
 ```
 
-Or start with user-controlled directories (recommended for sensitive data separation):
+Bridge server with user-controlled directories (recommended for sensitive data separation):
 
 ```bash
-npm run gui -- \
+npm run gui:build
+npm run gui:server -- \
   --workspace-dir=/secure/workspace \
   --history-dir=/secure/gui-history \
   --logs-dir=/secure/gui-logs \
@@ -283,11 +286,44 @@ GUI directory controls:
 - `--logs-dir`: where GUI server log file is stored (`gui-server.log`).
 - `--output-dir`: default output base injected for commands with `--out` / `--out-fixtures-dir` when not explicitly set in form.
 
-Open:
+Open the GUI bridge endpoint:
 
 ```text
 http://localhost:8787
 ```
+
+### GUI Commands
+
+GUI frontend stack: `React + Vite + MUI`.
+
+```bash
+npm run gui        # build frontend and start bridge server
+npm run gui:server # start bridge server only
+npm run gui:dev    # Vite frontend dev server
+npm run gui:build  # build frontend assets
+npm run gui:test:e2e
+```
+
+For frontend development:
+1. Start bridge server: `npm run build && npm run gui:server`.
+2. Start Vite dev server in a second terminal: `npm run gui:dev`.
+
+### Path Picker UX
+
+- Path picker is modal-first.
+- Inline expandable picker is available as fallback on constrained contexts.
+- Picker supports file-vs-directory selection behavior by argument type.
+- Manual path input remains always editable and always allowed.
+- Non-enforced policy is unchanged: GUI never blocks execution by local path existence checks.
+
+### Bridge API
+
+GUI uses these bridge API routes:
+- `GET /api/commands`
+- `GET /api/history`
+- `POST /api/history`
+- `POST /api/browse-path`
+- `POST /api/run`
 
 `run` writes:
 

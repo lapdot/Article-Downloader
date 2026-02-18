@@ -21,8 +21,9 @@ Scope strategy:
 - V1 covers the full existing CLI command suite.
 
 ### 2.2 Frontend technology
-- Frontend is HTML-based.
-- V1 runtime is a web UI.
+- Frontend is a React web app bundled by Vite.
+- UI components are implemented with MUI.
+- V1 runtime remains a local web UI.
 
 ### 2.3 Runtime topology
 - Frontend and bridge are separated modules but both run locally.
@@ -50,13 +51,27 @@ Scope strategy:
   - `fullPath`
   - `kind` (`file | dir | symlink | other`)
 
+### 2.8 Path picker interaction model
+- Path picker is modal-primary.
+- Inline expandable picker is the fallback for constrained contexts.
+- Picker selection mode is argument-aware:
+  - `pathMode: file` selects file paths.
+  - `pathMode: dir` selects directory paths.
+- Manual text input remains available at all times.
+
+### 2.9 Shared descriptor extensions
+- Extend GUI arg metadata with:
+  - `pathMode` (`file | dir`) for path arguments.
+  - `inputMode` (`name | text`) for non-path behavior hints.
+- Explicit rule: `--fixture` is handled as non-path (`inputMode: name`), so GUI does not show browse affordance.
+
 ## 3. High-Level Architecture
 
 ### 3.1 Components
-1. Frontend (HTML UI)
+1. Frontend (React + Vite + MUI UI)
 - Dynamic command form rendering.
 - Per-argument history dropdowns.
-- Local path browse UI.
+- Modal-primary local path picker with inline fallback.
 - Execution log and result display.
 
 2. Local Bridge
@@ -112,36 +127,42 @@ Result shape:
 - Keep current CLI behavior unchanged.
 - Provide metadata output suitable for GUI rendering.
 
-2. Build local bridge service.
+2. Add frontend tooling bootstrap.
+- Add Vite build/dev workflow for GUI frontend.
+- Keep bridge as local process boundary and API provider.
+
+3. Build local bridge service.
 - Implement command catalog, history, run endpoints.
 - Implement streamed execution events.
 
-3. Implement local CLI executor.
+4. Implement local CLI executor.
 - Spawn CLI locally.
 - Preserve stdout/stderr and exit code.
 - Normalize runtime errors for GUI.
 
-4. Add backend CLI browse subcommand.
+5. Add backend CLI browse subcommand.
 - Implement with `readdir`/`Dirent`.
 - Return stable JSON contract.
 - Include error mapping for missing/denied paths.
 
-5. Implement frontend command runner UI.
+6. Implement React frontend command runner UI.
 - Command selector + dynamic argument form.
 - Per-argument recents for command arguments.
 - Non-enforced path input and browse affordance.
+- Modal-primary path picker with inline fallback.
 - Run result/log panels.
 
-6. Wire local path browsing.
+7. Wire local path browsing.
 - Frontend browse action calls bridge `browse-path` endpoint.
 - Bridge executes local browse command.
 - Frontend displays entries and writes selected path into input.
+- Enforce argument-aware selection mode (`file` vs `dir`) in picker UI.
 
-7. Persist history locally.
+8. Persist history locally.
 - Store in `.local/gui/history.json`.
 - Deduplicate and cap count per argument.
 
-8. Documentation updates.
+9. Documentation updates.
 - Add local GUI usage to README.
 - Mention V2 remote plan as next phase.
 
@@ -162,10 +183,13 @@ Result shape:
 - Per-argument history interaction.
 - Non-enforced path UX (manual text always allowed).
 - Browse picker insert behavior.
+- `--fixture` has no path browse affordance.
+- Modal picker keyboard accessibility and inline fallback behavior.
 
 ### 6.4 End-to-end smoke
 - Execute representative commands through GUI bridge (local mode).
 - Confirm parity with direct CLI behavior.
+- Add Playwright GUI regression baseline for picker + run flow.
 
 ## 7. Acceptance Criteria
 

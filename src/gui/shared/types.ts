@@ -1,5 +1,7 @@
 export type GuiArgKind = "string" | "boolean";
 export type GuiArgValueHint = "path" | "url" | "text";
+export type GuiPathMode = "file" | "dir";
+export type GuiInputMode = "name" | "text";
 
 export interface GuiArgDescriptor {
   key: string;
@@ -8,6 +10,8 @@ export interface GuiArgDescriptor {
   required: boolean;
   kind: GuiArgKind;
   valueHint: GuiArgValueHint;
+  pathMode?: GuiPathMode;
+  inputMode?: GuiInputMode;
 }
 
 export interface GuiCommandDescriptor {

@@ -161,6 +161,14 @@ Include tests for:
 - Additional diagnostic logs should be gated by explicit opt-in (for example `APP_DEBUG=1`).
 - Debug logs should use a recognizable prefix to simplify filtering.
 
+### 7.3 Sensitive artifact and log redaction
+- Runtime artifacts and diagnostics must not expose secret values or secret file paths.
+- Redaction policy should apply consistently across:
+  - structured artifact files,
+  - terminal output,
+  - and persisted logs.
+- Add contract tests that verify redaction behavior for representative secret patterns.
+
 ## 8. Documentation and change governance
 
 ### 8.1 Example ordering in user-facing docs
@@ -172,7 +180,73 @@ Include tests for:
 - When policy changes, update implementation, tests, and user-facing docs together.
 - Prefer explicit contracts over implicit fallback behavior unless compatibility is explicitly requested and documented.
 
-## 9. Adaptation Template
+## 9. Wrapper and Interface Contract Policy
+
+### 9.1 Thin-wrapper authority model
+- If a wrapper layer exists (GUI, API gateway, orchestration service), it should remain a thin wrapper over core execution logic.
+- Core backend/CLI/service remains source of truth for:
+  - validation,
+  - error semantics,
+  - and stage outcomes.
+- Wrapper-side helpers must not silently change core contract behavior.
+
+### 9.2 Assistive-input non-enforcement
+- Input-assistance features (pickers, autocomplete, history insertion) are assistive, not authoritative.
+- Manual input must remain available.
+- Wrapper/helper layers must not block execution solely due to local prechecks when core runtime is authoritative.
+
+### 9.3 Stable wrapper/API interface
+- Wrapper-facing endpoints or interfaces should be treated as explicit contracts.
+- Frontend/tooling/runtime migrations should preserve request/response semantics unless a versioned contract change is intentionally introduced.
+- Contract stability expectations should be documented and test-covered.
+
+### 9.4 Semantic descriptor hints (for dynamic clients)
+- Dynamic client surfaces may require semantic metadata beyond basic type shape (for example mode hints).
+- Descriptor hints should be explicit and test-covered, rather than inferred from ambiguous naming alone.
+- Exception mappings (for example name-like values that should not use path helpers) should be documented as rules.
+
+## 10. Test Gate Policy
+
+### 10.1 Complementary test gates
+- Unit/integration tests and end-to-end tests are complementary gates; one does not replace the other.
+- Define explicit command entrypoints for each gate and keep docs/CI aligned.
+
+### 10.2 Closed-loop local safety gate
+- Projects should define an optional closed-loop mode for deterministic local safety.
+- Closed-loop mode should:
+  - avoid requiring real secrets,
+  - constrain network scope by default (for example localhost-only unless explicitly allowed),
+  - and include secret-pattern checks for tracked fixtures/artifacts when applicable.
+
+### 10.3 Baseline end-to-end scenarios
+- End-to-end baseline should cover critical user/system flows for the active interface surface.
+- For wrapper/GUI interfaces, baseline scenarios typically include:
+  - surface boot/render,
+  - primary action path,
+  - key error/fallback behavior.
+
+## 11. Script Contract Policy
+
+### 11.1 Script names as operational interface
+- Named automation scripts (for example package scripts or task runners) should be treated as stable operational interfaces for users and CI.
+- Changes to script names/behavior should be documented and reflected in tests and user-facing docs.
+
+### 11.2 Script-to-doc alignment
+- User-facing docs should reference canonical script entrypoints, not ad-hoc local commands, unless explicitly documented as advanced alternatives.
+
+## 12. Multi-source Merge Conflict Policy (Optional Specialty)
+
+### 12.1 Normalized identity for merges
+- When runtime merges records from multiple sources, define a normalized identity tuple for conflict detection.
+- Conflict policy should be explicit (for example fail-fast on duplicate identity across/within sources).
+
+### 12.2 Merge conflict test coverage
+- Add tests for:
+  - cross-source duplicate conflicts,
+  - same-source duplicate conflicts,
+  - and successful merges with normalized identity handling.
+
+## 13. Adaptation Template
 
 To apply this to a new project, define:
 - Core inputs: `[...]`
@@ -181,5 +255,11 @@ To apply this to a new project, define:
 - Default paths (if any): `[...]`
 - Required-stage behavior on missing prerequisites: `fail` or `skip`
 - Standard error vocabulary: `E_FILE_NOT_FOUND`, `E_CONFIG_INVALID`, ...
+- Wrapper authority model (if applicable): `thin-wrapper` or `wrapper-authoritative`
+- Assistive-input policy (if applicable): `non-enforced` or `enforced`
+- Test gates:
+  - unit/integration command: `...`
+  - e2e command: `...`
+  - closed-loop command (optional): `...`
 
 Then implement and test against those decisions consistently.

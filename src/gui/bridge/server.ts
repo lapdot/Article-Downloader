@@ -1,6 +1,7 @@
 import http, { type IncomingMessage, type ServerResponse } from "node:http";
 import path from "node:path";
-import { mkdir, readFile } from "node:fs/promises";
+import { access, mkdir, readFile } from "node:fs/promises";
+import { constants as fsConstants } from "node:fs";
 import { fileURLToPath } from "node:url";
 import { browsePath } from "../../core/browse-path.js";
 import { getGuiCommandDescriptors } from "../shared/command-descriptors.js";
@@ -15,7 +16,7 @@ function getProjectRoot(): string {
 }
 
 const PROJECT_ROOT = getProjectRoot();
-const FRONTEND_ROOT = path.join(PROJECT_ROOT, "src", "gui", "frontend");
+const FRONTEND_DIST_ROOT = path.join(PROJECT_ROOT, "dist-gui");
 
 export interface GuiServerOptions {
   port?: number;
@@ -69,6 +70,63 @@ async function serveStaticFile(res: ServerResponse, filePath: string, contentTyp
   } catch {
     writeJson(res, 404, { ok: false, error: "not found" });
   }
+}
+
+const MIME_BY_EXT: Record<string, string> = {
+  ".html": "text/html; charset=utf-8",
+  ".js": "text/javascript; charset=utf-8",
+  ".css": "text/css; charset=utf-8",
+  ".json": "application/json; charset=utf-8",
+  ".svg": "image/svg+xml",
+  ".png": "image/png",
+  ".jpg": "image/jpeg",
+  ".jpeg": "image/jpeg",
+  ".ico": "image/x-icon",
+  ".woff": "font/woff",
+  ".woff2": "font/woff2",
+};
+
+function getContentType(filePath: string): string {
+  return MIME_BY_EXT[path.extname(filePath).toLowerCase()] ?? "application/octet-stream";
+}
+
+async function exists(filePath: string): Promise<boolean> {
+  try {
+    await access(filePath, fsConstants.F_OK);
+    return true;
+  } catch {
+    return false;
+  }
+}
+
+async function serveFrontendAsset(req: IncomingMessage, res: ServerResponse): Promise<void> {
+  const requestUrl = new URL(req.url ?? "/", "http://localhost");
+  const pathname = decodeURIComponent(requestUrl.pathname);
+  const relativePath = pathname === "/" ? "index.html" : pathname.replace(/^\/+/, "");
+  const candidatePath = path.resolve(FRONTEND_DIST_ROOT, relativePath);
+  const normalizedRoot = path.resolve(FRONTEND_DIST_ROOT);
+  const rootPrefix = `${normalizedRoot}${path.sep}`;
+
+  if (candidatePath !== normalizedRoot && !candidatePath.startsWith(rootPrefix)) {
+    writeJson(res, 400, { ok: false, error: "invalid path" });
+    return;
+  }
+
+  if (await exists(candidatePath)) {
+    await serveStaticFile(res, candidatePath, getContentType(candidatePath));
+    return;
+  }
+
+  const indexPath = path.join(FRONTEND_DIST_ROOT, "index.html");
+  if (await exists(indexPath)) {
+    await serveStaticFile(res, indexPath, "text/html; charset=utf-8");
+    return;
+  }
+
+  writeJson(res, 503, {
+    ok: false,
+    error: "frontend assets not found; run `npm run gui:build` first",
+  });
 }
 
 function writeNdjsonEvent(res: ServerResponse, type: string, data: unknown): void {
@@ -180,22 +238,10 @@ export function startGuiServer(input: GuiServerOptions = {}): http.Server {
         if (await handleApi(req, res, options)) {
           return;
         }
-
-        const requestUrl = new URL(req.url ?? "/", "http://localhost");
-        const pathname = requestUrl.pathname;
-        if (req.method === "GET" && (pathname === "/" || pathname === "/index.html")) {
-          await serveStaticFile(res, path.join(FRONTEND_ROOT, "index.html"), "text/html; charset=utf-8");
+        if (req.method === "GET" || req.method === "HEAD") {
+          await serveFrontendAsset(req, res);
           return;
         }
-        if (req.method === "GET" && pathname === "/app.js") {
-          await serveStaticFile(res, path.join(FRONTEND_ROOT, "app.js"), "text/javascript; charset=utf-8");
-          return;
-        }
-        if (req.method === "GET" && pathname === "/styles.css") {
-          await serveStaticFile(res, path.join(FRONTEND_ROOT, "styles.css"), "text/css; charset=utf-8");
-          return;
-        }
-
         writeJson(res, 404, { ok: false, error: "not found" });
       } catch (error) {
         await logger.error(`request error: ${error instanceof Error ? error.message : "unknown error"}`);

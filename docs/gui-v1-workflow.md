@@ -2,7 +2,7 @@
 
 ## Summary
 This workflow translates `docs/gui-v1-plan.md` into an execution sequence with clear gates.
-Order is designed to reduce rework: contracts first, runtime core second, UI third, then hardening.
+Order is designed to reduce rework: contracts first, runtime core second, frontend tooling third, UI fourth, then hardening.
 
 ## Public Interfaces and Type Targets
 Define and freeze these early for V1:
@@ -68,7 +68,26 @@ Implementation mode:
 Exit gate:
 - Command execution via API returns ordered stream and final status.
 
-## Phase 3: History Subsystem
+## Phase 3: Frontend Tooling Bootstrap
+Implementation mode:
+- Mode: from scratch.
+- Libraries:
+  - `react`
+  - `react-dom`
+  - `vite`
+  - `@vitejs/plugin-react`
+  - `@mui/material`
+  - `@emotion/react`
+  - `@emotion/styled`
+
+- Add GUI frontend app scaffold and Vite pipeline.
+- Define bridge static-serving strategy for built frontend assets.
+- Keep bridge API contract unchanged.
+
+Exit gate:
+- Frontend tooling is runnable locally and bridge API routes remain unchanged.
+
+## Phase 4: History Subsystem
 Implementation mode:
 - Mode: from scratch.
 - Libraries:
@@ -84,7 +103,7 @@ Implementation mode:
 Exit gate:
 - Repeated runs show stable per-argument recents across restarts.
 
-## Phase 4: Path Browsing Contract
+## Phase 5: Path Browsing Contract
 Implementation mode:
 - Mode: from scratch.
 - Libraries:
@@ -101,7 +120,7 @@ Implementation mode:
 Exit gate:
 - Browse endpoint returns structured results for valid/missing/denied paths.
 
-## Phase 5: Frontend Command Runner
+## Phase 6: Frontend Command Runner
 Implementation mode:
 - Mode: mixed.
 - From scratch:
@@ -109,28 +128,32 @@ Implementation mode:
   - run log panel behavior
   - non-enforced path input behavior
 - Libraries:
-  - `react` + `react-dom` for UI implementation
-- Optional libraries:
-  - `react-hook-form` for form state handling
-  - `@tanstack/react-query` for API state/caching
-  - `eventsource-parser` if SSE is used for streaming events
+  - `react` + `react-dom`
+  - `@mui/material`
+  - `@emotion/react`
+  - `@emotion/styled`
 
 - Build dynamic form from `GET /api/commands`.
 - Wire per-argument history dropdowns.
-- Add path browse button with manual editable input.
+- Add modal-primary path picker with inline fallback.
+- Remove prompt-based browse flow.
+- Keep manual path input always editable.
 - Wire run action and live output panel.
 
 Exit gate:
 - End-to-end GUI flow works locally for representative commands.
+- Path picker gate:
+  - no browser prompt dialogs
+  - keyboard-accessible modal interaction
+  - inline fallback works on narrow viewport
 
-## Phase 6: Hardening and Docs
+## Phase 7: Hardening and Docs
 Implementation mode:
 - Mode: mostly from scratch.
 - Libraries:
-  - no new mandatory library
+  - `@playwright/test`
 - Optional libraries:
   - `supertest` for bridge API regression/integration tests
-  - `playwright` for browser E2E regression tests
 
 - Add consistent error normalization and user-readable states.
 - Update README with V1 local GUI usage and V2 note.
@@ -140,6 +163,7 @@ Implementation mode:
 
 Exit gate:
 - Tests and docs match shipped behavior.
+- Playwright GUI regression baseline passes.
 
 ## Test Cases and Scenarios
 
@@ -176,18 +200,19 @@ Implementation mode:
 
 ### E2E Smoke
 Implementation mode:
-- Mode: optional in V1 baseline; recommended before release.
+- Mode: required in V1 baseline.
 - Libraries:
-  - optional `playwright`
+  - `@playwright/test`
 
 - Run representative commands (`fetch`, `parse`, `run`) via GUI path.
 - Verify expected parity with direct CLI behavior.
+- Include path picker scenarios for modal-primary and inline fallback.
 
 ## Milestones
 1. Milestone A: contracts + bridge run path.
-2. Milestone B: history + browse-path.
-3. Milestone C: frontend end-to-end local flow.
-4. Milestone D: hardening, tests, and docs.
+2. Milestone B: frontend tooling bootstrap.
+3. Milestone C: history + browse-path + frontend picker migration.
+4. Milestone D: hardening, docs, and Playwright baseline.
 
 ## Assumptions and Defaults
 - Same-machine runtime for frontend, bridge, and CLI.

@@ -14,8 +14,14 @@ V1 assumption:
   - Purpose: local bridge API (`/api/commands`, `/api/run`, `/api/history`, `/api/browse-path`).
 - `zod` (already in repo)
   - Purpose: request/response/config validation for bridge contracts.
-- `react` + `react-dom` (optional but practical)
-  - Purpose: dynamic command form UI and execution panels.
+- `react` + `react-dom`
+  - Purpose: V1 frontend runtime and component rendering.
+- `vite` + `@vitejs/plugin-react`
+  - Purpose: frontend development server and production asset build pipeline.
+- `@mui/material` + `@emotion/react` + `@emotion/styled`
+  - Purpose: accessible UI primitives/components, including dialog-based path picker.
+- `@playwright/test`
+  - Purpose: required browser E2E regression baseline for GUI.
 
 ## V1 Optional Libraries
 - `react-hook-form`
@@ -26,8 +32,6 @@ V1 assumption:
   - Purpose: parse streamed run events if SSE is used for `/api/run`.
 - `supertest`
   - Purpose: bridge integration testing.
-- `playwright`
-  - Purpose: end-to-end GUI testing.
 
 ## V1 by Workflow Phase
 
@@ -38,25 +42,30 @@ V1 assumption:
 - Usually not needed yet:
   - frontend/testing extras
 
-### Phase 3-4 (history + browse-path)
-- No new mandatory third-party library.
+### Phase 3-5 (frontend tooling + history + browse-path)
+- Additional required third-party libraries in this range:
+  - `react`, `react-dom`
+  - `vite`, `@vitejs/plugin-react`
+  - `@mui/material`, `@emotion/react`, `@emotion/styled`
+- No new mandatory third-party library for history/browse beyond existing stack.
 - Use Node built-ins for browse implementation:
   - `node:fs/promises` (`readdir`)
   - `Dirent`
 - Optional:
   - `supertest` for endpoint contract checks
 
-### Phase 5 (frontend command runner)
-- Required if using React UI:
-  - `react`, `react-dom`
+### Phase 6 (frontend command runner)
+- Required:
+  - use established Phase 3-5 frontend stack
 - Optional:
   - `react-hook-form`
   - `@tanstack/react-query`
   - `eventsource-parser`
 
-### Phase 6 (hardening + docs + E2E)
+### Phase 7 (hardening + docs + E2E)
+- Required:
+  - `@playwright/test`
 - Optional:
-  - `playwright` for browser E2E
   - `supertest` for API regression coverage
 
 ## Small Usage Examples
@@ -102,7 +111,7 @@ test("GET /api/commands", async () => {
 });
 ```
 
-### `playwright` (optional)
+### `@playwright/test`
 ```ts
 import { test, expect } from "@playwright/test";
 test("shows Run button", async ({ page }) => {

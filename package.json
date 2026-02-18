@@ -14,7 +14,11 @@
   "scripts": {
     "build": "tsc -p tsconfig.json",
     "dev": "tsx src/cli.ts",
-    "gui": "tsx src/gui/bridge/server.ts",
+    "gui": "npm run gui:build && npm run gui:server",
+    "gui:server": "node dist/gui/bridge/server.js",
+    "gui:dev": "vite --config vite.config.ts",
+    "gui:build": "vite build --config vite.config.ts",
+    "gui:test:e2e": "playwright test",
     "test": "vitest run",
     "test:closed-loop:preflight": "ARTICLE_DOWNLOADER_CLOSED_LOOP=1 vitest run tests/closed-loop/preflight.test.ts --config vitest.closed-loop.config.ts",
     "test:closed-loop": "npm run test:closed-loop:preflight && ARTICLE_DOWNLOADER_CLOSED_LOOP=1 vitest run --config vitest.closed-loop.config.ts",
@@ -22,21 +26,31 @@
     "typecheck": "tsc -p tsconfig.json --noEmit"
   },
   "dependencies": {
+    "@emotion/react": "^11.14.0",
+    "@emotion/styled": "^11.14.1",
+    "@mui/material": "^7.3.8",
     "@notionhq/client": "^2.3.0",
     "@tryfabric/martian": "^1.2.4",
     "cheerio": "^1.1.2",
     "commander": "^14.0.1",
     "envalid": "^8.0.0",
+    "react": "^19.2.4",
+    "react-dom": "^19.2.4",
     "tough-cookie": "^6.0.0",
     "turndown": "^7.2.0",
     "undici": "^7.16.0",
     "zod": "^3.23.8"
   },
   "devDependencies": {
+    "@playwright/test": "^1.58.2",
     "@types/node": "^24.3.0",
+    "@types/react": "^19.2.14",
+    "@types/react-dom": "^19.2.3",
     "@types/turndown": "^5.0.5",
+    "@vitejs/plugin-react": "^5.1.4",
     "tsx": "^4.20.5",
     "typescript": "^5.9.2",
+    "vite": "^7.3.1",
     "vitest": "^3.2.4"
   }
 }
