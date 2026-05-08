@@ -1,7 +1,12 @@
-# GUI V1 Implementation Workflow (Local-Only)
+# GUI V1 Implementation Workflow (Historical Planning Doc)
+
+Legacy note:
+- This file is preserved as implementation history.
+- It is not the authoritative source for current behavior.
+- For current guidance, use `docs/README.md`, `docs/policies/gui-contract.md`, and `docs/workflows/local-dev.md`.
 
 ## Summary
-This workflow translates `docs/gui-v1-plan.md` into an execution sequence with clear gates.
+This workflow translates `docs/archive/gui-v1-plan.md` into an execution sequence with clear gates.
 Order is designed to reduce rework: contracts first, runtime core second, frontend tooling third, UI fourth, then hardening.
 
 ## Public Interfaces and Type Targets

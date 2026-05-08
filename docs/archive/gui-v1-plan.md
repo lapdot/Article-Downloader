@@ -1,4 +1,9 @@
-# GUI Wrapper V1 Plan (Local-Only)
+# GUI Wrapper V1 Plan (Historical Planning Doc)
+
+Legacy note:
+- This file records the original V1 planning context.
+- It is not the authoritative source for current runtime, GUI, or workflow rules.
+- For current guidance, use `docs/README.md`, `docs/policies/gui-contract.md`, and `docs/workflows/local-dev.md`.
 
 ## 1. Overview
 

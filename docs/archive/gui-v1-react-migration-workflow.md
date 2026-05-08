@@ -1,4 +1,9 @@
-# GUI V1 React Migration Workflow (Local-Only)
+# GUI V1 React Migration Workflow (Historical Planning Doc)
+
+Legacy note:
+- This file is preserved as migration history.
+- The migration it describes has already informed the current implementation.
+- For current guidance, use `docs/README.md`, `docs/policies/gui-contract.md`, and `docs/workflows/local-dev.md`.
 
 ## Summary
 This workflow is the execution guide for the upcoming GUI migration from static frontend assets to a React + Vite + MUI frontend, while keeping the existing bridge API contract stable.

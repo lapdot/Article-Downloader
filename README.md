@@ -2,6 +2,20 @@
 
 A Node.js (TypeScript + ESM) project for downloading article pages, parsing them into Markdown, and uploading to Notion.
 
+## Documentation Map
+
+- Human onboarding and usage: this README
+- Agent-facing repo guidance: `AGENTS.md`
+- Docs index: `docs/README.md`
+- Runtime contract: `docs/policies/runtime-contract.md`
+- Testing and safety: `docs/policies/testing-and-safety.md`
+- GUI contract: `docs/policies/gui-contract.md`
+- Cross-project reference template: `docs/policies/portable-policy-template.md`
+- Architecture overview: `docs/architecture/overview.md`
+- Decision records: `docs/decisions/`
+- Local development workflow: `docs/workflows/local-dev.md`
+- Fixture workflow: `docs/workflows/fixture-capture.md`
+
 ## Features
 
 - Verify Zhihu cookies by checking `https://www.zhihu.com/settings/account`:
@@ -123,70 +137,7 @@ Both setting methods are optional on any given run.
 
 `ARTICLE_DOWNLOADER_COOKIEPROXY_PATH` overrides the executable path for the `cookieproxy` method. If unset, runtime falls back to `/Users/lapdot/Documents/projects/runnable/cookieproxy`.
 
-Cookie requirements depend on the selected download method:
-
-- `fetch` and `capture-fixture` require cookies only for `http`
-- `fetch` and `capture-fixture` do not require cookies for `cookieproxy`
-- `run` no longer performs Zhihu cookie verification before download
-
-Notion upload is command-driven (for example `upload-notion`), not controlled by a public config toggle.
-
-Cookies now follow a merge-only storage model:
-
-- `public.config.json -> cookies.publicEntries` and `cookies.secrets.local.json` are both cookie arrays.
-- Runtime merges the two arrays directly.
-- Runtime does not classify cookies as public vs secret.
-- If the same normalized cookie tuple (`name|domain|path`) appears in both sources, runtime fails with a duplicate conflict error.
-
-### File Error Behavior
-
-Required file reads fail fast with a unified error format:
-
-- `E_FILE_NOT_FOUND: <kind>: <path>`
-
-This applies to:
-
-- public config (`--config`)
-- cookies secrets (`--cookies-secrets`, env override, or default path) when cookies are required
-- notion secrets (`--notion-secrets`, env override, or default path) when notion is required
-- CLI input files (`--html`, `--md`, `--blocks`)
-
-### Input Contract
-
-Each subcommand accepts only its declared flags. Irrelevant flags fail fast as unknown options.
-
-Unrelated secret-path environment variables are ignored by commands that do not need them.
-
-Examples:
-
-- `verify-zhihu` ignores `ARTICLE_DOWNLOADER_NOTION_SECRETS_PATH`.
-- `upload-notion` ignores `ARTICLE_DOWNLOADER_COOKIES_SECRETS_PATH`.
-
-### Core Inputs Are CLI-Only
-
-Core content inputs always come from CLI parameters and are never read from env vars or config files:
-
-- `run`: `--url`
-- `fetch`: `--url`
-- `get_metadata`: `--html`, `--url`
-- `parse`: `--html`, `--url`
-- `transform-notion`: `--md`
-- `upload-notion`: `--blocks`
-- `ingest`: `--html`, `--source-url`, `--fixture`
-- `capture-fixture`: `--url`, `--fixture`
-
-### Core Output Paths Are CLI-Only By Default
-
-Core output paths are explicitly provided via CLI flags and are not read from env vars or config files by default:
-
-- `--out`: `fetch`, `get_metadata`, `parse`, `transform-notion`, `run`, `capture-fixture`
-- `--out-fixtures-dir`: `ingest`, `capture-fixture`
-
-Exceptions are allowed only for concrete specialties, and must be explicitly approved, documented, and test-covered per command/flag.
-
-### Roadmap Note
-
-Future versions may add env-variable support for non-core public configuration parts, but core inputs and explicit `--config` remain mandatory for CLI execution.
+For the full contract around config precedence, cookie behavior, file errors, and CLI strictness, see `docs/policies/runtime-contract.md`.
 
 ## CLI usage
 
@@ -281,12 +232,7 @@ Returns JSON with minimal entries:
 
 ## GUI (V1 local-only)
 
-V1 GUI runs on the same machine as the CLI. It provides:
-- command selection for existing CLI subcommands
-- per-argument recent input history
-- modal-primary path picker with inline fallback
-- non-enforced path browsing assistance (manual path input always allowed)
-- streamed run output in the browser
+V1 GUI runs on the same machine as the CLI. It provides command selection for existing CLI subcommands, per-argument input history, assistive path browsing, and streamed run output in the browser.
 
 Start GUI:
 
@@ -325,50 +271,13 @@ Open the GUI bridge endpoint:
 http://localhost:8787
 ```
 
-### GUI Commands
-
-GUI frontend stack: `React + Vite + MUI`.
-GUI bridge stack: `Fastify + @fastify/static + pino + zod`.
-
-```bash
-npm run gui        # build frontend and start bridge server
-npm run gui:server # start bridge server only
-npm run gui:dev    # Vite frontend dev server
-npm run gui:build  # build frontend assets
-npm run gui:test:e2e
-```
-
-For frontend development:
-1. Start bridge server: `npm run build && npm run gui:server`.
-2. Start Vite dev server in a second terminal: `npm run gui:dev`.
-
-### Path Picker UX
-
-- Path picker is modal-first.
-- Inline expandable picker is available as fallback on constrained contexts.
-- Picker supports file-vs-directory selection behavior by argument type.
-- Manual path input remains always editable and always allowed.
-- Non-enforced policy is unchanged: GUI never blocks execution by local path existence checks.
-
-### Bridge API
-
-GUI uses these bridge API routes:
-- `GET /api/commands`
-- `GET /api/history`
-- `POST /api/history`
-- `POST /api/browse-path`
-- `POST /api/run`
-
-`run` writes:
-
-- `page.html`
-- `metadata.json`
-- `article.md`
-- `meta.json`
-
-inside `output/<YYYYMMDD-HHmmss>-<slug>/`.
+For GUI development details, script entrypoints, bridge routes, and path-picker behavior, see:
+- `docs/workflows/local-dev.md`
+- `docs/policies/gui-contract.md`
 
 ## Fixture Workflows
+
+The canonical fixture workflows now live in `docs/workflows/fixture-capture.md`.
 
 ### 9) Ingest HTML fixture with sanitization (HTML-only)
 
@@ -379,19 +288,6 @@ npx tsx src/cli.ts ingest \
   --fixture zhihu-zhuanlan-new \
   --out-fixtures-dir ./tests/fixtures
 ```
-
-`ingest` is offline and HTML-only in v1. It rejects `--url` input mode with `E_INGEST_UNSUPPORTED_INPUT`.
-
-For authenticated pages, use a two-step flow:
-
-1. Collect HTML via `fetch` or `run` (with cookies).
-2. Sanitize and generate committable fixtures via `ingest --html ...`.
-
-`ingest` writes:
-
-- raw local archive: `.local/raw-imports/<timestamp>-<fixture>/raw.html` (untracked)
-- sanitized fixture: `tests/fixtures/<fixture>.html`
-- sanitization map: `tests/fixtures/<fixture>.map.json`
 
 ### 10) Capture fixture (canonical producer-to-sanitizer workflow)
 
@@ -405,26 +301,6 @@ npx tsx src/cli.ts capture-fixture \
   --download-method http \
   --cookies-secrets ./config/cookies.secrets.local.json
 ```
-
-`capture-fixture` is the recommended end-to-end fixture workflow:
-
-1. fetch HTML with cookie-aware config and the selected download method
-2. sanitize via ingest policy
-3. copy sanitized artifacts into the fetch run directory for traceability
-
-When `downloadMethod` is `cookieproxy`, `capture-fixture` does not require `--cookies-secrets`.
-
-Artifacts produced:
-
-- fetch raw HTML: `output/<run>/page.html`
-- ingest raw archive: `.local/raw-imports/<timestamp>-<fixture>/raw.html` (untracked)
-- canonical fixture artifacts: `tests/fixtures/<fixture>.html`, `tests/fixtures/<fixture>.map.json`
-- linked copies: `output/<run>/ingest/<fixture>.html`, `output/<run>/ingest/<fixture>.map.json`
-
-Failure semantics:
-
-- fetch failure stops before ingest
-- ingest failure returns non-zero and preserves fetch artifacts for inspection
 
 ## Cookie Secrets Format
 
@@ -500,15 +376,4 @@ Use the closed loop when you need a local, sealed validation pass before adding 
 npm run test:closed-loop
 ```
 
-This command enforces:
-- localhost-only network calls during tests (external hosts are blocked)
-- preflight checks for obvious secret leaks in env vars and fixture artifacts (`.html` + `.map.json`)
-- full test suite execution with existing redaction/upload behavior checks
-- test URL sanitization policy: keep safe generic endpoints (for example `/settings/account`) and sanitize long Zhihu content IDs with deterministic placeholders
-
-If it fails, treat it as a safety gate:
-- network-guard failures mean a test attempted external access
-- preflight/fixture failures mean sensitive-looking data was detected
-- redaction failures mean runtime artifacts may expose secrets/secret paths
-
-Future note: the loop may split into `closed-loop:required` and `closed-loop:full` when the suite grows.
+For closed-loop guarantees and fixture-safety rules, see `docs/policies/testing-and-safety.md`.

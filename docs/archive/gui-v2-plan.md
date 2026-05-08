@@ -1,4 +1,9 @@
-# GUI Wrapper V2 Plan (Remote-Capable)
+# GUI Wrapper V2 Plan (Dropped Plan)
+
+Legacy note:
+- This file records a previously explored V2 direction that is no longer an active roadmap.
+- It does not define the current direction or the active V1 contract of the repo.
+- For current behavior, use `docs/README.md` and `docs/policies/gui-contract.md`.
 
 ## 1. Overview
 

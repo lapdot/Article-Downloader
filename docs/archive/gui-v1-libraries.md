@@ -1,9 +1,14 @@
-# GUI V1 Libraries (Aligned with Plan + Workflow)
+# GUI V1 Libraries (Historical Planning Doc)
+
+Legacy note:
+- This file is kept for implementation history and planning context.
+- It is not an authoritative source of current repo policy.
+- For current guidance, start with `docs/README.md`, `docs/policies/`, and `docs/workflows/`.
 
 ## Scope Alignment
 This file follows:
-- `docs/gui-v1-plan.md` (local-only V1)
-- `docs/gui-v1-workflow.md` (phase-based delivery)
+- `docs/archive/gui-v1-plan.md` (local-only V1)
+- `docs/archive/gui-v1-workflow.md` (phase-based delivery)
 
 V1 assumption:
 - frontend, bridge, and CLI run on the same machine.
@@ -122,7 +127,7 @@ test("shows Run button", async ({ page }) => {
 
 ## V2 Remote Additions (Not V1)
 - `ssh2`
-  - For SSH executor in V2 (`docs/gui-v2-plan.md`).
+  - For SSH executor in V2 (`docs/archive/gui-v2-plan.md`).
 - `ssh2-sftp-client` (optional)
   - Only if direct SFTP browsing is introduced later.
 

@@ -1,4 +1,9 @@
-# Bridge-Only Mature Library Replacement Plan
+# Bridge-Only Mature Library Replacement Plan (Historical Planning Doc)
+
+Legacy note:
+- This file captures a migration plan that informed the current bridge stack.
+- It is preserved for implementation history and rationale.
+- For current guidance, use `docs/README.md`, `docs/policies/gui-contract.md`, and `docs/architecture/gui-bridge.md`.
 
 ## 1. Plan
 
