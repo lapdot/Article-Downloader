@@ -35,9 +35,11 @@ describe("fetch + parse integration", () => {
     const download = await downloadHtml({
       url: `http://127.0.0.1:${address.port}/article`,
       cookies: [{ name: "z_c0", value: "test" }],
+      downloadMethod: "http",
     });
 
     expect(download.ok).toBe(true);
+    expect(download.downloadMethod).toBe("http");
     expect(download.html).toContain("Zhihu Fixture Title");
 
     const parsed = await parseHtmlToMarkdown({
@@ -65,9 +67,11 @@ describe("fetch + parse integration", () => {
     const download = await downloadHtml({
       url: `http://127.0.0.1:${address.port}/article`,
       cookies: [{ name: "z_c0", value: "test" }],
+      downloadMethod: "http",
     });
 
     expect(download.ok).toBe(true);
+    expect(download.downloadMethod).toBe("http");
     expect(download.html).toContain("Sanitized Zhuanlan Title");
 
     const parsed = await parseHtmlToMarkdown({

@@ -1,4 +1,4 @@
-import { mkdtemp, readFile, readdir } from "node:fs/promises";
+import { chmod, mkdtemp, readFile, readdir } from "node:fs/promises";
 import { tmpdir } from "node:os";
 import path from "node:path";
 import { createServer } from "node:http";
@@ -22,7 +22,10 @@ afterEach(async () => {
   }
 });
 
-async function writeConfigFiles(root: string): Promise<{ configPath: string; cookiesSecretsPath: string }> {
+async function writeConfigFiles(
+  root: string,
+  options?: { downloadMethod?: "http" | "cookieproxy"; includePublicCookie?: boolean },
+): Promise<{ configPath: string; cookiesSecretsPath: string }> {
   const configPath = path.join(root, "public.config.json");
   const cookiesSecretsPath = path.join(root, "cookies.secrets.local.json");
 
@@ -33,9 +36,10 @@ async function writeConfigFiles(root: string): Promise<{ configPath: string; coo
         pipeline: {
           outDir: path.join(root, "output"),
           useHtmlStyleForImage: false,
+          downloadMethod: options?.downloadMethod,
         },
         cookies: {
-          publicEntries: [
+          publicEntries: options?.includePublicCookie === false ? [] : [
             {
               name: "z_c0",
               value: "public-abc",
@@ -53,6 +57,34 @@ async function writeConfigFiles(root: string): Promise<{ configPath: string; coo
   await writeTextFile(cookiesSecretsPath, JSON.stringify([], null, 2));
 
   return { configPath, cookiesSecretsPath };
+}
+
+async function createFakeCookieproxy(root: string): Promise<string> {
+  const scriptPath = path.join(root, "fake-cookieproxy.sh");
+  await writeTextFile(
+    scriptPath,
+    `#!/bin/sh
+output=""
+while [ "$#" -gt 0 ]; do
+  case "$1" in
+    --url)
+      url="$2"
+      shift 2
+      ;;
+    --output)
+      output="$2"
+      shift 2
+      ;;
+    *)
+      shift
+      ;;
+  esac
+done
+printf '<!doctype html><html><body><article data-custom-new="from-cookieproxy"><p>Proxy %s</p></article></body></html>' "$url" > "$output"
+`,
+  );
+  await chmod(scriptPath, 0o755);
+  return scriptPath;
 }
 
 describe("capture-fixture", () => {
@@ -238,5 +270,98 @@ describe("capture-fixture", () => {
     expect(result.fetch.outputDir).toBeUndefined();
     expect(result.ingest).toBeUndefined();
     expect(process.exitCode).toBe(1);
+  });
+
+  test("capture-fixture uses cookieproxy when selected in config", async () => {
+    const root = await mkdtemp(path.join(tmpdir(), "capture-fixture-cookieproxy-test-"));
+    const outDir = path.join(root, "output");
+    const fixturesDir = path.join(root, "fixtures");
+    const { configPath, cookiesSecretsPath } = await writeConfigFiles(root, {
+      downloadMethod: "cookieproxy",
+    });
+    process.env.ARTICLE_DOWNLOADER_COOKIEPROXY_PATH = await createFakeCookieproxy(root);
+
+    let stdout = "";
+    const outSpy = vi
+      .spyOn(process.stdout, "write")
+      .mockImplementation(((chunk: string | Uint8Array) => {
+        stdout += typeof chunk === "string" ? chunk : chunk.toString("utf8");
+        return true;
+      }) as typeof process.stdout.write);
+
+    try {
+      await runCli([
+        "node",
+        "article-downloader",
+        "capture-fixture",
+        "--url",
+        "https://zhuanlan.zhihu.com/p/321",
+        "--fixture",
+        "cookieproxy-captured",
+        "--config",
+        configPath,
+        "--out",
+        outDir,
+        "--out-fixtures-dir",
+        fixturesDir,
+      ]);
+    } finally {
+      outSpy.mockRestore();
+    }
+
+    const result = JSON.parse(stdout) as {
+      ok: boolean;
+      fetch: { htmlPath?: string; result: { downloadMethod: string } };
+    };
+
+    expect(result.ok).toBe(true);
+    expect(result.fetch.result.downloadMethod).toBe("cookieproxy");
+
+    const outputRuns = await readdir(outDir);
+    const fetchedHtml = await readFile(path.join(outDir, outputRuns[0], "page.html"), "utf8");
+    expect(fetchedHtml).toContain("Proxy https://zhuanlan.zhihu.com/p/321");
+  });
+
+  test("capture-fixture still fails clearly for http when cookies secrets path is missing", async () => {
+    const root = await mkdtemp(path.join(tmpdir(), "capture-fixture-http-missing-cookies-test-"));
+    const outDir = path.join(root, "output");
+    const fixturesDir = path.join(root, "fixtures");
+    const { configPath } = await writeConfigFiles(root, {
+      downloadMethod: "http",
+      includePublicCookie: false,
+    });
+    const missingCookiesSecretsPath = path.join(root, "missing-cookies.secrets.local.json");
+
+    let stderr = "";
+    const errSpy = vi
+      .spyOn(process.stderr, "write")
+      .mockImplementation(((chunk: string | Uint8Array) => {
+        stderr += typeof chunk === "string" ? chunk : chunk.toString("utf8");
+        return true;
+      }) as typeof process.stderr.write);
+
+    try {
+      await runCli([
+        "node",
+        "article-downloader",
+        "capture-fixture",
+        "--url",
+        "https://zhuanlan.zhihu.com/p/321",
+        "--fixture",
+        "http-missing-cookies",
+        "--config",
+        configPath,
+        "--cookies-secrets",
+        missingCookiesSecretsPath,
+        "--out",
+        outDir,
+        "--out-fixtures-dir",
+        fixturesDir,
+      ]);
+    } finally {
+      errSpy.mockRestore();
+    }
+
+    expect(stderr).toContain(`E_FILE_NOT_FOUND: cookies secrets: ${missingCookiesSecretsPath}`);
   });
 });

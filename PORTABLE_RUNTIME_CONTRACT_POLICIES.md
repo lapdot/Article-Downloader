@@ -132,6 +132,15 @@ Examples:
 - If upstream stages succeed and a later stage fails, keep intermediate artifacts by default for diagnosis and retry.
 - Artifact retention should be intentional, documented, and consistent across command modes.
 
+### 5.6 Strategy-dependent prerequisites
+- Requirement strictness may depend on the selected execution strategy, not only on the command name.
+- A dependency may be upstream-critical for one strategy and optional for another.
+- Strategy-dependent requirement changes must be:
+  - decided from effective runtime configuration,
+  - explicitly documented,
+  - and test-covered.
+- Wrapper/help layers must not assume a dependency is always required when strategy selection can change that requirement.
+
 ## 6. Test Expectations
 
 ### 6.1 Must-have contract tests
@@ -150,6 +159,7 @@ Include tests for:
 - exception-path behavior (if any),
 - upstream-critical fail-fast behavior,
 - downstream-critical explicit-failure behavior,
+- strategy-dependent requirement behavior,
 - intermediate artifact preservation on downstream failure.
 
 ## 7. Runtime diagnostics policy
@@ -205,6 +215,15 @@ Include tests for:
 - Descriptor hints should be explicit and test-covered, rather than inferred from ambiguous naming alone.
 - Exception mappings (for example name-like values that should not use path helpers) should be documented as rules.
 
+### 9.5 Conditional relevance in wrapper clients
+- Wrapper clients may need backend-resolved hints for whether an input is:
+  - visible,
+  - relevant,
+  - optional,
+  - or required.
+- Wrapper-visible fields and runtime-required fields are different contracts and must not be conflated.
+- If conditional relevance depends on effective config or strategy, the backend should provide an explicit hint contract rather than relying on frontend-only inference.
+
 ## 10. Test Gate Policy
 
 ### 10.1 Complementary test gates
@@ -233,6 +252,13 @@ Include tests for:
 
 ### 11.2 Script-to-doc alignment
 - User-facing docs should reference canonical script entrypoints, not ad-hoc local commands, unless explicitly documented as advanced alternatives.
+
+### 11.3 Built-artifact freshness for wrapper runtimes
+- If a wrapper runtime serves built backend or frontend artifacts, freshness of those artifacts is part of the operational contract.
+- Canonical startup scripts should either:
+  - rebuild all required artifacts before serving,
+  - or explicitly document that they assume prebuilt artifacts.
+- Test and automation entrypoints for wrapper runtimes should avoid unintentionally reusing stale servers or stale build outputs when validating new behavior.
 
 ## 12. Multi-source Merge Conflict Policy (Optional Specialty)
 

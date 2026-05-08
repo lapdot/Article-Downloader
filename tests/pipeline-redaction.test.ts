@@ -11,6 +11,7 @@ vi.mock("../src/core/fetcher.js", () => ({
   downloadHtml: vi.fn(async ({ url }: { url: string }) => ({
     ok: true,
     url,
+    downloadMethod: "http",
     finalUrl: url,
     statusCode: 200,
     html: "<html><body><h1>Title</h1></body></html>",
@@ -57,6 +58,8 @@ describe("pipeline redaction", () => {
         pipeline: {
           outDir,
           useHtmlStyleForImage: false,
+          downloadMethod: "http",
+          cookieproxyPath: "/tmp/cookieproxy",
         },
         notion: {
           notionToken: secretToken,

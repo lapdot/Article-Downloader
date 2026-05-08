@@ -1,5 +1,4 @@
 import path from "node:path";
-import { verifyZhihuCookies } from "../adapters/zhihu.js";
 import { downloadHtml } from "./fetcher.js";
 import { parseHtmlToMarkdown, parseHtmlToMetadata } from "./parser.js";
 import { markdownToNotionBlocks, uploadNotionBlocksToNotion } from "./notion.js";
@@ -44,24 +43,16 @@ export async function runPipeline(input: PipelineInput): Promise<PipelineResult>
     input.useHtmlStyleForImage ?? input.runtimeConfig.pipeline.useHtmlStyleForImage;
   const baseOutputDir = input.outDir ?? input.runtimeConfig.pipeline.outDir;
 
-  const verify = await verifyZhihuCookies(cookies, input.runtimeConfig.pipeline.userAgent);
-  if (!verify.ok) {
-    return {
-      ok: false,
-      verify,
-      reason: "cookie verification failed",
-    };
-  }
-
   const download = await downloadHtml({
     url: input.url,
     cookies,
     userAgent: input.runtimeConfig.pipeline.userAgent,
+    downloadMethod: input.runtimeConfig.pipeline.downloadMethod,
+    cookieproxyPath: input.runtimeConfig.pipeline.cookieproxyPath,
   });
   if (!download.ok || !download.html) {
     return {
       ok: false,
-      verify,
       download,
       reason: "download failed",
     };
@@ -139,7 +130,6 @@ export async function runPipeline(input: PipelineInput): Promise<PipelineResult>
       notionUploadAttempted: uploadAttempted,
       cookieCount: cookies.length,
     },
-    verify,
     download: {
       ...download,
       html: undefined,
@@ -156,7 +146,6 @@ export async function runPipeline(input: PipelineInput): Promise<PipelineResult>
 
   return {
     ok: resultOk,
-    verify,
     download,
     metadata,
     parse,

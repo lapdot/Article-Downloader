@@ -25,6 +25,7 @@ export {
 export type {
   Cookie,
   VerifyResult,
+  DownloadMethod,
   DownloadInput,
   DownloadResult,
   ParseInput,

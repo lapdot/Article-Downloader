@@ -54,13 +54,15 @@ function toArgDescriptor(option: Option): GuiArgDescriptor {
   const flag = option.long ?? "";
   const kind = option.isBoolean() ? "boolean" : "string";
   const uiHint = inferUiHint(flag || key);
+  const allowedValues = key === "downloadMethod" ? ["http", "cookieproxy"] : undefined;
   return {
     key,
     flag,
     description: option.description ?? "",
-    required: option.required,
+    required: option.mandatory === true,
     kind,
     valueHint: kind === "boolean" ? "text" : uiHint.valueHint,
+    allowedValues,
     pathMode: kind === "boolean" ? undefined : uiHint.pathMode,
     inputMode: kind === "boolean" ? undefined : uiHint.inputMode,
   };

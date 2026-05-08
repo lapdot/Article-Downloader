@@ -1,3 +1,6 @@
+import { mkdtemp, writeFile } from "node:fs/promises";
+import os from "node:os";
+import path from "node:path";
 import { expect, test, type Page } from "@playwright/test";
 
 async function selectCommandByName(page: Page, commandName: string): Promise<void> {
@@ -55,4 +58,58 @@ test("picker shows browse errors and still allows manual apply", async ({ page }
   await page.getByLabel("Manual path").fill(".");
   await page.getByRole("button", { name: "Use manual path" }).click();
   await expect(page.getByTestId("arg-input-out")).toHaveValue(".");
+});
+
+test("fetch resolves cookieproxy command hints in the browser", async ({ page }) => {
+  const root = await mkdtemp(path.join(os.tmpdir(), "gui-cookieproxy-config-"));
+  const configPath = path.join(root, "public.config.json");
+  await writeFile(
+    configPath,
+    JSON.stringify({
+      pipeline: {
+        downloadMethod: "cookieproxy",
+      },
+    }),
+    "utf8",
+  );
+
+  await page.goto("/");
+  await selectCommandByName(page, "fetch");
+  const hints = await page.evaluate(async (config) => {
+    const response = await fetch("/api/command-hints", {
+      method: "POST",
+      headers: {
+        "Content-Type": "application/json",
+      },
+      body: JSON.stringify({ command: "fetch", configPath: config }),
+    });
+    return response.json();
+  }, configPath);
+
+  expect(hints).toMatchObject({
+    effectiveDownloadMethod: "cookieproxy",
+    hiddenArgKeys: ["cookiesSecrets"],
+  });
+});
+
+test("fetch download method select overrides config in the GUI", async ({ page }) => {
+  const root = await mkdtemp(path.join(os.tmpdir(), "gui-http-config-"));
+  const configPath = path.join(root, "public.config.json");
+  await writeFile(
+    configPath,
+    JSON.stringify({
+      pipeline: {
+        downloadMethod: "http",
+      },
+    }),
+    "utf8",
+  );
+
+  await page.goto("/");
+  await selectCommandByName(page, "fetch");
+  await page.getByTestId("arg-input-config").fill(configPath);
+  await page.getByTestId("arg-input-downloadMethod").click();
+  await page.getByRole("option", { name: "cookieproxy" }).click();
+
+  await expect(page.getByText("--cookies-secrets")).toHaveCount(0);
 });

@@ -1,4 +1,4 @@
-import { mkdtemp, readFile } from "node:fs/promises";
+import { chmod, mkdtemp, readFile } from "node:fs/promises";
 import { tmpdir } from "node:os";
 import path from "node:path";
 import { createServer } from "node:http";
@@ -7,7 +7,6 @@ import { afterEach, describe, expect, test, vi } from "vitest";
 import type { Command } from "commander";
 import { createProgram, runCli } from "../src/cli.js";
 import { writeTextFile } from "../src/utils/fs.js";
-import * as zhihuAdapter from "../src/adapters/zhihu.js";
 import * as parserCore from "../src/core/parser.js";
 
 let server: ReturnType<typeof createServer> | undefined;
@@ -22,7 +21,10 @@ afterEach(async () => {
   }
 });
 
-async function writeConfigFiles(root: string): Promise<{ configPath: string; cookiesSecretsPath: string }> {
+async function writeConfigFiles(
+  root: string,
+  options?: { downloadMethod?: "http" | "cookieproxy"; includePublicCookie?: boolean },
+): Promise<{ configPath: string; cookiesSecretsPath: string }> {
   const configPath = path.join(root, "public.config.json");
   const cookiesSecretsPath = path.join(root, "cookies.secrets.local.json");
 
@@ -33,9 +35,10 @@ async function writeConfigFiles(root: string): Promise<{ configPath: string; coo
         pipeline: {
           outDir: "output",
           useHtmlStyleForImage: false,
+          downloadMethod: options?.downloadMethod,
         },
         cookies: {
-          publicEntries: [
+          publicEntries: options?.includePublicCookie === false ? [] : [
             {
               name: "z_c0",
               value: "public-abc",
@@ -56,6 +59,35 @@ async function writeConfigFiles(root: string): Promise<{ configPath: string; coo
   );
 
   return { configPath, cookiesSecretsPath };
+}
+
+async function createFakeCookieproxy(root: string): Promise<string> {
+  const scriptPath = path.join(root, "fake-cookieproxy.sh");
+  await writeTextFile(
+    scriptPath,
+    `#!/bin/sh
+output=""
+url=""
+while [ "$#" -gt 0 ]; do
+  case "$1" in
+    --url)
+      url="$2"
+      shift 2
+      ;;
+    --output)
+      output="$2"
+      shift 2
+      ;;
+    *)
+      shift
+      ;;
+  esac
+done
+printf '<!doctype html><html><body><h1>Cookieproxy %s</h1></body></html>' "$url" > "$output"
+`,
+  );
+  await chmod(scriptPath, 0o755);
+  return scriptPath;
 }
 
 describe("cli", () => {
@@ -121,6 +153,121 @@ describe("cli", () => {
 
     const html = await readFile(path.join(outDir, createdDirs[0], "page.html"), "utf8");
     expect(html).toContain("Hello");
+  });
+
+  test("fetch command uses cookieproxy when selected in config", async () => {
+    const root = await mkdtemp(path.join(tmpdir(), "article-downloader-test-"));
+    const outDir = path.join(root, "output");
+    const { configPath, cookiesSecretsPath } = await writeConfigFiles(root, {
+      downloadMethod: "cookieproxy",
+    });
+    process.env.ARTICLE_DOWNLOADER_COOKIEPROXY_PATH = await createFakeCookieproxy(root);
+
+    await runCli([
+      "node",
+      "article-downloader",
+      "fetch",
+      "--url",
+      "https://zhuanlan.zhihu.com/p/123",
+      "--config",
+      configPath,
+      "--out",
+      outDir,
+    ]);
+
+    const createdDirs = await (await import("node:fs/promises")).readdir(outDir);
+    expect(createdDirs.length).toBe(1);
+
+    const html = await readFile(path.join(outDir, createdDirs[0], "page.html"), "utf8");
+    expect(html).toContain("Cookieproxy https://zhuanlan.zhihu.com/p/123");
+
+    const meta = await readFile(path.join(outDir, createdDirs[0], "meta.json"), "utf8");
+    expect(meta).toContain('"downloadMethod": "cookieproxy"');
+  });
+
+  test("fetch command uses CLI download method override over config", async () => {
+    const root = await mkdtemp(path.join(tmpdir(), "article-downloader-test-"));
+    const outDir = path.join(root, "output");
+    const { configPath } = await writeConfigFiles(root, {
+      downloadMethod: "http",
+    });
+    process.env.ARTICLE_DOWNLOADER_COOKIEPROXY_PATH = await createFakeCookieproxy(root);
+
+    await runCli([
+      "node",
+      "article-downloader",
+      "fetch",
+      "--url",
+      "https://zhuanlan.zhihu.com/p/123",
+      "--config",
+      configPath,
+      "--download-method",
+      "cookieproxy",
+      "--out",
+      outDir,
+    ]);
+
+    const createdDirs = await (await import("node:fs/promises")).readdir(outDir);
+    const meta = await readFile(path.join(outDir, createdDirs[0], "meta.json"), "utf8");
+    expect(meta).toContain('"downloadMethod": "cookieproxy"');
+  });
+
+  test("fetch command requires cookies when CLI download method overrides config to http", async () => {
+    const root = await mkdtemp(path.join(tmpdir(), "article-downloader-test-"));
+    const outDir = path.join(root, "output");
+    const { configPath } = await writeConfigFiles(root, {
+      downloadMethod: "cookieproxy",
+      includePublicCookie: false,
+    });
+    const missingCookiesSecretsPath = path.join(root, "missing-cookies.secrets.local.json");
+
+    const stderr = await captureStderr(async () => {
+      await runCli([
+        "node",
+        "article-downloader",
+        "fetch",
+        "--url",
+        "https://zhuanlan.zhihu.com/p/123",
+        "--config",
+        configPath,
+        "--download-method",
+        "http",
+        "--cookies-secrets",
+        missingCookiesSecretsPath,
+        "--out",
+        outDir,
+      ]);
+    });
+
+    expect(stderr).toContain(`E_FILE_NOT_FOUND: cookies secrets: ${missingCookiesSecretsPath}`);
+  });
+
+  test("fetch command still fails clearly for http when cookies secrets path is missing", async () => {
+    const root = await mkdtemp(path.join(tmpdir(), "article-downloader-test-"));
+    const outDir = path.join(root, "output");
+    const { configPath } = await writeConfigFiles(root, {
+      downloadMethod: "http",
+      includePublicCookie: false,
+    });
+    const missingCookiesSecretsPath = path.join(root, "missing-cookies.secrets.local.json");
+
+    const stderr = await captureStderr(async () => {
+      await runCli([
+        "node",
+        "article-downloader",
+        "fetch",
+        "--url",
+        "https://zhuanlan.zhihu.com/p/123",
+        "--config",
+        configPath,
+        "--cookies-secrets",
+        missingCookiesSecretsPath,
+        "--out",
+        outDir,
+      ]);
+    });
+
+    expect(stderr).toContain(`E_FILE_NOT_FOUND: cookies secrets: ${missingCookiesSecretsPath}`);
   });
 
   test("parse command toggles image output style via --use-html-style-for-image", async () => {
@@ -211,6 +358,7 @@ describe("cli", () => {
     mustRequireOption(fetchCommand!, "--url");
     mustRequireOption(fetchCommand!, "--out");
     mustHaveOption(fetchCommand!, "--config");
+    mustHaveOption(fetchCommand!, "--download-method");
     mustRequireOption(metadataCommand!, "--html");
     mustRequireOption(metadataCommand!, "--url");
     mustRequireOption(metadataCommand!, "--out");
@@ -230,12 +378,14 @@ describe("cli", () => {
     mustRequireOption(captureFixtureCommand!, "--out");
     mustRequireOption(captureFixtureCommand!, "--out-fixtures-dir");
     mustHaveOption(captureFixtureCommand!, "--config");
+    mustHaveOption(captureFixtureCommand!, "--download-method");
     mustHaveOption(captureFixtureCommand!, "--cookies-secrets");
     mustRequireOption(runCommand!, "--url");
     mustRequireOption(runCommand!, "--out");
     mustHaveOption(runCommand!, "--config");
 
     expect(runOptionNames).toContain("--config");
+    expect(runOptionNames).toContain("--download-method");
     expect(runOptionNames).toContain("--cookies-secrets");
     expect(runOptionNames).toContain("--notion-secrets");
     expect(runOptionNames).toContain("--full-result");
@@ -291,7 +441,9 @@ describe("cli", () => {
   test("run reaches upload stage and fails when notion secrets are missing", async () => {
     const root = await mkdtemp(path.join(tmpdir(), "article-downloader-test-"));
     const outDir = path.join(root, "output");
-    const { configPath, cookiesSecretsPath } = await writeConfigFiles(root);
+    const { configPath } = await writeConfigFiles(root, {
+      includePublicCookie: false,
+    });
 
     server = createServer((_req, res) => {
       res.writeHead(200, { "content-type": "text/html" });
@@ -304,9 +456,6 @@ describe("cli", () => {
       throw new Error("missing server address");
     }
 
-    const verifySpy = vi
-      .spyOn(zhihuAdapter, "verifyZhihuCookies")
-      .mockResolvedValue({ ok: true, statusCode: 200 });
     const metadataSpy = vi
       .spyOn(parserCore, "parseHtmlToMetadata")
       .mockResolvedValue({
@@ -337,15 +486,12 @@ describe("cli", () => {
           `http://127.0.0.1:${addr.port}/`,
           "--config",
           configPath,
-          "--cookies-secrets",
-          cookiesSecretsPath,
           "--out",
           outDir,
           "--full-result",
         ]);
       } finally {
         spy.mockRestore();
-        verifySpy.mockRestore();
         metadataSpy.mockRestore();
         markdownSpy.mockRestore();
       }

@@ -1,6 +1,7 @@
 export type ErrorCode =
   | "E_COOKIE_INVALID"
   | "E_FETCH_HTTP"
+  | "E_FETCH_EXEC"
   | "E_PARSE_SELECTOR"
   | "E_PARSE_UNSUPPORTED_SITE"
   | "E_NOTION_API"
@@ -31,22 +32,28 @@ export interface VerifyResult {
   diagnostics?: Record<string, string | number | boolean>;
 }
 
+export type DownloadMethod = "http" | "cookieproxy";
+
 export interface DownloadInput {
   url: string;
   cookies: Cookie[];
   userAgent?: string;
   timeoutMs?: number;
+  downloadMethod?: DownloadMethod;
+  cookieproxyPath?: string;
 }
 
 export interface DownloadResult {
   ok: boolean;
   url: string;
+  downloadMethod: DownloadMethod;
   finalUrl?: string;
   statusCode?: number;
   html?: string;
   fetchedAt: string;
   reason?: string;
   errorCode?: ErrorCode;
+  diagnostics?: Record<string, string | number | boolean>;
 }
 
 export interface ParseInput {
@@ -119,6 +126,7 @@ export interface PublicConfig {
     outDir?: string;
     useHtmlStyleForImage?: boolean;
     userAgent?: string;
+    downloadMethod?: DownloadMethod;
   };
   cookies?: {
     publicEntries?: PublicCookieEntry[];
@@ -140,11 +148,17 @@ export interface ResolvedRuntimeConfig {
     outDir: string;
     useHtmlStyleForImage: boolean;
     userAgent?: string;
+    downloadMethod: DownloadMethod;
+    cookieproxyPath: string;
   };
   notion: {
     notionToken?: string;
     databaseId?: string;
   };
+}
+
+export interface DownloadMethodOverrideInput {
+  downloadMethodOverride?: DownloadMethod;
 }
 
 export interface PipelineInput {
@@ -163,7 +177,7 @@ export interface PipelineResult {
   markdownPath?: string;
   notionBlocksPath?: string;
   metaPath?: string;
-  verify: VerifyResult;
+  verify?: VerifyResult;
   download?: DownloadResult;
   metadata?: MetadataResult;
   parse?: ParseResult;

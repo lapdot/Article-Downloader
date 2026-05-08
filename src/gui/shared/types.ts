@@ -10,6 +10,7 @@ export interface GuiArgDescriptor {
   required: boolean;
   kind: GuiArgKind;
   valueHint: GuiArgValueHint;
+  allowedValues?: string[];
   pathMode?: GuiPathMode;
   inputMode?: GuiInputMode;
 }
@@ -18,6 +19,18 @@ export interface GuiCommandDescriptor {
   name: string;
   description: string;
   args: GuiArgDescriptor[];
+}
+
+export interface GuiCommandHintsRequest {
+  command: string;
+  configPath?: string;
+  downloadMethod?: string;
+}
+
+export interface GuiCommandHintsResult {
+  ok: boolean;
+  effectiveDownloadMethod?: "http" | "cookieproxy";
+  hiddenArgKeys: string[];
 }
 
 export interface GuiRunRequest {

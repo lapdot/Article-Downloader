@@ -11,6 +11,8 @@ export async function runCaptureFixture(input: CaptureFixtureInput): Promise<Cap
     url: input.url,
     cookies: input.runtimeConfig.cookies,
     userAgent: input.runtimeConfig.pipeline.userAgent,
+    downloadMethod: input.runtimeConfig.pipeline.downloadMethod,
+    cookieproxyPath: input.runtimeConfig.pipeline.cookieproxyPath,
   });
 
   if (!download.ok || !download.html) {

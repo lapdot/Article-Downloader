@@ -2,7 +2,7 @@ import path from "node:path";
 import { mkdtemp } from "node:fs/promises";
 import { tmpdir } from "node:os";
 import { afterEach, describe, expect, test } from "vitest";
-import { resolveRuntimeConfig } from "../src/core/runtime-config.js";
+import { resolveEffectiveDownloadMethod, resolveRuntimeConfig } from "../src/core/runtime-config.js";
 import { writeTextFile } from "../src/utils/fs.js";
 
 const ORIGINAL_ENV = { ...process.env };
@@ -51,6 +51,7 @@ describe("runtime config", () => {
       { name: "z_c0", value: "secret-z-c0", domain: ".zhihu.com", path: "/" },
     ]);
     expect(runtimeConfig.pipeline.userAgent).toBe("UA_TEST");
+    expect(runtimeConfig.pipeline.downloadMethod).toBe("cookieproxy");
   });
 
   test("works when only secrets cookies are provided", async () => {
@@ -414,6 +415,95 @@ describe("runtime config", () => {
       requireCookies: false,
     });
     expect(runtimeConfig.cookies).toEqual([]);
+  });
+
+  test("reads cookieproxy download method from public config", async () => {
+    const root = await mkdtemp(path.join(tmpdir(), "runtime-config-test-"));
+    const configPath = path.join(root, "public.config.json");
+    const cookieSecretsPath = path.join(root, "cookies.secrets.local.json");
+
+    await writeJson(configPath, {
+      pipeline: {
+        downloadMethod: "cookieproxy",
+      },
+    });
+    await writeJson(cookieSecretsPath, []);
+
+    const runtimeConfig = await resolveRuntimeConfig({
+      configPath,
+      cookiesSecretsPath: cookieSecretsPath,
+      requireCookies: true,
+    });
+
+    expect(runtimeConfig.pipeline.downloadMethod).toBe("cookieproxy");
+  });
+
+  test("uses env override for cookieproxy path", async () => {
+    const root = await mkdtemp(path.join(tmpdir(), "runtime-config-test-"));
+    const configPath = path.join(root, "public.config.json");
+    const cookieSecretsPath = path.join(root, "cookies.secrets.local.json");
+
+    await writeJson(configPath, {});
+    await writeJson(cookieSecretsPath, []);
+    process.env.ARTICLE_DOWNLOADER_COOKIEPROXY_PATH = "/tmp/custom-cookieproxy";
+
+    const runtimeConfig = await resolveRuntimeConfig({
+      configPath,
+      cookiesSecretsPath: cookieSecretsPath,
+      requireCookies: true,
+    });
+
+    expect(runtimeConfig.pipeline.cookieproxyPath).toBe("/tmp/custom-cookieproxy");
+  });
+
+  test("resolves effective download method from public config", async () => {
+    const root = await mkdtemp(path.join(tmpdir(), "runtime-config-test-"));
+    const configPath = path.join(root, "public.config.json");
+
+    await writeJson(configPath, {
+      pipeline: {
+        downloadMethod: "cookieproxy",
+      },
+    });
+
+    await expect(resolveEffectiveDownloadMethod({ configPath })).resolves.toBe("cookieproxy");
+  });
+
+  test("download method override beats public config", async () => {
+    const root = await mkdtemp(path.join(tmpdir(), "runtime-config-test-"));
+    const configPath = path.join(root, "public.config.json");
+
+    await writeJson(configPath, {
+      pipeline: {
+        downloadMethod: "cookieproxy",
+      },
+    });
+
+    await expect(
+      resolveEffectiveDownloadMethod({ configPath, downloadMethodOverride: "http" }),
+    ).resolves.toBe("http");
+  });
+
+  test("resolveRuntimeConfig applies download method override", async () => {
+    const root = await mkdtemp(path.join(tmpdir(), "runtime-config-test-"));
+    const configPath = path.join(root, "public.config.json");
+    const cookieSecretsPath = path.join(root, "cookies.secrets.local.json");
+
+    await writeJson(configPath, {
+      pipeline: {
+        downloadMethod: "cookieproxy",
+      },
+    });
+    await writeJson(cookieSecretsPath, []);
+
+    const runtimeConfig = await resolveRuntimeConfig({
+      configPath,
+      cookiesSecretsPath: cookieSecretsPath,
+      downloadMethodOverride: "http",
+      requireCookies: true,
+    });
+
+    expect(runtimeConfig.pipeline.downloadMethod).toBe("http");
   });
 
   test("fails with clear error when notion secrets file is missing", async () => {

@@ -11,6 +11,7 @@ vi.mock("../src/core/fetcher.js", () => ({
   downloadHtml: vi.fn(async ({ url }: { url: string }) => ({
     ok: true,
     url,
+    downloadMethod: "http",
     finalUrl: url,
     statusCode: 200,
     html: "<html><body><h1>Title</h1></body></html>",
@@ -54,6 +55,8 @@ describe("pipeline run upload behavior", () => {
         pipeline: {
           outDir,
           useHtmlStyleForImage: false,
+          downloadMethod: "http",
+          cookieproxyPath: "/tmp/cookieproxy",
         },
         notion: {},
       },
@@ -81,6 +84,8 @@ describe("pipeline run upload behavior", () => {
         pipeline: {
           outDir,
           useHtmlStyleForImage: false,
+          downloadMethod: "http",
+          cookieproxyPath: "/tmp/cookieproxy",
         },
         notion: {
           notionToken: "invalid",
@@ -109,6 +114,8 @@ describe("pipeline run upload behavior", () => {
         pipeline: {
           outDir,
           useHtmlStyleForImage: false,
+          downloadMethod: "http",
+          cookieproxyPath: "/tmp/cookieproxy",
         },
         notion: {
           notionToken: "token",

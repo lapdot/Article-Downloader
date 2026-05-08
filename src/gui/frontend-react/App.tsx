@@ -16,7 +16,7 @@ import {
   Typography,
   useMediaQuery,
 } from "@mui/material";
-import { browsePath, getCommands, getHistoryValues, runCommandStream } from "./api/client";
+import { browsePath, getCommandHints, getCommands, getHistoryValues, runCommandStream } from "./api/client";
 import { PathPicker } from "./components/path-picker/PathPicker";
 import type { GuiArgDescriptor, GuiCommandDescriptor, GuiRunRequest } from "../shared/types";
 
@@ -39,6 +39,10 @@ function isPathArg(arg: GuiArgDescriptor): boolean {
   return arg.kind === "string" && arg.valueHint === "path" && arg.inputMode !== "name";
 }
 
+function isSelectArg(arg: GuiArgDescriptor): boolean {
+  return arg.kind === "string" && Array.isArray(arg.allowedValues) && arg.allowedValues.length > 0;
+}
+
 function createDefaultValues(command: GuiCommandDescriptor): Record<string, string | boolean> {
   const next: Record<string, string | boolean> = {};
   for (const arg of command.args) {
@@ -53,6 +57,7 @@ export function App() {
   const [selectedCommandName, setSelectedCommandName] = useState("");
   const [formValues, setFormValues] = useState<Record<string, string | boolean>>({});
   const [historyMap, setHistoryMap] = useState<Record<string, string[]>>({});
+  const [hiddenArgKeys, setHiddenArgKeys] = useState<string[]>([]);
   const [outputLog, setOutputLog] = useState("");
   const [running, setRunning] = useState(false);
   const [initError, setInitError] = useState("");
@@ -106,6 +111,46 @@ export function App() {
   useEffect(() => {
     void loadApp();
   }, []);
+
+  useEffect(() => {
+    let cancelled = false;
+
+    async function loadHints(): Promise<void> {
+      if (!selectedCommand) {
+        setHiddenArgKeys([]);
+        return;
+      }
+      const configValue = formValues.config;
+      const configPath = typeof configValue === "string" ? configValue : undefined;
+      const downloadMethodValue = formValues.downloadMethod;
+      const downloadMethod =
+        typeof downloadMethodValue === "string" && downloadMethodValue.trim().length > 0
+          ? downloadMethodValue
+          : undefined;
+      try {
+        const result = await getCommandHints(selectedCommand.name, configPath, downloadMethod);
+        if (!cancelled) {
+          setHiddenArgKeys(Array.isArray(result.hiddenArgKeys) ? result.hiddenArgKeys : []);
+        }
+      } catch {
+        if (!cancelled) {
+          setHiddenArgKeys([]);
+        }
+      }
+    }
+
+    void loadHints();
+
+    return () => {
+      cancelled = true;
+    };
+  }, [selectedCommand, formValues.config, formValues.downloadMethod]);
+
+  useEffect(() => {
+    if (pickerArgKey && hiddenArgKeys.includes(pickerArgKey)) {
+      setPickerArgKey(null);
+    }
+  }, [hiddenArgKeys, pickerArgKey]);
 
   async function onCommandChange(nextName: string): Promise<void> {
     setSelectedCommandName(nextName);
@@ -214,6 +259,9 @@ export function App() {
 
         <Stack spacing={2}>
           {(selectedCommand?.args ?? []).map((arg) => {
+            if (hiddenArgKeys.includes(arg.key)) {
+              return null;
+            }
             const value = formValues[arg.key] ?? (arg.kind === "boolean" ? false : "");
             const stringValue = typeof value === "string" ? value : "";
             const isPickerInlineOpen = isNarrow && pickerArgKey === arg.key;
@@ -237,6 +285,26 @@ export function App() {
                     }
                     label="Enabled"
                   />
+                ) : isSelectArg(arg) ? (
+                  <Stack spacing={1}>
+                    <Select
+                      fullWidth
+                      size="small"
+                      value={stringValue}
+                      inputProps={{ "data-testid": `arg-input-${arg.key}` }}
+                      displayEmpty
+                      onChange={(event) => {
+                        setArgValue(arg.key, String(event.target.value));
+                      }}
+                    >
+                      <MenuItem value="">Use config/default</MenuItem>
+                      {arg.allowedValues?.map((optionValue) => (
+                        <MenuItem key={optionValue} value={optionValue}>
+                          {optionValue}
+                        </MenuItem>
+                      ))}
+                    </Select>
+                  </Stack>
                 ) : (
                   <Stack spacing={1}>
                     <Stack direction={isNarrow ? "column" : "row"} spacing={1}>

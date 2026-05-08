@@ -3,6 +3,7 @@ import { z, ZodError } from "zod";
 import type {
   Cookie,
   CookiesSecretsConfig,
+  DownloadMethodOverrideInput,
   NotionSecretsConfig,
   PublicConfig,
   ResolvedRuntimeConfig,
@@ -12,6 +13,7 @@ import { assertValidCookies } from "./cookies.js";
 
 const DEFAULT_COOKIES_SECRETS_PATH = "config/cookies.secrets.local.json";
 const DEFAULT_NOTION_SECRETS_PATH = "config/notion.secrets.local.json";
+const DEFAULT_COOKIEPROXY_PATH = "/Users/lapdot/Documents/projects/runnable/cookieproxy";
 
 const sameSiteSchema = z.enum(["Strict", "Lax", "None", "unspecified", "no_restriction"]);
 
@@ -32,6 +34,7 @@ const publicConfigSchema = z.object({
       outDir: z.string().trim().min(1).optional(),
       useHtmlStyleForImage: z.boolean().optional(),
       userAgent: z.string().trim().min(1).optional(),
+      downloadMethod: z.enum(["http", "cookieproxy"]).optional(),
     })
     .optional(),
   cookies: z
@@ -46,7 +49,7 @@ const notionSecretsSchema = z.object({
   databaseId: z.string().trim().min(1),
 });
 
-export interface ResolveRuntimeConfigInput {
+export interface ResolveRuntimeConfigInput extends DownloadMethodOverrideInput {
   configPath?: string;
   cookiesSecretsPath?: string;
   notionSecretsPath?: string;
@@ -54,10 +57,15 @@ export interface ResolveRuntimeConfigInput {
   requireNotion?: boolean;
 }
 
+export interface ResolveDownloadMethodInput extends DownloadMethodOverrideInput {
+  configPath?: string;
+}
+
 interface PathsFromEnv {
   publicConfigPath?: string;
   cookiesSecretsPath?: string;
   notionSecretsPath?: string;
+  cookieproxyPath?: string;
 }
 
 interface ResolvedSecretsPaths {
@@ -173,12 +181,14 @@ function readPathsFromEnv(): PathsFromEnv {
     ARTICLE_DOWNLOADER_PUBLIC_CONFIG_PATH: str({ default: "" }),
     ARTICLE_DOWNLOADER_COOKIES_SECRETS_PATH: str({ default: "" }),
     ARTICLE_DOWNLOADER_NOTION_SECRETS_PATH: str({ default: "" }),
+    ARTICLE_DOWNLOADER_COOKIEPROXY_PATH: str({ default: "" }),
   });
 
   return {
     publicConfigPath: env.ARTICLE_DOWNLOADER_PUBLIC_CONFIG_PATH || undefined,
     cookiesSecretsPath: env.ARTICLE_DOWNLOADER_COOKIES_SECRETS_PATH || undefined,
     notionSecretsPath: env.ARTICLE_DOWNLOADER_NOTION_SECRETS_PATH || undefined,
+    cookieproxyPath: env.ARTICLE_DOWNLOADER_COOKIEPROXY_PATH || undefined,
   };
 }
 
@@ -244,6 +254,13 @@ function resolveCookies(cookiesConfig: PublicConfig["cookies"], cookiesSecrets: 
   return [];
 }
 
+function resolveDownloadMethod(
+  publicConfig: PublicConfig,
+  input: DownloadMethodOverrideInput,
+): "http" | "cookieproxy" {
+  return input.downloadMethodOverride ?? publicConfig.pipeline?.downloadMethod ?? "cookieproxy";
+}
+
 export async function resolveRuntimeConfig(
   input: ResolveRuntimeConfigInput,
 ): Promise<ResolvedRuntimeConfig> {
@@ -278,10 +295,26 @@ export async function resolveRuntimeConfig(
       outDir: publicConfig.pipeline?.outDir ?? "output",
       useHtmlStyleForImage: publicConfig.pipeline?.useHtmlStyleForImage ?? false,
       userAgent: publicConfig.pipeline?.userAgent,
+      downloadMethod: resolveDownloadMethod(publicConfig, input),
+      cookieproxyPath: envPaths.cookieproxyPath ?? DEFAULT_COOKIEPROXY_PATH,
     },
     notion: {
       notionToken,
       databaseId,
     },
   };
+}
+
+export async function resolveEffectiveDownloadMethod(
+  input: ResolveDownloadMethodInput,
+): Promise<"http" | "cookieproxy"> {
+  const envPaths = readPathsFromEnv();
+  const publicConfigPath = resolvePublicConfigPath(
+    {
+      configPath: input.configPath,
+    },
+    envPaths,
+  );
+  const publicConfig = await readPublicConfig(publicConfigPath);
+  return resolveDownloadMethod(publicConfig, input);
 }

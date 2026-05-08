@@ -7,7 +7,7 @@ export default defineConfig({
     timeout: 10_000,
   },
   use: {
-    baseURL: "http://localhost:8787",
+    baseURL: "http://localhost:8788",
     trace: "on-first-retry",
   },
   projects: [
@@ -17,9 +17,9 @@ export default defineConfig({
     },
   ],
   webServer: {
-    command: "npm run gui",
-    url: "http://localhost:8787",
-    reuseExistingServer: true,
+    command: "npm run build && npm run gui:build && node dist/gui/bridge/server.js --port=8788",
+    url: "http://localhost:8788",
+    reuseExistingServer: false,
     timeout: 120_000,
   },
 });

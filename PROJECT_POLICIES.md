@@ -41,6 +41,19 @@ If code and docs diverge, align code to these policies unless a newer decision s
   - Default: `config/notion.secrets.local.json`
 - Precedence (both): CLI > env > default.
 
+### 2.4 Public runtime selector policy
+- Public runtime selectors may be set by CLI override or by public config, depending on the field.
+- `downloadMethod` is currently the project’s first-class public runtime selector.
+- Supported setting methods for `downloadMethod`:
+  - CLI: `--download-method <http|cookieproxy>`
+  - Public config: `public.config.json -> pipeline.downloadMethod`
+- Precedence for `downloadMethod`:
+  - CLI `--download-method`
+  - public config `pipeline.downloadMethod`
+  - built-in default `cookieproxy`
+- Both setting methods are optional on any individual run.
+- Strategy-dependent runtime behavior must always use the effective resolved value after precedence is applied.
+
 ## 3. Input Contract
 
 ### 3.1 Core content inputs are CLI-only
@@ -127,8 +140,26 @@ Exception policy:
 - Requirement flags are not forced to be symmetric across dependencies.
 - A dependency is **upstream-critical** if needed to start/produce core artifacts; it should be loaded fail-fast.
 - A dependency is **downstream-critical** if needed only in later delivery stages; it may be validated at that stage and fail explicitly there.
-- In `run`, this means cookies are treated as upstream-critical, while Notion setup is downstream-critical.
+- Requirement strictness may also depend on the selected download strategy.
+- In this project:
+  - `verify-zhihu` remains cookie-required.
+  - `fetch` and `capture-fixture` require cookies only when effective `pipeline.downloadMethod` is `http`.
+  - `fetch` and `capture-fixture` do not require cookies when effective `pipeline.downloadMethod` is `cookieproxy`.
+  - `run` does not perform Zhihu cookie verification before download.
+  - Notion setup remains downstream-critical for `run`.
 - Different strictness is intentional when dependencies are needed at different stages.
+
+### 5.5 Download strategy policy
+- `downloadMethod` is a first-class execution selector.
+- The effective selector may come from CLI override, public config, or built-in default according to policy precedence.
+- Current default `downloadMethod` is `cookieproxy`.
+- Method-dependent prerequisites must be decided from the effective resolved runtime value, not hardcoded only by command name or only by public config state.
+- Runtime requirement changes introduced by a new strategy must be reflected together in:
+  - CLI/runtime behavior,
+  - GUI/wrapper behavior,
+  - tests,
+  - README,
+  - and policy docs.
 
 ## 6. Runtime Debug Logging
 
@@ -147,6 +178,7 @@ Tests are expected to protect:
 - Current CLI contract (options and unknown-flag behavior)
 - Runtime config resolution and precedence rules
 - Cookie merge and validation invariants
+- Strategy-dependent prerequisite behavior
 - Parser correctness and strict selector behavior
 - Run upload-stage semantics
 - Redaction/safety guarantees
@@ -262,6 +294,9 @@ Tests are expected to protect:
   - `pathMode` (`file | dir`) for path inputs
   - `inputMode` (`name | text`) for non-path interaction hints
 - Explicitly non-path arguments (for example `--fixture`) must not expose path-browse affordances.
+- Static GUI descriptor metadata must not imply stronger runtime requirements than the CLI/runtime actually enforces.
+- Dynamic GUI hint contracts are allowed when effective config or strategy changes whether an argument is relevant.
+- GUI-visible fields and runtime-required fields are different contracts and must be treated separately.
 
 ### 9.4 Path picker interaction policy
 - Path picker is modal-first with inline fallback for constrained contexts.
@@ -282,11 +317,17 @@ Tests are expected to protect:
   - `gui:build`
   - `gui:test:e2e`
 - Documentation and CI/test guidance must stay aligned with these script names.
+- The canonical built-GUI startup path must ensure both:
+  - backend bridge artifacts (`dist/`)
+  - frontend assets (`dist-gui/`)
+  are fresh before serving.
+- Stale built artifacts are treated as an operational contract risk, not just a local inconvenience.
 
 ### 9.6 GUI testing baseline policy
 - GUI behavior coverage includes both unit/integration and browser E2E layers.
 - Bridge contract regression tests are required in `npm test` for:
   - API route contracts (`/api/commands`, `/api/history`, `/api/browse-path`, `/api/run`)
+  - dynamic hint behavior when config/strategy changes argument relevance
   - history persistence behavior (trim, dedupe, cap, malformed-file fallback)
 - Browser E2E baseline is maintained via Playwright and exercised through:
   - `npm run gui:test:e2e`
@@ -296,6 +337,7 @@ Tests are expected to protect:
   - inline fallback behavior
   - browse error visibility with manual-path fallback
   - run-flow output smoke
+- Browser E2E and bridge tests should avoid unintentionally reusing stale servers or stale built assets when validating new GUI behavior.
 - `npm test` and GUI E2E are complementary gates; one does not replace the other.
 
 ### 9.7 Bridge request/response validation policy

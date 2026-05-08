@@ -8,7 +8,7 @@ A Node.js (TypeScript + ESM) project for downloading article pages, parsing them
   - `200` means valid login session.
   - `301/302` means cookies are invalid or expired.
   - other status codes are treated as network/other issues.
-- Download webpage HTML with URL-aware cookie handling.
+- Download webpage HTML with URL-aware cookie handling, with optional `cookieproxy` command execution.
 - Parse Zhihu HTML to Markdown using hardcoded selectors for:
   - answer (`/question/.../answer/...`)
   - pin idea (`/pin/...`)
@@ -40,7 +40,8 @@ Configuration is split into non-sensitive and sensitive files.
   "pipeline": {
     "outDir": "output",
     "useHtmlStyleForImage": false,
-    "userAgent": "Mozilla/5.0 (Macintosh; Intel Mac OS X 10_15_7) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/123.0.0.0 Safari/537.36"
+    "userAgent": "Mozilla/5.0 (Macintosh; Intel Mac OS X 10_15_7) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/123.0.0.0 Safari/537.36",
+    "downloadMethod": "cookieproxy"
   },
   "cookies": {
     "publicEntries": [
@@ -88,6 +89,7 @@ Config file paths can be overridden:
 - `ARTICLE_DOWNLOADER_PUBLIC_CONFIG_PATH`
 - `ARTICLE_DOWNLOADER_COOKIES_SECRETS_PATH`
 - `ARTICLE_DOWNLOADER_NOTION_SECRETS_PATH`
+- `ARTICLE_DOWNLOADER_COOKIEPROXY_PATH`
 
 For config-aware commands, path precedence is:
 
@@ -99,7 +101,33 @@ For config-aware commands, path precedence is:
 
 Secret values are never loaded from environment variables.
 
-`pipeline.userAgent` is non-sensitive and controls the User-Agent header for both `verify-zhihu` and HTML download requests (`fetch`/`run`). If omitted, a built-in default browser UA is used.
+`pipeline.userAgent` is non-sensitive and controls the User-Agent header for both `verify-zhihu` and HTTP-based HTML download requests (`fetch`/`run`). If omitted, a built-in default browser UA is used.
+
+`pipeline.downloadMethod` controls how HTML is downloaded:
+
+- `http`: use the in-process `undici` fetcher
+- `cookieproxy` (default): use the external `cookieproxy --url <url> --output <path>` command
+
+`downloadMethod` can be set in two ways:
+
+- `--download-method <http|cookieproxy>` on supported download commands
+- `pipeline.downloadMethod` in `public.config.json`
+
+Precedence is:
+
+- CLI flag `--download-method`
+- public config `pipeline.downloadMethod`
+- built-in default `cookieproxy`
+
+Both setting methods are optional on any given run.
+
+`ARTICLE_DOWNLOADER_COOKIEPROXY_PATH` overrides the executable path for the `cookieproxy` method. If unset, runtime falls back to `/Users/lapdot/Documents/projects/runnable/cookieproxy`.
+
+Cookie requirements depend on the selected download method:
+
+- `fetch` and `capture-fixture` require cookies only for `http`
+- `fetch` and `capture-fixture` do not require cookies for `cookieproxy`
+- `run` no longer performs Zhihu cookie verification before download
 
 Notion upload is command-driven (for example `upload-notion`), not controlled by a public config toggle.
 
@@ -179,6 +207,10 @@ npx tsx src/cli.ts fetch \
   --out ./output
 ```
 
+To use `http` instead, set `"pipeline.downloadMethod": "http"` in `config/public.config.json` or pass `--download-method http`.
+
+When `downloadMethod` is `cookieproxy`, `fetch` does not require `--cookies-secrets`.
+
 ### 3) Extract Metadata From HTML
 
 ```bash
@@ -221,6 +253,7 @@ npx tsx src/cli.ts upload-notion \
 npx tsx src/cli.ts run \
   --url "https://zhuanlan.zhihu.com/p/123" \
   --config ./config/public.config.json \
+  --download-method http \
   --cookies-secrets ./config/cookies.secrets.local.json \
   --notion-secrets ./config/notion.secrets.local.json \
   --out ./output
@@ -369,14 +402,17 @@ npx tsx src/cli.ts capture-fixture \
   --out ./output \
   --out-fixtures-dir ./tests/fixtures \
   --config ./config/public.config.json \
+  --download-method http \
   --cookies-secrets ./config/cookies.secrets.local.json
 ```
 
 `capture-fixture` is the recommended end-to-end fixture workflow:
 
-1. fetch HTML with cookie-aware config
+1. fetch HTML with cookie-aware config and the selected download method
 2. sanitize via ingest policy
 3. copy sanitized artifacts into the fetch run directory for traceability
+
+When `downloadMethod` is `cookieproxy`, `capture-fixture` does not require `--cookies-secrets`.
 
 Artifacts produced:
 

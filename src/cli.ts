@@ -13,7 +13,7 @@ import { runPipeline } from "./core/pipeline.js";
 import { runIngest } from "./core/ingest.js";
 import { runCaptureFixture } from "./core/capture-fixture.js";
 import { browsePath } from "./core/browse-path.js";
-import { resolveRuntimeConfig } from "./core/runtime-config.js";
+import { resolveEffectiveDownloadMethod, resolveRuntimeConfig } from "./core/runtime-config.js";
 import {
   createOutputDir,
   formatMissingFileError,
@@ -24,7 +24,7 @@ import {
   writeTextFile,
 } from "./utils/fs.js";
 import { logError, logInfo } from "./utils/log.js";
-import type { PipelineResult, ResolvedRuntimeConfig } from "./types.js";
+import type { DownloadMethod, PipelineResult, ResolvedRuntimeConfig } from "./types.js";
 
 function assertNoDeprecatedFlags(argv: string[]): void {
   const hasDeprecatedCookiesFlag = argv.some((arg) => arg === "--cookies" || arg.startsWith("--cookies="));
@@ -42,10 +42,18 @@ function printResult(value: unknown): void {
   logInfo(JSON.stringify(value, null, 2));
 }
 
+function parseDownloadMethod(value: string): DownloadMethod {
+  if (value === "http" || value === "cookieproxy") {
+    return value;
+  }
+  throw new Error(`invalid download method: ${value}`);
+}
+
 function simplifyRunResult(result: PipelineResult): Record<string, unknown> {
   return {
     ok: result.ok,
     reason: result.reason,
+    downloadMethod: result.download?.downloadMethod,
     outputDir: result.outputDir,
     htmlPath: result.htmlPath,
     metadataPath: result.metadataPath,
@@ -94,6 +102,7 @@ interface RuntimeConfigOptions {
   config?: string;
   cookiesSecrets?: string;
   notionSecrets?: string;
+  downloadMethod?: DownloadMethod;
   requireCookies?: boolean;
   requireNotion?: boolean;
 }
@@ -103,8 +112,21 @@ async function loadRuntimeConfig(options: RuntimeConfigOptions): Promise<Resolve
     configPath: options.config,
     cookiesSecretsPath: options.cookiesSecrets,
     notionSecretsPath: options.notionSecrets,
+    downloadMethodOverride: options.downloadMethod,
     requireCookies: options.requireCookies,
     requireNotion: options.requireNotion,
+  });
+}
+
+async function loadRuntimeConfigForDownload(options: RuntimeConfigOptions): Promise<ResolvedRuntimeConfig> {
+  const downloadMethod = await resolveEffectiveDownloadMethod({
+    configPath: options.config,
+    downloadMethodOverride: options.downloadMethod,
+  });
+  return loadRuntimeConfig({
+    ...options,
+    downloadMethod,
+    requireCookies: downloadMethod === "http",
   });
 }
 
@@ -175,19 +197,26 @@ export function createProgram(): Command {
     .command("fetch")
     .requiredOption("--url <url>", "target URL")
     .option("--config <path>", "path to public config JSON")
+    .option(
+      "--download-method <method>",
+      "download method override (http or cookieproxy)",
+      parseDownloadMethod,
+    )
     .option("--cookies-secrets <path>", "path to cookies secrets JSON")
     .requiredOption("--out <dir>", "output base directory")
     .action(async (opts) => {
       try {
-        const runtimeConfig = await loadRuntimeConfig({
+        const runtimeConfig = await loadRuntimeConfigForDownload({
           config: opts.config,
+          downloadMethod: opts.downloadMethod,
           cookiesSecrets: opts.cookiesSecrets,
-          requireCookies: true,
         });
         const result = await downloadHtml({
           url: opts.url,
           cookies: runtimeConfig.cookies,
           userAgent: runtimeConfig.pipeline.userAgent,
+          downloadMethod: runtimeConfig.pipeline.downloadMethod,
+          cookieproxyPath: runtimeConfig.pipeline.cookieproxyPath,
         });
         if (!result.ok || !result.html) {
           printResult(result);
@@ -395,6 +424,11 @@ export function createProgram(): Command {
     .requiredOption("--url <url>", "target URL")
     .requiredOption("--fixture <name>", "fixture base name")
     .option("--config <path>", "path to public config JSON")
+    .option(
+      "--download-method <method>",
+      "download method override (http or cookieproxy)",
+      parseDownloadMethod,
+    )
     .option("--cookies-secrets <path>", "path to cookies secrets JSON")
     .requiredOption("--out <dir>", "output base directory")
     .requiredOption("--out-fixtures-dir <dir>", "fixtures output directory")
@@ -402,10 +436,10 @@ export function createProgram(): Command {
     .option("--debug-ledger", "write debug ledger artifact", false)
     .action(async (opts) => {
       try {
-        const runtimeConfig = await loadRuntimeConfig({
+        const runtimeConfig = await loadRuntimeConfigForDownload({
           config: opts.config,
+          downloadMethod: opts.downloadMethod,
           cookiesSecrets: opts.cookiesSecrets,
-          requireCookies: true,
         });
 
         const result = await runCaptureFixture({
@@ -431,6 +465,11 @@ export function createProgram(): Command {
     .command("run")
     .requiredOption("--url <url>", "target URL")
     .option("--config <path>", "path to public config JSON")
+    .option(
+      "--download-method <method>",
+      "download method override (http or cookieproxy)",
+      parseDownloadMethod,
+    )
     .option("--cookies-secrets <path>", "path to cookies secrets JSON")
     .option("--notion-secrets <path>", "path to notion secrets JSON")
     .requiredOption("--out <dir>", "output base directory")
@@ -447,9 +486,10 @@ export function createProgram(): Command {
       try {
         const { runtimeConfig, notionSetupError } = await loadRuntimeConfigForRun({
           config: opts.config,
+          downloadMethod: opts.downloadMethod,
           cookiesSecrets: opts.cookiesSecrets,
           notionSecrets: opts.notionSecrets,
-          requireCookies: true,
+          requireCookies: false,
         });
 
         const result = await runPipeline({

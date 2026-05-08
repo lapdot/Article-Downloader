@@ -1,13 +1,15 @@
 import path from "node:path";
-import { mkdtemp } from "node:fs/promises";
+import { mkdtemp, writeFile } from "node:fs/promises";
 import os from "node:os";
 import { afterEach, describe, expect, it } from "vitest";
 import type { FastifyInstance } from "fastify";
 import { startGuiServer } from "../src/gui/bridge/server.js";
 
 const runningServers: FastifyInstance[] = [];
+const ORIGINAL_ENV = { ...process.env };
 
 afterEach(async () => {
+  process.env = { ...ORIGINAL_ENV };
   while (runningServers.length > 0) {
     const server = runningServers.pop();
     if (server) {
@@ -16,7 +18,7 @@ afterEach(async () => {
   }
 });
 
-async function startTestServer(): Promise<{ app: FastifyInstance; baseUrl: string }> {
+async function startTestServer(): Promise<{ app: FastifyInstance; baseUrl: string; workspaceDir: string }> {
   const root = await mkdtemp(path.join(os.tmpdir(), "gui-bridge-server-"));
   const app = await startGuiServer({
     port: 0,
@@ -30,7 +32,7 @@ async function startTestServer(): Promise<{ app: FastifyInstance; baseUrl: strin
   if (!address || typeof address === "string") {
     throw new Error("failed to resolve bridge server address");
   }
-  return { app, baseUrl: `http://127.0.0.1:${address.port}` };
+  return { app, baseUrl: `http://127.0.0.1:${address.port}`, workspaceDir: root };
 }
 
 describe("gui bridge server", () => {
@@ -89,5 +91,95 @@ describe("gui bridge server", () => {
     });
     expect(runInvalid.status).toBe(400);
   });
-});
 
+  it("returns cookie hiding hints when config resolves to cookieproxy", async () => {
+    const { baseUrl, workspaceDir } = await startTestServer();
+    const configPath = path.join(workspaceDir, "public.config.json");
+    await writeFile(
+      configPath,
+      JSON.stringify({
+        pipeline: {
+          downloadMethod: "cookieproxy",
+        },
+      }),
+      "utf8",
+    );
+
+    const response = await fetch(`${baseUrl}/api/command-hints`, {
+      method: "POST",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify({ command: "fetch", configPath }),
+    });
+    const payload = (await response.json()) as {
+      ok?: boolean;
+      effectiveDownloadMethod?: string;
+      hiddenArgKeys?: string[];
+    };
+
+    expect(response.status).toBe(200);
+    expect(payload.ok).toBe(true);
+    expect(payload.effectiveDownloadMethod).toBe("cookieproxy");
+    expect(payload.hiddenArgKeys).toEqual(["cookiesSecrets"]);
+  });
+
+  it("returns cookie hiding hints from CLI override over config", async () => {
+    const { baseUrl, workspaceDir } = await startTestServer();
+    const configPath = path.join(workspaceDir, "public.config.json");
+    await writeFile(
+      configPath,
+      JSON.stringify({
+        pipeline: {
+          downloadMethod: "http",
+        },
+      }),
+      "utf8",
+    );
+
+    const response = await fetch(`${baseUrl}/api/command-hints`, {
+      method: "POST",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify({ command: "fetch", configPath, downloadMethod: "cookieproxy" }),
+    });
+    const payload = (await response.json()) as {
+      ok?: boolean;
+      effectiveDownloadMethod?: string;
+      hiddenArgKeys?: string[];
+    };
+
+    expect(response.status).toBe(200);
+    expect(payload.ok).toBe(true);
+    expect(payload.effectiveDownloadMethod).toBe("cookieproxy");
+    expect(payload.hiddenArgKeys).toEqual(["cookiesSecrets"]);
+  });
+
+  it("returns cookie hiding hints when config resolves from env fallback", async () => {
+    const { baseUrl, workspaceDir } = await startTestServer();
+    const configPath = path.join(workspaceDir, "public.config.json");
+    await writeFile(
+      configPath,
+      JSON.stringify({
+        pipeline: {
+          downloadMethod: "cookieproxy",
+        },
+      }),
+      "utf8",
+    );
+    process.env.ARTICLE_DOWNLOADER_PUBLIC_CONFIG_PATH = configPath;
+
+    const response = await fetch(`${baseUrl}/api/command-hints`, {
+      method: "POST",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify({ command: "fetch" }),
+    });
+    const payload = (await response.json()) as {
+      ok?: boolean;
+      effectiveDownloadMethod?: string;
+      hiddenArgKeys?: string[];
+    };
+
+    expect(response.status).toBe(200);
+    expect(payload.ok).toBe(true);
+    expect(payload.effectiveDownloadMethod).toBe("cookieproxy");
+    expect(payload.hiddenArgKeys).toEqual(["cookiesSecrets"]);
+  });
+});

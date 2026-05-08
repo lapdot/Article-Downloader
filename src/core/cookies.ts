@@ -220,6 +220,9 @@ export function createCookieJar(cookies: Cookie[]): CookieJar {
 
 export function toCookieHeaderForUrl(cookies: Cookie[], requestUrl: string): string {
   validateRequestUrl(requestUrl);
+  if (cookies.length === 0) {
+    return "";
+  }
   const jar = createCookieJar(cookies);
   return jar.getCookieStringSync(requestUrl);
 }

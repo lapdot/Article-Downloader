@@ -1,4 +1,10 @@
-import type { BrowsePathApiResult, GuiCommandDescriptor, GuiRunEvent, GuiRunRequest } from "../../shared/types";
+import type {
+  BrowsePathApiResult,
+  GuiCommandDescriptor,
+  GuiCommandHintsResult,
+  GuiRunEvent,
+  GuiRunRequest,
+} from "../../shared/types";
 
 async function fetchJson<T>(url: string, options?: RequestInit): Promise<T> {
   const response = await fetch(url, options);
@@ -27,6 +33,20 @@ export async function browsePath(pathValue: string): Promise<BrowsePathApiResult
       "Content-Type": "application/json",
     },
     body: JSON.stringify({ path: pathValue }),
+  });
+}
+
+export async function getCommandHints(
+  command: string,
+  configPath?: string,
+  downloadMethod?: string,
+): Promise<GuiCommandHintsResult> {
+  return fetchJson<GuiCommandHintsResult>("/api/command-hints", {
+    method: "POST",
+    headers: {
+      "Content-Type": "application/json",
+    },
+    body: JSON.stringify({ command, configPath, downloadMethod }),
   });
 }
 

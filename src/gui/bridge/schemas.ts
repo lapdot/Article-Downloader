@@ -18,7 +18,12 @@ export const runRequestSchema = z.object({
   args: z.record(z.unknown()),
 });
 
+export const commandHintsBodySchema = z.object({
+  command: z.string().min(1),
+  configPath: z.string().optional(),
+  downloadMethod: z.enum(["http", "cookieproxy"]).optional(),
+});
+
 export const historyFileSchema = z.object({
   records: z.record(z.unknown()),
 });
-

@@ -6,11 +6,12 @@ import type { ServerResponse } from "node:http";
 import Fastify, { type FastifyInstance, type FastifyReply, type FastifyRequest } from "fastify";
 import fastifyStatic from "@fastify/static";
 import { browsePath } from "../../core/browse-path.js";
+import { resolveEffectiveDownloadMethod } from "../../core/runtime-config.js";
 import { getGuiCommandDescriptors } from "../shared/command-descriptors.js";
 import { buildHistoryFilePath, getHistoryValues, putHistoryValue } from "./history-store.js";
 import { createGuiLogger } from "./logger.js";
 import { runCliLocal } from "./local-executor.js";
-import { browsePathBodySchema, historyBodySchema, historyQuerySchema, runRequestSchema } from "./schemas.js";
+import { browsePathBodySchema, commandHintsBodySchema, historyBodySchema, historyQuerySchema, runRequestSchema } from "./schemas.js";
 
 function getProjectRoot(): string {
   const currentFile = fileURLToPath(import.meta.url);
@@ -71,6 +72,40 @@ async function registerApiRoutes(app: FastifyInstance, options: Required<GuiServ
 
   app.get("/api/commands", async (_req, reply) => {
     reply.code(200).send({ ok: true, commands: getGuiCommandDescriptors() });
+  });
+
+  app.post("/api/command-hints", async (req, reply) => {
+    const parsed = commandHintsBodySchema.safeParse(req.body);
+    if (!parsed.success) {
+      reply.code(400).send({ ok: false, error: "invalid command hints request" });
+      return;
+    }
+
+    const { command, configPath, downloadMethod } = parsed.data;
+    if (!["fetch", "capture-fixture", "run"].includes(command)) {
+      reply.code(200).send({ ok: true, hiddenArgKeys: [] });
+      return;
+    }
+
+    try {
+      const resolvedConfigPath =
+        configPath && configPath.trim().length > 0
+          ? path.isAbsolute(configPath)
+            ? configPath
+            : path.resolve(options.workspaceDir, configPath)
+          : undefined;
+      const effectiveDownloadMethod = await resolveEffectiveDownloadMethod({
+        configPath: resolvedConfigPath,
+        downloadMethodOverride: downloadMethod,
+      });
+      reply.code(200).send({
+        ok: true,
+        effectiveDownloadMethod,
+        hiddenArgKeys: effectiveDownloadMethod === "cookieproxy" ? ["cookiesSecrets"] : [],
+      });
+    } catch {
+      reply.code(200).send({ ok: true, hiddenArgKeys: [] });
+    }
   });
 
   app.get("/api/history", async (req, reply) => {
