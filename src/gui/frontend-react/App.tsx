@@ -292,6 +292,7 @@ export function App() {
                       size="small"
                       value={stringValue}
                       inputProps={{ "data-testid": `arg-input-${arg.key}` }}
+                      SelectDisplayProps={{ "data-testid": `arg-select-${arg.key}` }}
                       displayEmpty
                       onChange={(event) => {
                         setArgValue(arg.key, String(event.target.value));

@@ -108,7 +108,7 @@ test("fetch download method select overrides config in the GUI", async ({ page }
   await page.goto("/");
   await selectCommandByName(page, "fetch");
   await page.getByTestId("arg-input-config").fill(configPath);
-  await page.getByTestId("arg-input-downloadMethod").click();
+  await page.getByTestId("arg-select-downloadMethod").click();
   await page.getByRole("option", { name: "cookieproxy" }).click();
 
   await expect(page.getByText("--cookies-secrets")).toHaveCount(0);
