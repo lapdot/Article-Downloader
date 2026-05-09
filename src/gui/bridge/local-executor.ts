@@ -29,13 +29,9 @@ function buildCliArgs(request: GuiRunRequest, outputDir?: string): string[] {
     throw new Error(`unknown command: ${request.command}`);
   }
   const hasOutOption = descriptor.args.some((arg) => arg.key === "out");
-  const hasOutFixturesOption = descriptor.args.some((arg) => arg.key === "outFixturesDir");
   const runArgs = { ...request.args };
   if (outputDir && hasOutOption && typeof runArgs.out !== "string") {
     runArgs.out = outputDir;
-  }
-  if (outputDir && hasOutFixturesOption && typeof runArgs.outFixturesDir !== "string") {
-    runArgs.outFixturesDir = path.join(outputDir, "fixtures");
   }
 
   const args: string[] = [request.command];

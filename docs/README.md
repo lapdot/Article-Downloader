@@ -19,12 +19,8 @@ Use these first:
 
 These files are useful background, but they are not the current source of truth unless a newer active doc explicitly points back to them:
 
-- `archive/gui-v1-plan.md`
 - `archive/gui-v1-workflow.md`
-- `archive/gui-v1-libraries.md`
 - `archive/gui-v1-react-migration-workflow.md`
-- `archive/gui-v2-plan.md`
-- `archive/bridge-mature-library-plan.md`
 - `archive/bridge-mature-library-workflow.md`
 
 ## Reading Order

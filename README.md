@@ -211,12 +211,6 @@ npx tsx src/cli.ts run \
 `run` always executes the Notion upload stage after markdown generation.  
 If Notion secrets are missing/invalid or the Notion API rejects the request, `run` ends with `ok: false` and reason `notion upload failed`.
 
-Shortcut with fixed defaults (only URL changes):
-
-```bash
-npm run run:url -- "https://zhuanlan.zhihu.com/p/123"
-```
-
 ### 8) Browse Local Path Entries (JSON)
 
 ```bash
@@ -311,8 +305,6 @@ import {
   uploadNotionBlocksToNotion,
   markdownToNotionBlocks,
   runPipeline,
-  runIngest,
-  runCaptureFixture,
   resolveRuntimeConfig,
 } from "article-downloader";
 ```

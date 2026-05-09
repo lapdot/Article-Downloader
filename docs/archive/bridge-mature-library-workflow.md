@@ -6,7 +6,7 @@ Legacy note:
 - For current guidance, use `docs/README.md`, `docs/policies/gui-contract.md`, and `docs/architecture/gui-bridge.md`.
 
 ## Summary
-This workflow translates `docs/archive/bridge-mature-library-plan.md` into an implementation sequence with explicit gates.
+This workflow preserves the implementation sequence and gates that informed the shipped bridge migration.
 Order is designed to minimize regression risk: contract freeze first, server migration second, persistence/logging migration third, then hardening and docs.
 
 ## Public Interfaces and Type Targets
