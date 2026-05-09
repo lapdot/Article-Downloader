@@ -30,8 +30,6 @@ npm run test:closed-loop
 Use the closed loop before merging changes that touch:
 - runtime config resolution
 - secrets handling
-- fixture sanitization
-- redaction
 - networked flows
 
 ## GUI Development
@@ -65,7 +63,7 @@ Directory controls:
 - `--workspace-dir`: working directory for CLI subprocesses launched from the GUI
 - `--history-dir`: where GUI history is stored as `history.json`
 - `--logs-dir`: where GUI server logs are written as `gui-server.log`
-- `--output-dir`: default output base for commands with `--out` or `--out-fixtures-dir` when the form does not provide one
+- `--output-dir`: default output base for commands with `--out` when the form does not provide one
 
 Open:
 

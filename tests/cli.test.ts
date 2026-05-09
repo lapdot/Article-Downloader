@@ -339,8 +339,6 @@ describe("cli", () => {
     const parseCommand = program.commands.find((command) => command.name() === "parse");
     const transformCommand = program.commands.find((command) => command.name() === "transform-notion");
     const uploadCommand = program.commands.find((command) => command.name() === "upload-notion");
-    const ingestCommand = program.commands.find((command) => command.name() === "ingest");
-    const captureFixtureCommand = program.commands.find((command) => command.name() === "capture-fixture");
     const runCommand = program.commands.find((command) => command.name() === "run");
     const runOptionNames = runCommand?.options.map((option) => option.long);
 
@@ -350,8 +348,6 @@ describe("cli", () => {
     expect(parseCommand).toBeDefined();
     expect(transformCommand).toBeDefined();
     expect(uploadCommand).toBeDefined();
-    expect(ingestCommand).toBeDefined();
-    expect(captureFixtureCommand).toBeDefined();
     expect(runCommand).toBeDefined();
 
     mustHaveOption(verifyCommand!, "--config");
@@ -369,17 +365,6 @@ describe("cli", () => {
     mustRequireOption(transformCommand!, "--out");
     mustRequireOption(uploadCommand!, "--blocks");
     mustHaveOption(uploadCommand!, "--config");
-    mustRequireOption(ingestCommand!, "--html");
-    mustRequireOption(ingestCommand!, "--source-url");
-    mustRequireOption(ingestCommand!, "--fixture");
-    mustRequireOption(ingestCommand!, "--out-fixtures-dir");
-    mustRequireOption(captureFixtureCommand!, "--url");
-    mustRequireOption(captureFixtureCommand!, "--fixture");
-    mustRequireOption(captureFixtureCommand!, "--out");
-    mustRequireOption(captureFixtureCommand!, "--out-fixtures-dir");
-    mustHaveOption(captureFixtureCommand!, "--config");
-    mustHaveOption(captureFixtureCommand!, "--download-method");
-    mustHaveOption(captureFixtureCommand!, "--cookies-secrets");
     mustRequireOption(runCommand!, "--url");
     mustRequireOption(runCommand!, "--out");
     mustHaveOption(runCommand!, "--config");
@@ -650,29 +635,4 @@ describe("cli", () => {
     ).rejects.toThrowError('process.exit unexpectedly called with "1"');
   });
 
-  test("capture-fixture rejects irrelevant --notion-secrets flag", async () => {
-    const program = createProgram();
-    program.exitOverride();
-    await expect(
-      program.parseAsync(
-        [
-          "node",
-          "article-downloader",
-          "capture-fixture",
-          "--url",
-          "https://zhuanlan.zhihu.com/p/123",
-          "--fixture",
-          "capture-irrelevant",
-          "--out",
-          "./output",
-          "--out-fixtures-dir",
-          "./tests/fixtures",
-          "--config",
-          "./config/public.config.json",
-          "--notion-secrets",
-          "./config/notion.secrets.local.json",
-        ],
-      ),
-    ).rejects.toThrowError('process.exit unexpectedly called with "1"');
-  });
 });

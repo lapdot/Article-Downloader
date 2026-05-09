@@ -82,7 +82,7 @@ async function registerApiRoutes(app: FastifyInstance, options: Required<GuiServ
     }
 
     const { command, configPath, downloadMethod } = parsed.data;
-    if (!["fetch", "capture-fixture", "run"].includes(command)) {
+    if (!["fetch", "run"].includes(command)) {
       reply.code(200).send({ ok: true, hiddenArgKeys: [] });
       return;
     }

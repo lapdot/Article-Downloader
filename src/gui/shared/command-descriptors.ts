@@ -9,10 +9,7 @@ interface ArgUiHint {
 }
 
 function inferUiHint(longFlag: string): ArgUiHint {
-  if (longFlag === "--fixture") {
-    return { valueHint: "text", inputMode: "name" };
-  }
-  if (longFlag === "--out" || longFlag === "--out-fixtures-dir" || longFlag === "--path") {
+  if (longFlag === "--out" || longFlag === "--path") {
     return { valueHint: "path", pathMode: "dir", inputMode: "text" };
   }
   if (
@@ -40,8 +37,6 @@ function inferUiHint(longFlag: string): ArgUiHint {
     "cookies-secrets",
     "notion-secrets",
     "out",
-    "fixture",
-    "out-fixtures-dir",
   ];
   if (pathLikeFlags.some((segment) => longFlag.includes(segment))) {
     return { valueHint: "path", pathMode: "file", inputMode: "text" };

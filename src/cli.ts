@@ -10,8 +10,6 @@ import {
   type NotionBlock,
 } from "./core/notion.js";
 import { runPipeline } from "./core/pipeline.js";
-import { runIngest } from "./core/ingest.js";
-import { runCaptureFixture } from "./core/capture-fixture.js";
 import { browsePath } from "./core/browse-path.js";
 import { resolveEffectiveDownloadMethod, resolveRuntimeConfig } from "./core/runtime-config.js";
 import {
@@ -375,82 +373,11 @@ export function createProgram(): Command {
     });
 
   program
-    .command("ingest")
-    .requiredOption("--html <path>", "path to input HTML")
-    .requiredOption("--source-url <url>", "original URL for route/type semantics")
-    .requiredOption("--fixture <name>", "fixture base name")
-    .option("--url <url>", "unsupported in ingest v1")
-    .requiredOption("--out-fixtures-dir <dir>", "fixtures output directory")
-    .option("--policy-version <version>", "sanitization policy version", "v1")
-    .option("--debug-ledger", "write debug ledger artifact", false)
-    .action(async (opts) => {
-      try {
-        if (opts.url) {
-          throw new Error("E_INGEST_UNSUPPORTED_INPUT: --url is not supported; use --html");
-        }
-        const result = await runIngest({
-          htmlPath: opts.html,
-          sourceUrl: opts.sourceUrl,
-          fixture: opts.fixture,
-          outFixturesDir: opts.outFixturesDir,
-          policyVersion: opts.policyVersion,
-          debugLedger: opts.debugLedger,
-        });
-        printResult(result);
-      } catch (error) {
-        logError(error instanceof Error ? error.message : "unknown error");
-        process.exitCode = 1;
-      }
-    });
-
-  program
     .command("browse-path")
     .requiredOption("--path <dir>", "directory path to browse")
     .action(async (opts) => {
       try {
         const result = await browsePath(opts.path);
-        printResult(result);
-        if (!result.ok) {
-          process.exitCode = 1;
-        }
-      } catch (error) {
-        logError(error instanceof Error ? error.message : "unknown error");
-        process.exitCode = 1;
-      }
-    });
-
-  program
-    .command("capture-fixture")
-    .requiredOption("--url <url>", "target URL")
-    .requiredOption("--fixture <name>", "fixture base name")
-    .option("--config <path>", "path to public config JSON")
-    .option(
-      "--download-method <method>",
-      "download method override (http or cookieproxy)",
-      parseDownloadMethod,
-    )
-    .option("--cookies-secrets <path>", "path to cookies secrets JSON")
-    .requiredOption("--out <dir>", "output base directory")
-    .requiredOption("--out-fixtures-dir <dir>", "fixtures output directory")
-    .option("--policy-version <version>", "sanitization policy version", "v1")
-    .option("--debug-ledger", "write debug ledger artifact", false)
-    .action(async (opts) => {
-      try {
-        const runtimeConfig = await loadRuntimeConfigForDownload({
-          config: opts.config,
-          downloadMethod: opts.downloadMethod,
-          cookiesSecrets: opts.cookiesSecrets,
-        });
-
-        const result = await runCaptureFixture({
-          url: opts.url,
-          fixture: opts.fixture,
-          runtimeConfig,
-          outDir: opts.out,
-          outFixturesDir: opts.outFixturesDir,
-          policyVersion: opts.policyVersion,
-          debugLedger: opts.debugLedger,
-        });
         printResult(result);
         if (!result.ok) {
           process.exitCode = 1;

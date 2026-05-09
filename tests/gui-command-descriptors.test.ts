@@ -16,14 +16,6 @@ describe("gui command descriptors", () => {
     expect(htmlArg?.pathMode).toBe("file");
   });
 
-  it("treats fixture as non-path input", () => {
-    const ingestCommand = findCommandDescriptor("ingest");
-    const fixtureArg = ingestCommand?.args.find((arg) => arg.key === "fixture");
-    expect(fixtureArg?.valueHint).toBe("text");
-    expect(fixtureArg?.inputMode).toBe("name");
-    expect(fixtureArg?.pathMode).toBeUndefined();
-  });
-
   it("marks only mandatory options as required", () => {
     const fetchCommand = findCommandDescriptor("fetch");
     const urlArg = fetchCommand?.args.find((arg) => arg.key === "url");

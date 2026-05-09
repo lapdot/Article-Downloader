@@ -14,7 +14,6 @@ A Node.js (TypeScript + ESM) project for downloading article pages, parsing them
 - Architecture overview: `docs/architecture/overview.md`
 - Decision records: `docs/decisions/`
 - Local development workflow: `docs/workflows/local-dev.md`
-- Fixture workflow: `docs/workflows/fixture-capture.md`
 
 ## Features
 
@@ -178,8 +177,7 @@ npx tsx src/cli.ts parse --html ./output/<run>/page.html --url "https://zhuanlan
 Current recommendation: keep `--use-html-style-for-image` off for downstream compatibility.
 
 For core output paths:
-- `--out` is required for `fetch`, `get_metadata`, `parse`, `transform-notion`, `capture-fixture`, `run`.
-- `--out-fixtures-dir` is required for `ingest` and `capture-fixture`.
+- `--out` is required for `fetch`, `get_metadata`, `parse`, `transform-notion`, and `run`.
 
 ### 5) Transform Markdown to Notion Blocks
 
@@ -263,7 +261,7 @@ GUI directory controls:
 - `--workspace-dir`: working directory used by CLI subprocesses launched from GUI.
 - `--history-dir`: where GUI history file is stored (`history.json`).
 - `--logs-dir`: where GUI server log file is stored (`gui-server.log`).
-- `--output-dir`: default output base injected for commands with `--out` / `--out-fixtures-dir` when not explicitly set in form.
+- `--output-dir`: default output base injected for commands with `--out` when not explicitly set in form.
 
 Open the GUI bridge endpoint:
 
@@ -274,33 +272,6 @@ http://localhost:8787
 For GUI development details, script entrypoints, bridge routes, and path-picker behavior, see:
 - `docs/workflows/local-dev.md`
 - `docs/policies/gui-contract.md`
-
-## Fixture Workflows
-
-The canonical fixture workflows now live in `docs/workflows/fixture-capture.md`.
-
-### 9) Ingest HTML fixture with sanitization (HTML-only)
-
-```bash
-npx tsx src/cli.ts ingest \
-  --html ./output/<run>/page.html \
-  --source-url "https://zhuanlan.zhihu.com/p/123" \
-  --fixture zhihu-zhuanlan-new \
-  --out-fixtures-dir ./tests/fixtures
-```
-
-### 10) Capture fixture (canonical producer-to-sanitizer workflow)
-
-```bash
-npx tsx src/cli.ts capture-fixture \
-  --url "https://zhuanlan.zhihu.com/p/123" \
-  --fixture zhihu-zhuanlan-new \
-  --out ./output \
-  --out-fixtures-dir ./tests/fixtures \
-  --config ./config/public.config.json \
-  --download-method http \
-  --cookies-secrets ./config/cookies.secrets.local.json
-```
 
 ## Cookie Secrets Format
 
@@ -354,13 +325,6 @@ import {
 - `E_PARSE_SELECTOR`
 - `E_PARSE_UNSUPPORTED_SITE`
 - `E_NOTION_API`
-- `E_INGEST_INVALID_HTML`
-- `E_INGEST_INVALID_SOURCE_URL`
-- `E_INGEST_UNSUPPORTED_INPUT`
-- `E_INGEST_SANITIZE_FAILED`
-- `E_INGEST_LEDGER_DIFF`
-- `E_INGEST_SECRET_PATTERN`
-- `E_INGEST_TARGET_EXISTS`
 
 ## Test
 

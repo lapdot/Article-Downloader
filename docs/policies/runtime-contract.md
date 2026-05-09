@@ -62,8 +62,6 @@ Core inputs are not read from config or env fallbacks:
 - `get_metadata`, `parse`: `--html`, `--url`
 - `transform-notion`: `--md`
 - `upload-notion`: `--blocks`
-- `ingest`: `--html`, `--source-url`, `--fixture`
-- `capture-fixture`: `--url`, `--fixture`
 
 ### 3.2 Command flag strictness
 - Each subcommand only accepts declared flags.
@@ -83,10 +81,6 @@ Current core output path flags:
   - `parse`
   - `transform-notion`
   - `run`
-  - `capture-fixture`
-- `--out-fixtures-dir`:
-  - `ingest`
-  - `capture-fixture`
 
 Exception policy:
 - Exceptions are allowed only when there is concrete operational specialty.
@@ -143,8 +137,8 @@ Exception policy:
 - Requirement strictness may also depend on the selected download strategy.
 - In this project:
   - `verify-zhihu` remains cookie-required.
-  - `fetch` and `capture-fixture` require cookies only when effective `pipeline.downloadMethod` is `http`.
-  - `fetch` and `capture-fixture` do not require cookies when effective `pipeline.downloadMethod` is `cookieproxy`.
+  - `fetch` requires cookies only when effective `pipeline.downloadMethod` is `http`.
+  - `fetch` does not require cookies when effective `pipeline.downloadMethod` is `cookieproxy`.
   - `run` does not perform Zhihu cookie verification before download.
   - Notion setup remains downstream-critical for `run`.
 

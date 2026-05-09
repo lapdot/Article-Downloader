@@ -53,51 +53,14 @@ Rules:
 Validation expectation:
 - Any policy-compliant test update must keep `npm test` and `npm run test:closed-loop` passing.
 
-## 6. HTML Ingest Sanitization Policy
+## 6. Fixture Safety Policy
 
-- New fixture imports must use HTML-only ingest:
-  - `ingest --html <path> --source-url <url> --fixture <name>`
-- `ingest` must reject URL input mode in v1:
-  - `E_INGEST_UNSUPPORTED_INPUT: --url is not supported; use --html`
-- `ingest` is intentionally HTML-only and offline.
-- Import-time sanitization is mandatory before writing tracked fixture artifacts.
-- Sanitization must preserve structure by default:
-  - keep unknown or new tags and attribute keys unless explicitly disallowed by policy
-  - replace sensitive values in place with deterministic placeholders
-- Ledger diff validation is required:
-  - fail if node or tag disappears unexpectedly
-  - fail if attribute key disappears unexpectedly
-  - allow only approved value-class transitions
-- Secret pattern validation is required on sanitized outputs:
-  - fail with `E_INGEST_SECRET_PATTERN` if obvious secret markers are detected
-- Raw unsanitized HTML must remain local and untracked only, for example `.local/raw-imports/...`
-- Fixture target overwrite policy:
-  - if `tests/fixtures/<fixture>.html` or `tests/fixtures/<fixture>.map.json` already exists, fail fast with `E_INGEST_TARGET_EXISTS`
+- The CLI does not provide fixture import or sanitization commands.
+- Test fixtures may still live under `tests/fixtures/` as curated HTML samples, but they are maintained outside the runtime contract.
+- Closed-loop and committed-fixture safety checks must continue scanning tracked fixtures for obvious secret markers.
+- Raw HTML collected during development should stay in local output directories or other untracked paths unless deliberately curated for tests.
 
-## 7. Canonical Fixture Workflow Policy
-
-- Canonical producer-to-sanitizer workflow command is:
-  - `capture-fixture --url <url> --fixture <name> ...`
-- `capture-fixture` is fetch-first and ingest-second in a single flow.
-
-Stage failure semantics:
-- If fetch fails, ingest must not run.
-- If fetch succeeds and ingest fails, the command must return non-zero and preserve fetch artifacts for inspection.
-
-Artifact linkage and copy policy:
-- Canonical sanitized fixture artifacts stay in `tests/fixtures/`.
-- Linked copies are written to `output/<run>/ingest/`.
-- Raw artifacts remain dual-path by design:
-  - `output/<run>/page.html`
-  - `.local/raw-imports/<timestamp>-<fixture>/raw.html`
-
-## 8. Workflow Naming Policy
-
-- Commands that may grow additional stages should use outcome-oriented names.
-- `capture-fixture` is the preferred naming style over composition-only names.
-- No alias naming track is required for this policy change.
-
-## 9. Documentation Example Ordering
+## 7. Documentation Example Ordering
 
 - In user-facing docs, especially `README.md`, examples are best presented default-first and advanced-later.
 - The first example for a task should generally be the simplest safe default workflow that works for most users.

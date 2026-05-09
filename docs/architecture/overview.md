@@ -9,7 +9,7 @@ ArticleDownloader has three main surfaces:
 
 Typical content flow:
 1. Resolve runtime config and input paths
-2. Download or ingest HTML
+2. Download HTML
 3. Parse HTML into metadata or Markdown
 4. Optionally transform Markdown into Notion blocks
 5. Optionally upload to Notion
@@ -20,8 +20,6 @@ Typical content flow:
 - `src/core/runtime-config.ts`: config resolution and precedence
 - `src/core/fetcher.ts`: HTML acquisition
 - `src/core/parser.ts`: HTML to metadata and Markdown parsing
-- `src/core/ingest.ts`: fixture ingest workflow
-- `src/core/capture-fixture.ts`: fetch-plus-ingest fixture workflow
 - `src/core/pipeline.ts`: end-to-end run orchestration
 - `src/core/notion*.ts`: Notion transform and upload
 - `src/gui/bridge/`: local bridge server, schemas, execution, and history
