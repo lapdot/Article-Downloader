@@ -21,7 +21,7 @@
     "gui:test:e2e": "playwright test",
     "test": "vitest run",
     "test:closed-loop:preflight": "ARTICLE_DOWNLOADER_CLOSED_LOOP=1 vitest run tests/closed-loop/preflight.test.ts --config vitest.closed-loop.config.ts",
-    "test:closed-loop": "npm run test:closed-loop:preflight && ARTICLE_DOWNLOADER_CLOSED_LOOP=1 vitest run --config vitest.closed-loop.config.ts",
+    "test:closed-loop": "npm run test:closed-loop:preflight && npm run typecheck && ARTICLE_DOWNLOADER_CLOSED_LOOP=1 vitest run --config vitest.closed-loop.config.ts",
     "test:watch": "vitest",
     "typecheck": "tsc -p tsconfig.json --noEmit"
   },

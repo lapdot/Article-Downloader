@@ -14,6 +14,7 @@ A Node.js (TypeScript + ESM) project for turning article URLs into local HTML, M
 - Architecture overview: `docs/architecture/overview.md`
 - Decision records: `docs/decisions/`
 - URL iteration workflow: `docs/workflows/url-driven-iteration.md`
+- Source onboarding workflow: `docs/workflows/add-a-new-source.md`
 - Local development workflow: `docs/workflows/local-dev.md`
 
 ## Features
@@ -27,10 +28,12 @@ A Node.js (TypeScript + ESM) project for turning article URLs into local HTML, M
   - `301/302` means cookies are invalid or expired.
   - other status codes are treated as network/other issues.
 - Download webpage HTML with URL-aware cookie handling, with optional `cookieproxy` command execution.
-- Parse Zhihu HTML to Markdown using hardcoded selectors for:
+- Parse supported article sources to Markdown using source-specific selectors for:
   - answer (`/question/.../answer/...`)
   - pin idea (`/pin/...`)
   - zhuanlan article (`zhuanlan.zhihu.com/p/...`)
+  - Substack aggregator post (`substack.com/@<author>/p-<id>`)
+  - Substack publication post (`<publication>.substack.com/p/<slug>`)
 - Upload generated Notion blocks to a Notion database as a separate downstream step.
 - Run an end-to-end pipeline from URL to local artifacts and optional Notion upload.
 
@@ -177,7 +180,13 @@ Both setting methods are optional on any given run.
 
 `ARTICLE_DOWNLOADER_COOKIEPROXY_PATH` overrides the executable path for the `cookieproxy` method. If unset, runtime falls back to `/Users/lapdot/Documents/projects/runnable/cookieproxy`.
 
+For Substack aggregator URLs like `https://substack.com/@<author>/p-<id>`, the downloader may perform extra fetches behind the scenes: it reads publication context from the fetched shell, resolves the publication-host canonical post URL through Substack's posts API, and then re-fetches the canonical article page with the same download method. If that final canonical-page fetch fails but the posts lookup already includes article body data, runtime may synthesize a parser-friendly article HTML artifact from the lookup payload instead of falling back to the reader shell.
+
+The current rationale for preferring the publication-host canonical URL for Substack aggregator inputs is recorded in `docs/decisions/0004-substack-canonical-url-policy.md`.
+
 For the full contract around config precedence, cookie behavior, file errors, and CLI strictness, see `docs/policies/runtime-contract.md`.
+Deferred Substack ideas that we are not implementing right now are tracked in `docs/plans/substack-future-work.md`.
+Environment-specific troubleshooting notes, including sandbox DNS limitations observed during development, live in `docs/workflows/url-driven-iteration.md`.
 
 ## CLI usage
 
@@ -193,7 +202,7 @@ npx tsx src/cli.ts verify-zhihu --config ./config/public.config.json
 
 ```bash
 npx tsx src/cli.ts fetch \
-  --url "https://zhuanlan.zhihu.com/p/123" \
+  --url "https://substack.com/@michaeljburry/p-196918166" \
   --config ./config/public.config.json \
   --out ./artifacts/runtime
 ```
@@ -205,13 +214,13 @@ When `downloadMethod` is `cookieproxy`, `fetch` does not require `--cookies-secr
 ### 3) Extract Metadata From HTML
 
 ```bash
-npx tsx src/cli.ts get_metadata --html ./artifacts/runtime/<run>/page.html --url "https://zhuanlan.zhihu.com/p/123" --out ./artifacts/runtime
+npx tsx src/cli.ts get_metadata --html ./artifacts/runtime/<run>/page.html --url "https://substack.com/@michaeljburry/p-196918166" --out ./artifacts/runtime
 ```
 
 ### 4) Parse HTML to Markdown
 
 ```bash
-npx tsx src/cli.ts parse --html ./artifacts/runtime/<run>/page.html --url "https://zhuanlan.zhihu.com/p/123" --out ./artifacts/runtime
+npx tsx src/cli.ts parse --html ./artifacts/runtime/<run>/page.html --url "https://substack.com/@michaeljburry/p-196918166" --out ./artifacts/runtime
 ```
 
 `--use-html-style-for-image` is optional. By default, image output uses markdown style (`![](...)`).
@@ -229,6 +238,7 @@ npx tsx src/cli.ts transform-notion \
 ```
 
 This step produces the Notion format artifact: `notion-blocks.json`.
+Current note: dollar-delimited inline Markdown spans are preserved as inline equations in Notion block output. See `docs/decisions/0005-inline-equation-markdown-policy.md`.
 
 ### 6) Upload Notion Blocks to Notion
 

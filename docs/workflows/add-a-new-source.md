@@ -1,0 +1,75 @@
+# Add A New Source Workflow
+
+This document describes the recommended workflow for adding support for a new article source.
+
+Use this when the project already has the basic URL-to-artifacts pipeline, but a new site or source family needs to be supported end to end.
+
+For authoritative contracts, use:
+- `docs/policies/runtime-contract.md`
+- `docs/policies/testing-and-safety.md`
+
+## Goal
+
+Add support for a new source in a way that keeps fetch, parse, test, and documentation behavior aligned.
+
+## Source-Onboarding Checklist
+
+1. Identify the supported URL families.
+   - List the real input URL shapes the source uses.
+   - Decide which URL families count as supported inputs and which should remain unsupported.
+
+2. Confirm the default fetch strategy first.
+   - Use `cookieproxy` as the default acquisition path unless there is a concrete reason to choose another method.
+   - Do not redesign fetch policy just because a new source is being added.
+
+3. Collect real HTML artifacts through the normal URL-driven workflow.
+   - Start from a real source URL.
+   - Generate local `page.html`, `metadata.json`, `article.md`, and `notion-blocks.json` artifacts where possible.
+   - Inspect the fetched HTML before assuming parser changes are needed.
+
+4. Decide whether the source needs parser-only support or fetch-time normalization too.
+   - Parser-only support is enough when the fetched HTML already contains the real article document.
+   - Fetch-time normalization is needed when a supported input URL fetches an intermediate shell, reader page, or other non-article wrapper.
+
+5. Add runtime support in the narrowest layer that solves the problem.
+   - Add URL-family detection for the source.
+   - Add parser and metadata behavior for the actual article document shape.
+   - Only add fetch-time normalization if parser support alone is not enough.
+
+6. Add tests before considering the source complete.
+   - Cover URL detection.
+   - Cover markdown parsing and metadata extraction.
+   - Cover any fetch-time normalization or fallback behavior introduced for the source.
+   - Keep at least one CLI-level smoke test when the source becomes a real supported surface.
+
+7. Run the full validation loop and update docs together.
+   - Run `npm test`
+   - Run `npm run test:closed-loop`
+   - Update README, workflow docs, and policy docs together with the final behavior.
+
+## Stage Diagnosis
+
+Use the generated artifacts to locate the real problem before changing code.
+
+- If `page.html` is wrong:
+  - treat it as a fetch-stage issue
+  - inspect the download method, network path, cookies, redirects, and shell-vs-article behavior
+
+- If `page.html` is usable but `metadata.json` or `article.md` is wrong:
+  - treat it as a parser-stage issue
+  - inspect source detection, selectors, cleanup rules, and structured-data fallbacks
+
+- If Markdown is correct but Notion blocks are wrong:
+  - treat it as a transform-stage issue
+  - inspect Markdown-to-block conversion rather than fetch or parser logic
+
+## Substack Example
+
+Substack was added by following this pattern:
+
+- support both aggregator and publication URL families
+- keep `cookieproxy` as the default fetch method
+- inspect fetched HTML artifacts first
+- add fetch-time normalization because some aggregator URLs returned a reader shell instead of article HTML
+- prefer the publication-host canonical article URL when normalization succeeds
+- add parser, fetcher, adapter, and CLI-level tests before updating docs

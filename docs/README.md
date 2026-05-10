@@ -11,6 +11,7 @@ Use these first:
 - `workflows/`
   - current operating procedures
   - `url-driven-iteration.md`: primary URL-to-artifacts review and refinement loop
+  - `add-a-new-source.md`: workflow for onboarding a new supported source
   - `local-dev.md`: local setup, test, and GUI operating loops
 - `architecture/`
   - current system structure
@@ -32,6 +33,11 @@ For current project behavior:
 2. `workflows/`
 3. `architecture/`
 4. `decisions/`
+
+Recommended additions for this repo's current source work:
+- read `workflows/add-a-new-source.md` when onboarding a supported source
+- read `decisions/0004-substack-canonical-url-policy.md` for the current Substack canonical-URL choice
+- read `decisions/0005-inline-equation-markdown-policy.md` for the current Markdown-to-Notion inline-equation behavior
 
 For implementation history and planning context:
 1. archived plan and workflow docs in `archive/`

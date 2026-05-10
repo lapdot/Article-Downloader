@@ -45,7 +45,7 @@ Notion upload is optional and is not part of the definition of â€œNotion formatâ
 
 ```bash
 npx tsx src/cli.ts fetch \
-  --url "https://zhuanlan.zhihu.com/p/123" \
+  --url "https://substack.com/@michaeljburry/p-196918166" \
   --config ./config/public.config.json \
   --out ./artifacts/runtime
 ```
@@ -58,7 +58,7 @@ Expected artifact:
 ```bash
 npx tsx src/cli.ts get_metadata \
   --html ./artifacts/runtime/<run>/page.html \
-  --url "https://zhuanlan.zhihu.com/p/123" \
+  --url "https://substack.com/@michaeljburry/p-196918166" \
   --out ./artifacts/runtime
 ```
 
@@ -70,7 +70,7 @@ Expected artifact:
 ```bash
 npx tsx src/cli.ts parse \
   --html ./artifacts/runtime/<run>/page.html \
-  --url "https://zhuanlan.zhihu.com/p/123" \
+  --url "https://substack.com/@michaeljburry/p-196918166" \
   --out ./artifacts/runtime
 ```
 
@@ -119,8 +119,16 @@ Use upload only after the local Notion block artifact looks correct.
   - treat it as a Notion-transform issue
   - inspect Markdown-to-block conversion behavior and Notion artifact output
 
+## Environment Troubleshooting
+
+- Some sandboxed environments may fail DNS resolution for external hosts such as `substack.com`.
+- In this failure mode, `cookieproxy` may surface an error like `getaddrinfo ENOTFOUND substack.com`.
+- Treat this as an environment issue, not as a reason to change the runtime's default fetch strategy.
+- When this happens during development, keep `cookieproxy` as the default method and retry the same `cookieproxy` flow outside the sandbox instead of switching the runtime to another download method.
+
 ## Notes
 
 - Keep `--out` explicit when you want strong control over where artifacts are written.
 - Use the same fetched `page.html` across metadata and parse steps when debugging parser behavior.
 - Preserve local generated artifacts while iterating so you can compare outputs across revisions.
+- When using the default `cookieproxy` download flow, parser source detection still accepts both Substack URL families directly. For aggregator URLs like `substack.com/@<author>/p-<id>`, fetch may also normalize to the publication-host canonical URL before metadata and markdown parsing. If the canonical page cannot be fetched but the Substack posts lookup returned body content, runtime may continue with a synthetic article HTML artifact rather than the reader shell.

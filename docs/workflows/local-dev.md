@@ -18,7 +18,7 @@ Install dependencies:
 npm install
 ```
 
-Run the default test suite:
+Run the default runtime-behavior test suite:
 
 ```bash
 npm test
@@ -29,6 +29,12 @@ Run the closed safety gate when you want a stricter local validation pass:
 ```bash
 npm run test:closed-loop
 ```
+
+`npm run test:closed-loop` is stricter than `npm test`. It adds:
+
+- closed-loop preflight checks
+- localhost-only network restrictions for the test run
+- TypeScript no-emit validation via `npm run typecheck`
 
 Use the closed loop before merging changes that touch:
 - runtime config resolution

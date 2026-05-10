@@ -331,6 +331,103 @@ describe("cli", () => {
     );
   });
 
+  test("substack parse and get_metadata commands produce artifacts from local html", async () => {
+    const root = await mkdtemp(path.join(tmpdir(), "article-downloader-test-"));
+    const htmlPath = path.join(root, "substack-page.html");
+    const parseOutDir = path.join(root, "parse-output");
+    const metadataOutDir = path.join(root, "metadata-output");
+    const html = `<!doctype html>
+<html>
+  <head>
+    <title>Example Substack Title - by Example Author</title>
+    <meta property="og:title" content="Example Substack Title" />
+    <meta property="og:url" content="https://examplepublication.substack.com/p/example-post" />
+    <link rel="canonical" href="https://examplepublication.substack.com/p/example-post" />
+    <meta name="author" content="Example Author" />
+    <script type="application/ld+json">
+      {
+        "@context": "https://schema.org",
+        "@type": "NewsArticle",
+        "url": "https://examplepublication.substack.com/p/example-post",
+        "mainEntityOfPage": "https://examplepublication.substack.com/p/example-post",
+        "datePublished": "2026-06-01T10:00:00.000Z",
+        "dateModified": "2026-06-01T10:05:00.000Z",
+        "author": {
+          "name": "Example Author",
+          "url": "https://substack.com/@exampleauthor"
+        }
+      }
+    </script>
+  </head>
+  <body>
+    <article>
+      <h1 class="post-title">Example Substack Title</h1>
+      <h3 class="subtitle">Example subtitle</h3>
+      <div class="byline-wrapper">
+        <a href="https://substack.com/@exampleauthor">Example Author</a>
+        <div class="meta-EgzBVA">Jun 01, 2026</div>
+      </div>
+      <div class="available-content">
+        <div class="body markup">
+          <p>Example body paragraph.</p>
+        </div>
+      </div>
+    </article>
+  </body>
+</html>`;
+
+    await writeTextFile(htmlPath, html);
+
+    await runCli([
+      "node",
+      "article-downloader",
+      "parse",
+      "--html",
+      htmlPath,
+      "--url",
+      "https://substack.com/@exampleauthor/p-123456789",
+      "--out",
+      parseOutDir,
+    ]);
+
+    const parseDirs = await (await import("node:fs/promises")).readdir(parseOutDir);
+    const markdown = await readFile(path.join(parseOutDir, parseDirs[0], "article.md"), "utf8");
+    expect(markdown).toContain("# Example Substack Title");
+    expect(markdown).toContain("Example subtitle");
+    expect(markdown).toContain("[Example Author](https://substack.com/@exampleauthor)");
+    expect(markdown).toContain("Example body paragraph.");
+
+    await runCli([
+      "node",
+      "article-downloader",
+      "get_metadata",
+      "--html",
+      htmlPath,
+      "--url",
+      "https://substack.com/@exampleauthor/p-123456789",
+      "--out",
+      metadataOutDir,
+    ]);
+
+    const metadataDirs = await (await import("node:fs/promises")).readdir(metadataOutDir);
+    const metadata = JSON.parse(
+      await readFile(path.join(metadataOutDir, metadataDirs[0], "metadata.json"), "utf8"),
+    ) as {
+      articleUrl: string;
+      authorId: string;
+      authorHomepage: string;
+      publishTime: string;
+      editTime: string;
+    };
+    expect(metadata).toEqual({
+      articleUrl: "https://examplepublication.substack.com/p/example-post",
+      authorId: "Example Author",
+      authorHomepage: "https://substack.com/@exampleauthor",
+      publishTime: "2026-06-01T10:00:00.000Z",
+      editTime: "2026-06-01T10:05:00.000Z",
+    });
+  });
+
   test("commands expose expected options", () => {
     const program = createProgram();
     const verifyCommand = program.commands.find((command) => command.name() === "verify-zhihu");

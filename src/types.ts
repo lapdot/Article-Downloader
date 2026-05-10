@@ -179,6 +179,7 @@ export interface PipelineResult {
 }
 
 export type ZhihuContentType = "answer" | "pin" | "zhuanlan_article";
+export type SubstackContentType = "post";
 
 export interface SelectorSet {
   title: string;

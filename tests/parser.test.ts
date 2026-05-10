@@ -149,6 +149,80 @@ const fixtureWithBracketAltButNoSticker = `<!doctype html>
     </div>
   </body>
 </html>`;
+const substackFixture = `<!doctype html>
+<html>
+  <head>
+    <title>Trading Post Friday May 8, 2026 - by Michael Burry</title>
+    <meta name="author" content="Michael Burry" />
+    <meta property="og:title" content="Trading Post Friday May 8, 2026" />
+    <meta property="og:url" content="https://michaeljburry.substack.com/p/trading-post-friday-may-8-2026" />
+    <link rel="canonical" href="https://michaeljburry.substack.com/p/trading-post-friday-may-8-2026" />
+    <script type="application/ld+json">
+      {
+        "@context": "https://schema.org",
+        "@type": "NewsArticle",
+        "url": "https://michaeljburry.substack.com/p/trading-post-friday-may-8-2026",
+        "mainEntityOfPage": "https://michaeljburry.substack.com/p/trading-post-friday-may-8-2026",
+        "headline": "Trading Post Friday May 8, 2026",
+        "description": "TGIF",
+        "datePublished": "2026-05-08T16:21:07+00:00",
+        "dateModified": "2026-05-08T16:21:53+00:00",
+        "author": [
+          {
+            "@type": "Person",
+            "name": "Michael Burry",
+            "url": "https://substack.com/@michaeljburry"
+          }
+        ]
+      }
+    </script>
+  </head>
+  <body>
+    <article>
+      <h1 class="post-title">Trading Post Friday May 8, 2026</h1>
+      <h3 class="subtitle">TGIF</h3>
+      <div class="byline-wrapper">
+        <a href="https://substack.com/@michaeljburry">Michael Burry</a>
+        <div class="meta-EgzBVA">May 08, 2026</div>
+        <div class="meta-EgzBVA">Paid</div>
+      </div>
+      <div class="available-content">
+        <div class="body markup">
+          <p>Huge rally in stocks today. Very much more of the same.</p>
+          <p>Yellow is the Philadelphia Semiconductor Index, up ~224% since the 90 Day Pause.</p>
+          <div class="captioned-image-container">
+            <figure>
+              <a href="https://cdn.example.com/full.png">
+                <img
+                  src="https://cdn.example.com/preview.png"
+                  data-attrs="{&quot;src&quot;:&quot;https://cdn.example.com/original.png&quot;,&quot;height&quot;:1065,&quot;width&quot;:1326}"
+                  width="1326"
+                  height="1065"
+                  alt=""
+                />
+              </a>
+            </figure>
+          </div>
+        </div>
+      </div>
+      <div data-testid="paywall">This post is for paid subscribers</div>
+    </article>
+  </body>
+</html>`;
+const substackPreloadOnlyFixture = `<!doctype html>
+<html>
+  <head>
+    <title>Fallback Substack Title - by Example Author</title>
+    <script>
+      window._preloads = JSON.parse("{\\"post\\":{\\"canonical_url\\":\\"https://examplepublication.substack.com/p/fallback-post\\",\\"post_date\\":\\"2026-06-01T10:00:00.000Z\\",\\"updated_at\\":\\"2026-06-01T10:05:00.000Z\\",\\"subtitle\\":\\"Fallback subtitle\\",\\"title\\":\\"Fallback Substack Title\\",\\"body_html\\":\\"<p>Fallback body paragraph.</p><p>Second paragraph.</p>\\"},\\"publishedBylines\\":[{\\"name\\":\\"Example Author\\",\\"handle\\":\\"exampleauthor\\"}],\\"canonicalUrl\\":\\"https://examplepublication.substack.com/p/fallback-post\\",\\"ogUrl\\":\\"https://examplepublication.substack.com/p/fallback-post\\"}");
+    </script>
+  </head>
+  <body>
+    <article>
+      <h1 class="post-title">Fallback Substack Title</h1>
+    </article>
+  </body>
+</html>`;
 
 describe("parseHtmlToMarkdown", () => {
   test("extracts title and main content for zhihu", async () => {
@@ -393,6 +467,50 @@ describe("parseHtmlToMarkdown", () => {
     expect(result.markdown).toContain("发布于 2026-02-03 20:37");
   });
 
+  test("parses substack markdown from publication url", async () => {
+    const result = await parseHtmlToMarkdown({
+      html: substackFixture,
+      sourceUrl: "https://michaeljburry.substack.com/p/trading-post-friday-may-8-2026",
+    });
+
+    expect(result.ok).toBe(true);
+    expect(result.title).toBe("Trading Post Friday May 8, 2026");
+    expect(result.markdown).toContain("# Trading Post Friday May 8, 2026");
+    expect(result.markdown).toContain("\n\nTGIF\n\n");
+    expect(result.markdown).toContain("[Michael Burry](https://substack.com/@michaeljburry)");
+    expect(result.markdown).toContain("May 08, 2026");
+    expect(result.markdown).toContain("Huge rally in stocks today. Very much more of the same.");
+    expect(result.markdown).toContain("![](https://cdn.example.com/original.png)");
+    expect(result.markdown).not.toContain("](https://cdn.example.com/full.png)");
+    expect(result.markdown).not.toContain("This post is for paid subscribers");
+  });
+
+  test("parses substack markdown from aggregator url", async () => {
+    const result = await parseHtmlToMarkdown({
+      html: substackFixture,
+      sourceUrl: "https://substack.com/@michaeljburry/p-196918166",
+    });
+
+    expect(result.ok).toBe(true);
+    expect(result.markdown).toContain("# Trading Post Friday May 8, 2026");
+    expect(result.markdown).toContain("[Michael Burry](https://substack.com/@michaeljburry)");
+  });
+
+  test("parses substack markdown from preload fallback when visible body is missing", async () => {
+    const result = await parseHtmlToMarkdown({
+      html: substackPreloadOnlyFixture,
+      sourceUrl: "https://substack.com/@exampleauthor/p-123456789",
+    });
+
+    expect(result.ok).toBe(true);
+    expect(result.title).toBe("Fallback Substack Title");
+    expect(result.markdown).toContain("# Fallback Substack Title");
+    expect(result.markdown).toContain("\n\nFallback subtitle\n\n");
+    expect(result.markdown).toContain("[Example Author](https://substack.com/@exampleauthor)");
+    expect(result.markdown).toContain("Fallback body paragraph.");
+    expect(result.markdown).toContain("Second paragraph.");
+  });
+
   test("fails fast on selector miss for supported pin content selector", async () => {
     const result = await parseHtmlToMarkdown({
       html: "<html><head><meta property=\"og:title\" content=\"X\" /></head><body><div class=\"PinItem\">no pin content</div></body></html>",
@@ -500,6 +618,54 @@ describe("parseHtmlToMetadata", () => {
       authorHomepage: "https://www.zhihu.com/people/sanitized-author-c",
       publishTime: "发布于 2026-01-20 14:30",
       editTime: undefined,
+    });
+  });
+
+  test("extracts substack metadata from publication url", async () => {
+    const result = await parseHtmlToMetadata({
+      html: substackFixture,
+      sourceUrl: "https://michaeljburry.substack.com/p/trading-post-friday-may-8-2026",
+    });
+
+    expect(result.ok).toBe(true);
+    expect(result.metadata).toEqual({
+      articleUrl: "https://michaeljburry.substack.com/p/trading-post-friday-may-8-2026",
+      authorId: "Michael Burry",
+      authorHomepage: "https://substack.com/@michaeljburry",
+      publishTime: "2026-05-08T16:21:07+00:00",
+      editTime: "2026-05-08T16:21:53+00:00",
+    });
+  });
+
+  test("extracts substack metadata from aggregator url using canonical article url", async () => {
+    const result = await parseHtmlToMetadata({
+      html: substackFixture,
+      sourceUrl: "https://substack.com/@michaeljburry/p-196918166",
+    });
+
+    expect(result.ok).toBe(true);
+    expect(result.metadata).toEqual({
+      articleUrl: "https://michaeljburry.substack.com/p/trading-post-friday-may-8-2026",
+      authorId: "Michael Burry",
+      authorHomepage: "https://substack.com/@michaeljburry",
+      publishTime: "2026-05-08T16:21:07+00:00",
+      editTime: "2026-05-08T16:21:53+00:00",
+    });
+  });
+
+  test("extracts substack metadata from preload fallback", async () => {
+    const result = await parseHtmlToMetadata({
+      html: substackPreloadOnlyFixture,
+      sourceUrl: "https://substack.com/@exampleauthor/p-123456789",
+    });
+
+    expect(result.ok).toBe(true);
+    expect(result.metadata).toEqual({
+      articleUrl: "https://examplepublication.substack.com/p/fallback-post",
+      authorId: "Example Author",
+      authorHomepage: "https://substack.com/@exampleauthor",
+      publishTime: "2026-06-01T10:00:00.000Z",
+      editTime: "2026-06-01T10:05:00.000Z",
     });
   });
 

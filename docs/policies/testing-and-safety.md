@@ -21,7 +21,7 @@ Tests are expected to protect:
 ## 3. Closed-Loop Local Safety Gate
 
 - The project defines a local closed test loop via `npm run test:closed-loop`.
-- The closed loop runs preflight checks and then the full test suite.
+- The closed loop runs preflight checks, then `npm run typecheck`, and then the full test suite.
 - Closed-loop execution must not require real secrets.
 - Closed-loop execution enforces localhost-only network access; external hosts are blocked.
 - Test fixtures must not contain real secret material or obvious secret markers.
@@ -45,6 +45,9 @@ Rules:
   - `/question/<id>/answer/<id>`
   - `/pin/<id>`
   - `zhuanlan.zhihu.com/p/<id>`
+- Sanitize content-identifying Substack URLs:
+  - `substack.com/@<author>/p-<id>`
+  - `<publication>.substack.com/p/<slug>`
 - Sanitize long numeric IDs, 9 digits or more, to deterministic placeholders.
 - Do not over-sanitize route structure.
 - Replacements must be stable and repeatable across fixtures and tests.
@@ -52,6 +55,8 @@ Rules:
 
 Validation expectation:
 - Any policy-compliant test update must keep `npm test` and `npm run test:closed-loop` passing.
+- Add focused coverage when fetch-time normalization is introduced for a supported source. For Substack aggregator URLs, tests should cover successful canonical normalization, graceful fallback to the original fetched shell when lookup data is insufficient, and synthetic article fallback when canonical-page refetch fails after a successful lookup.
+- Keep at least one CLI-level smoke test for each supported non-Zhihu source so source support is exercised through the user-facing command surface, not only lower-level parser/fetch helpers.
 
 ## 6. Fixture Safety Policy
 
