@@ -1,6 +1,6 @@
 # ArticleDownloader
 
-A Node.js (TypeScript + ESM) project for downloading article pages, parsing them into Markdown, and uploading to Notion.
+A Node.js (TypeScript + ESM) project for turning article URLs into local HTML, Markdown, and Notion-block artifacts, with optional downstream upload to Notion.
 
 ## Documentation Map
 
@@ -13,10 +13,15 @@ A Node.js (TypeScript + ESM) project for downloading article pages, parsing them
 - Cross-project reference template: `docs/policies/portable-policy-template.md`
 - Architecture overview: `docs/architecture/overview.md`
 - Decision records: `docs/decisions/`
+- URL iteration workflow: `docs/workflows/url-driven-iteration.md`
 - Local development workflow: `docs/workflows/local-dev.md`
 
 ## Features
 
+- Generate three reviewable output formats from a URL:
+  - fetched source HTML (`page.html`)
+  - parsed Markdown article (`article.md`)
+  - Notion block JSON (`notion-blocks.json`)
 - Verify Zhihu cookies by checking `https://www.zhihu.com/settings/account`:
   - `200` means valid login session.
   - `301/302` means cookies are invalid or expired.
@@ -26,8 +31,8 @@ A Node.js (TypeScript + ESM) project for downloading article pages, parsing them
   - answer (`/question/.../answer/...`)
   - pin idea (`/pin/...`)
   - zhuanlan article (`zhuanlan.zhihu.com/p/...`)
-- Upload Markdown to a Notion database as a new page with rich content blocks.
-- Run end-to-end pipeline from URL to local artifacts and optional Notion upload.
+- Upload generated Notion blocks to a Notion database as a separate downstream step.
+- Run an end-to-end pipeline from URL to local artifacts and optional Notion upload.
 
 ## Requirements
 
@@ -40,6 +45,26 @@ A Node.js (TypeScript + ESM) project for downloading article pages, parsing them
 npm install
 ```
 
+## Typical Workflow
+
+The primary development loop is:
+
+1. Give the project a URL.
+2. Generate local HTML, Markdown, metadata, and Notion block artifacts.
+3. Inspect the outputs by format.
+4. Identify where the result needs improvement.
+5. Refine fetch, parse, or Notion-transform behavior.
+6. Regenerate and compare again.
+
+Typical artifact locations:
+
+- HTML format: `artifacts/runtime/<run>/page.html`
+- metadata: `artifacts/runtime/<run>/metadata.json`
+- Markdown format: `artifacts/runtime/<run>/article.md`
+- Notion format: `artifacts/runtime/<transform-run>/notion-blocks.json`
+
+Use this README for the quick path and `docs/workflows/url-driven-iteration.md` for the full iterative workflow.
+
 ## Config Model
 
 Configuration is split into non-sensitive and sensitive files.
@@ -51,7 +76,7 @@ Configuration is split into non-sensitive and sensitive files.
 ```json
 {
   "pipeline": {
-    "outDir": "output",
+    "outDir": "artifacts/runtime",
     "useHtmlStyleForImage": false,
     "userAgent": "Mozilla/5.0 (Macintosh; Intel Mac OS X 10_15_7) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/123.0.0.0 Safari/537.36",
     "downloadMethod": "cookieproxy"
@@ -94,6 +119,22 @@ The following files are included as templates:
 - `config/public.config.example.json`
 - `config/cookies.secrets.local.example.json`
 - `config/notion.secrets.local.example.json`
+
+## Artifact Layout
+
+Generated artifacts are organized under `artifacts/`:
+
+- `artifacts/runtime/`: default base for CLI and GUI output artifacts such as `page.html`, `article.md`, `metadata.json`, and `notion-blocks.json`
+- `artifacts/llm/sources/`: local source materials for LLM-assisted workflows
+- `artifacts/llm/work/`: temporary LLM scratch space and intermediate runs
+- `artifacts/llm/exports/`: user-facing LLM exports you may choose to keep or share
+
+Local app state remains under `.local/`:
+
+- `.local/gui/history/`: GUI input history
+- `.local/gui/logs/`: GUI bridge logs
+
+Use `.local/` for operational state only, not for user content artifacts.
 
 ### Secret path overrides via environment variables
 
@@ -154,7 +195,7 @@ npx tsx src/cli.ts verify-zhihu --config ./config/public.config.json
 npx tsx src/cli.ts fetch \
   --url "https://zhuanlan.zhihu.com/p/123" \
   --config ./config/public.config.json \
-  --out ./output
+  --out ./artifacts/runtime
 ```
 
 To use `http` instead, set `"pipeline.downloadMethod": "http"` in `config/public.config.json` or pass `--download-method http`.
@@ -164,13 +205,13 @@ When `downloadMethod` is `cookieproxy`, `fetch` does not require `--cookies-secr
 ### 3) Extract Metadata From HTML
 
 ```bash
-npx tsx src/cli.ts get_metadata --html ./output/<run>/page.html --url "https://zhuanlan.zhihu.com/p/123" --out ./output
+npx tsx src/cli.ts get_metadata --html ./artifacts/runtime/<run>/page.html --url "https://zhuanlan.zhihu.com/p/123" --out ./artifacts/runtime
 ```
 
 ### 4) Parse HTML to Markdown
 
 ```bash
-npx tsx src/cli.ts parse --html ./output/<run>/page.html --url "https://zhuanlan.zhihu.com/p/123" --out ./output
+npx tsx src/cli.ts parse --html ./artifacts/runtime/<run>/page.html --url "https://zhuanlan.zhihu.com/p/123" --out ./artifacts/runtime
 ```
 
 `--use-html-style-for-image` is optional. By default, image output uses markdown style (`![](...)`).
@@ -183,18 +224,22 @@ For core output paths:
 
 ```bash
 npx tsx src/cli.ts transform-notion \
-  --md ./output/<run>/article.md \
-  --out ./output
+  --md ./artifacts/runtime/<run>/article.md \
+  --out ./artifacts/runtime
 ```
+
+This step produces the Notion format artifact: `notion-blocks.json`.
 
 ### 6) Upload Notion Blocks to Notion
 
 ```bash
 npx tsx src/cli.ts upload-notion \
-  --blocks ./output/<transform-run>/notion-blocks.json \
+  --blocks ./artifacts/runtime/<transform-run>/notion-blocks.json \
   --config ./config/public.config.json \
   --notion-secrets ./config/notion.secrets.local.json
 ```
+
+Upload is optional and downstream from artifact generation. The project’s “Notion format” refers to the generated Notion block JSON, not the upload itself.
 
 ### 7) End-to-end run
 
@@ -205,7 +250,7 @@ npx tsx src/cli.ts run \
   --download-method http \
   --cookies-secrets ./config/cookies.secrets.local.json \
   --notion-secrets ./config/notion.secrets.local.json \
-  --out ./output
+  --out ./artifacts/runtime
 ```
 
 `run` always executes the Notion upload stage after markdown generation.  
@@ -248,7 +293,7 @@ npm run gui:server -- \
   --workspace-dir=/secure/workspace \
   --history-dir=/secure/gui-history \
   --logs-dir=/secure/gui-logs \
-  --output-dir=/secure/gui-output
+  --output-dir=/secure/artifacts/runtime
 ```
 
 GUI directory controls:

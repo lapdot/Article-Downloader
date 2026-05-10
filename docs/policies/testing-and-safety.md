@@ -58,7 +58,12 @@ Validation expectation:
 - The CLI does not provide fixture import or sanitization commands.
 - Test fixtures may still live under `tests/fixtures/` as curated HTML samples, but they are maintained outside the runtime contract.
 - Closed-loop and committed-fixture safety checks must continue scanning tracked fixtures for obvious secret markers.
-- Raw HTML collected during development should stay in local output directories or other untracked paths unless deliberately curated for tests.
+- Raw HTML collected during development should stay in untracked local artifact paths unless deliberately curated for tests.
+- Preferred local locations are:
+  - `artifacts/runtime/` for runtime-produced files
+  - `artifacts/llm/work/` for scratch captures and intermediate LLM workflow material
+- Iterative URL-review work should inspect local artifacts by stage rather than curating ad hoc tracked snapshots unless the artifact is intentionally promoted into `tests/fixtures/`.
+- `.local/` should not be used as a catch-all artifact store; it is reserved for operational state.
 
 ## 7. Documentation Example Ordering
 

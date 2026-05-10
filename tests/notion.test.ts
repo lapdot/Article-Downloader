@@ -45,4 +45,59 @@ describe("markdownToNotionBlocks", () => {
 
     expect(content).toContain("Emoji [捂脸]");
   });
+
+  test("preserves empty-text inline links by promoting the url into link text", () => {
+    const markdown = ["Reference:", "", "[](https://example.com/path?q=1)"].join("\n");
+
+    const blocks = markdownToNotionBlocks(markdown);
+    const paragraph = blocks[1]?.type === "paragraph" ? blocks[1].paragraph.rich_text : [];
+    const text = paragraph[0];
+
+    expect(text?.type).toBe("text");
+    expect(text?.text.content).toBe("https://example.com/path?q=1");
+    expect(text?.text.link?.url).toBe("https://example.com/path?q=1");
+  });
+
+  test("does not change labeled links", () => {
+    const markdown = ["[Example](https://example.com/path?q=1)"].join("\n");
+
+    const blocks = markdownToNotionBlocks(markdown);
+    const paragraph = blocks[0]?.type === "paragraph" ? blocks[0].paragraph.rich_text : [];
+    const text = paragraph[0];
+
+    expect(text?.type).toBe("text");
+    expect(text?.text.content).toBe("Example");
+    expect(text?.text.link?.url).toBe("https://example.com/path?q=1");
+  });
+
+  test("does not change markdown image syntax", () => {
+    const markdown = ["![](https://example.com/image.png)"].join("\n");
+
+    const blocks = markdownToNotionBlocks(markdown);
+
+    expect(blocks[0]?.type).toBe("image");
+  });
+
+  test("preserves multiple empty-text inline links in one document", () => {
+    const markdown = [
+      "First:",
+      "",
+      "[](https://example.com/one)",
+      "",
+      "Second:",
+      "",
+      "[](https://example.com/two)",
+    ].join("\n");
+
+    const blocks = markdownToNotionBlocks(markdown);
+    const firstLink = blocks[1]?.type === "paragraph" ? blocks[1].paragraph.rich_text[0] : undefined;
+    const secondLink = blocks[3]?.type === "paragraph" ? blocks[3].paragraph.rich_text[0] : undefined;
+
+    expect(firstLink?.type).toBe("text");
+    expect(firstLink?.text.content).toBe("https://example.com/one");
+    expect(firstLink?.text.link?.url).toBe("https://example.com/one");
+    expect(secondLink?.type).toBe("text");
+    expect(secondLink?.text.content).toBe("https://example.com/two");
+    expect(secondLink?.text.link?.url).toBe("https://example.com/two");
+  });
 });

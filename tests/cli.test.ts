@@ -33,7 +33,7 @@ async function writeConfigFiles(
     JSON.stringify(
       {
         pipeline: {
-          outDir: "output",
+          outDir: "artifacts/runtime",
           useHtmlStyleForImage: false,
           downloadMethod: options?.downloadMethod,
         },
@@ -625,7 +625,7 @@ describe("cli", () => {
           "article-downloader",
           "upload-notion",
           "--blocks",
-          "./output/notion-blocks.json",
+          "./artifacts/runtime/notion-blocks.json",
           "--config",
           "./config/public.config.json",
           "--cookies-secrets",

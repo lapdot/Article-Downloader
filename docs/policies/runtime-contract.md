@@ -54,6 +54,18 @@ If code and docs diverge, align code to this document unless a newer repo decisi
   - built-in default `cookieproxy`
 - Strategy-dependent runtime behavior must always use the effective resolved value after precedence is applied.
 
+### 2.5 Default local artifact layout
+- The default runtime artifact base directory is `artifacts/runtime`.
+- LLM-oriented local materials should live under `artifacts/llm/`.
+- `.local/` is reserved for local operational state, not user content artifacts.
+- Current user-visible artifact meanings are:
+  - HTML format: fetched source page artifact (`page.html`)
+  - Markdown format: parsed article artifact (`article.md`)
+  - Notion format: generated Notion block artifact (`notion-blocks.json`)
+- Current local operational state includes:
+  - `.local/gui/history/`
+  - `.local/gui/logs/`
+
 ## 3. Input Contract
 
 ### 3.1 Core content inputs are CLI-only
@@ -86,6 +98,9 @@ Exception policy:
 - Exceptions are allowed only when there is concrete operational specialty.
 - Any exception must be command-specific or flag-specific, explicitly approved, documented in both policy and README, and covered by tests.
 - No broad implicit fallback track is allowed for core output paths.
+
+Default-layout note:
+- When public config does provide a default runtime output base via `pipeline.outDir`, the project default is `artifacts/runtime`.
 
 ## 4. Cookie Contract
 

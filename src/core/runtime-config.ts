@@ -292,7 +292,7 @@ export async function resolveRuntimeConfig(
   return {
     cookies,
     pipeline: {
-      outDir: publicConfig.pipeline?.outDir ?? "output",
+      outDir: publicConfig.pipeline?.outDir ?? "artifacts/runtime",
       useHtmlStyleForImage: publicConfig.pipeline?.useHtmlStyleForImage ?? false,
       userAgent: publicConfig.pipeline?.userAgent,
       downloadMethod: resolveDownloadMethod(publicConfig, input),

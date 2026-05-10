@@ -2,6 +2,9 @@
 
 This document describes the recommended local development loops for ArticleDownloader.
 
+For the primary URL-to-artifacts review and refinement loop, see:
+- `docs/workflows/url-driven-iteration.md`
+
 For authoritative contracts, use:
 - `docs/policies/runtime-contract.md`
 - `docs/policies/testing-and-safety.md`
@@ -56,7 +59,7 @@ npm run gui:server -- \
   --workspace-dir=/secure/workspace \
   --history-dir=/secure/gui-history \
   --logs-dir=/secure/gui-logs \
-  --output-dir=/secure/gui-output
+  --output-dir=/secure/artifacts/runtime
 ```
 
 Directory controls:
@@ -64,6 +67,16 @@ Directory controls:
 - `--history-dir`: where GUI history is stored as `history.json`
 - `--logs-dir`: where GUI server logs are written as `gui-server.log`
 - `--output-dir`: default output base for commands with `--out` when the form does not provide one
+
+Recommended local artifact layout:
+- `artifacts/runtime/`: program-generated runtime artifacts
+- `artifacts/llm/sources/`: local source material for LLM-assisted workflows
+- `artifacts/llm/work/`: temporary LLM scratch space
+- `artifacts/llm/exports/`: final LLM-produced exports you want to keep outside runtime runs
+
+Keep `.local/` for local operational state only:
+- `.local/gui/history/`: GUI history storage
+- `.local/gui/logs/`: GUI bridge logs
 
 Open:
 

@@ -10,6 +10,8 @@ Use these first:
   - authoritative repo contracts
 - `workflows/`
   - current operating procedures
+  - `url-driven-iteration.md`: primary URL-to-artifacts review and refinement loop
+  - `local-dev.md`: local setup, test, and GUI operating loops
 - `architecture/`
   - current system structure
 - `decisions/`

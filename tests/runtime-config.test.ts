@@ -438,6 +438,23 @@ describe("runtime config", () => {
     expect(runtimeConfig.pipeline.downloadMethod).toBe("cookieproxy");
   });
 
+  test("uses artifacts runtime as the default output directory", async () => {
+    const root = await mkdtemp(path.join(tmpdir(), "runtime-config-test-"));
+    const configPath = path.join(root, "public.config.json");
+    const cookieSecretsPath = path.join(root, "cookies.secrets.local.json");
+
+    await writeJson(configPath, {});
+    await writeJson(cookieSecretsPath, []);
+
+    const runtimeConfig = await resolveRuntimeConfig({
+      configPath,
+      cookiesSecretsPath: cookieSecretsPath,
+      requireCookies: true,
+    });
+
+    expect(runtimeConfig.pipeline.outDir).toBe("artifacts/runtime");
+  });
+
   test("uses env override for cookieproxy path", async () => {
     const root = await mkdtemp(path.join(tmpdir(), "runtime-config-test-"));
     const configPath = path.join(root, "public.config.json");

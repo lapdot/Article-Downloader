@@ -14,6 +14,11 @@ This document defines the authoritative GUI and bridge contract for the local-on
   - `POST /api/run`
 - Frontend assets are served by the bridge from built output artifacts.
 - Bridge server implementation is Fastify-based, using `fastify` and `@fastify/static`.
+- Default bridge directories are:
+  - output artifacts: `artifacts/runtime/`
+  - local history: `.local/gui/history/`
+  - local logs: `.local/gui/logs/`
+- GUI may help users trigger the same URL-to-artifact flow as the CLI, but CLI/runtime artifact meanings remain the source of truth.
 
 ## 2. GUI Execution Model
 
@@ -98,3 +103,4 @@ This document defines the authoritative GUI and bridge contract for the local-on
   - `<logsDir>/gui-server.log`
 - GUI history persistence remains file-based through `history.json`, not database-backed.
 - History file loading must be schema-guarded with Zod and fall back safely to empty records on malformed content.
+- By default, GUI operational state stays under `.local/gui/`, while user-facing generated artifacts belong under `artifacts/runtime/`.

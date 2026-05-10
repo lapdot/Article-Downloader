@@ -2,9 +2,10 @@ node_modules/
 dist/
 dist-gui/
 coverage/
-output/
 .local/
-ai_materials/
+artifacts/runtime/
+artifacts/llm/sources/
+artifacts/llm/work/
 .env
 .DS_Store
 config/*.secrets.local.json

@@ -39,7 +39,7 @@ function resolveServerOptions(input: GuiServerOptions): Required<GuiServerOption
   const workspaceDir = path.resolve(input.workspaceDir ?? PROJECT_ROOT);
   const historyDir = path.resolve(input.historyDir ?? path.join(workspaceDir, ".local", "gui", "history"));
   const logsDir = path.resolve(input.logsDir ?? path.join(workspaceDir, ".local", "gui", "logs"));
-  const outputDir = path.resolve(input.outputDir ?? path.join(workspaceDir, "output"));
+  const outputDir = path.resolve(input.outputDir ?? path.join(workspaceDir, "artifacts", "runtime"));
   return {
     port: input.port ?? 8787,
     workspaceDir,
