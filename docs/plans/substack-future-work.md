@@ -11,7 +11,6 @@ Current supported baseline:
 
 Deferred improvements:
 
-- broaden fixture coverage for more Substack layout variants such as multi-author bylines and caption-heavy posts
 - improve markdown fidelity for captions, embedded media, and other rich-content edge cases
 - evaluate whether canonical publication URLs should remain the preferred final article identity for aggregator inputs
 - consider more explicit operational guidance for running `cookieproxy` outside restricted sandboxes when DNS resolution is unavailable

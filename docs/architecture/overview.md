@@ -47,7 +47,9 @@ Current baseline:
 - parser and metadata behavior are source-owned
 - fetch normalization is now a source-owned capability alongside parser and metadata behavior
 - no standalone verification capability is part of the current runtime surface
-- broader source-parallel test coverage and remaining source-logic cleanup are the main follow-up refactor areas
+- current test posture keeps shared orchestration smoke coverage thin while most source-specific behavior is exercised in source-owned Zhihu and Substack suites
+- integration coverage includes at least one fetch-plus-parse smoke path for each currently supported source family
+- remaining follow-up refactor work is centered on source-logic cleanup outside adapters rather than broad test reorganization
 
 ## Fetch Stage Architecture
 

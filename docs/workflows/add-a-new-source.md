@@ -45,6 +45,8 @@ Add support for a new source in a way that keeps fetch, parse, test, and documen
    - Cover markdown parsing and metadata extraction.
    - Cover any fetch-time normalization or fallback behavior introduced for the source.
    - Prefer source-focused parser tests over expanding a single mixed cross-source parser fixture suite.
+   - Keep shared orchestration smoke coverage thin: one dispatch-level layer is useful, but behavior-heavy assertions should live in source-focused suites.
+   - Keep at least one integration-style fetch-plus-parse smoke for each supported source family.
    - Keep at least one CLI-level smoke test when the source becomes a real supported surface.
 
 7. Run the full validation loop and update docs together.
@@ -88,5 +90,6 @@ The current parser-stage architecture uses explicit source adapters instead of a
 - keep canonical identity naming source-aware so content kinds are not treated as global labels across unrelated sources
 - keep source-specific helpers with that source whenever possible
 - add source-focused tests rather than extending a single cross-source parser test file indefinitely
+- keep one thin orchestration smoke layer, but avoid letting it become the main home for source-specific assertions
 - keep parser-stage changes narrow; only move into fetch-time normalization when parser-only support is insufficient
 - keep naming compatibility unless the change is an intentional contract update

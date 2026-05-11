@@ -96,15 +96,24 @@ Outcome:
 
 ### Phase 6: Broaden source-parallel test coverage
 
+Status:
+- completed
+
 Goal:
 - make the test suite more clearly source-oriented and more resilient as new sources are added
 
-Proposed work:
+Completed work:
+- kept `tests/parser-orchestrator.test.ts` as a thin shared dispatch smoke suite
+- expanded source-owned parser coverage so Substack-specific and Zhihu-specific behavior lives primarily in source-focused suites
+- added higher-value Substack fixture coverage for:
+  - multi-author byline handling
+  - caption-heavy content with wrapper-noise cleanup expectations
+- added another brittle-shape Zhihu answer variant covering alternate title and content containers
+- added a Substack fetch-and-parse integration smoke so integration coverage is no longer effectively Zhihu-only
+
+Remaining guidance:
 - review remaining mixed tests and split them when source ownership is clearer
-- add more real-world Substack and Zhihu fixtures for edge cases
 - identify missing fixture coverage for:
-  - Substack multi-author bylines
-  - caption-heavy or embed-heavy Substack posts
   - Zhihu page variants that still rely on fragile selectors
 - keep at least one integration-style path per stage that exercises shared orchestration
 
@@ -115,6 +124,10 @@ Constraints:
 Exit criteria:
 - source-specific failures are easier to localize from the test suite
 - adding a new source has a clearer test template
+
+Outcome:
+- source-owned test coverage is broader and easier to localize across Zhihu and Substack
+- one thin cross-source orchestration layer remains, but source behavior now lives mostly with source-focused suites
 
 ### Phase 7: Remaining source-logic audit
 
@@ -136,32 +149,35 @@ Exit criteria:
 - fewer source-specific conditionals remain outside adapters
 - the boundary between core orchestration and source-owned behavior is easier to explain
 
+Initial audit findings after Phase 6:
+- `src/core/cookies.ts` still hard-codes `DEFAULT_COOKIE_URL = "https://www.zhihu.com/"` for hostless cookie-jar context; decide whether that is justified shared behavior or a Zhihu-specific leak that should move behind a clearer shared policy
+- CLI and runtime flows are mostly source-neutral now, but some tests and operational examples still skew Zhihu-first; prefer keeping future smoke coverage source-parallel when adding examples or wrappers
+- `tests/integration-fetch-parse.test.ts` now covers both supported source families, but any future source-specific integration branches should stay narrow and avoid growing the shared orchestration layer back into a mixed behavior suite
+
 ## Suggested First Task For The Next Session
 
-Start with Phase 6: broaden source-parallel test coverage.
+Start with Phase 7: remaining source-logic audit.
 
 Why this is the best next step:
 
-- shared source resolution and canonical identity modeling are already in place
-- the next highest-value gap is making source-specific failures easier to localize and extend
-- better fixture coverage will reduce risk before the remaining source-logic audit in Phase 7
+- shared source resolution, canonical identity modeling, and broader source-parallel test coverage are now in place
+- the highest-value remaining gap is identifying source-specific assumptions that still live outside adapters
+- the current test posture is strong enough to support a narrower audit-and-cleanup session without broad exploratory fixture work first
 
 ## Suggested Scope For The Next Session
 
-- review the remaining mixed tests and split them where source ownership is now clear
-- add at least one new real-world-style fixture for:
-  - Substack multi-author or byline-variant handling
-  - Substack caption-heavy or embed-heavy content
-  - a Zhihu page variant that still depends on fragile selectors
-- preserve at least one integration-style orchestration path per stage
-- note any source-specific branches discovered during test work that should be queued for Phase 7 rather than moved immediately
+- audit `src/core/`, `src/cli.ts`, and wrapper-facing code for source-specific branching that no longer belongs outside adapters
+- begin with `src/core/cookies.ts`, especially the hard-coded Zhihu default cookie context, and decide whether it is justified shared behavior or a boundary leak
+- review operational examples and smoke-test posture for remaining Zhihu-first bias, but keep changes narrow and source-neutral
+- preserve the current thin shared orchestration test layer while avoiding new mixed behavior suites unless a true shared behavior requires them
+- queue any runtime-affecting cleanup that would change contract semantics into a dedicated follow-up session instead of mixing it into a low-risk audit pass
 
 ## Validation Checklist For The Next Session
 
-For any of the phases above:
+For the Phase 7 audit and any follow-up cleanup:
 
 - run `npm test`
 - run `npm run test:closed-loop`
-- update relevant docs when ownership boundaries change
+- update relevant docs when ownership boundaries or active follow-up guidance change
 - preserve current CLI behavior unless the session explicitly aims to change contract
 - prefer readable explicit source handling over hidden indirection

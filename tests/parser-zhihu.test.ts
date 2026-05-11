@@ -2,6 +2,7 @@ import { describe, expect, test } from "vitest";
 import { parseHtmlToMarkdown, parseHtmlToMetadata } from "../src/core/parser.js";
 import {
   zhihuAnswerFixture,
+  zhihuAnswerAlternateStructureFixture,
   zhihuFixtureWithBlockMath,
   zhihuFixtureWithBracketAltButNoSticker,
   zhihuFixtureWithEmojiImage,
@@ -30,6 +31,21 @@ describe("zhihu markdown parsing", () => {
     expect(result.markdown).toContain("*   Point A");
     expect(result.markdown).toContain("https://zhuanlan.zhihu.com/p/333333333");
     expect(result.stats?.removedNodes).toBe(0);
+  });
+
+  test("parses answer markdown from alternate title and content containers", async () => {
+    const result = await parseHtmlToMarkdown({
+      html: zhihuAnswerAlternateStructureFixture,
+      sourceUrl: "https://www.zhihu.com/question/9/answer/10",
+    });
+
+    expect(result.ok).toBe(true);
+    expect(result.title).toBe("Zhihu Alternate Fixture Title");
+    expect(result.markdown).toContain("# Zhihu Alternate Fixture Title");
+    expect(result.markdown).toContain("[alternate-author](https://www.zhihu.com/people/alternate-author)");
+    expect(result.markdown).toContain("Alternate answer paragraph.");
+    expect(result.markdown).toContain("Second alternate paragraph.");
+    expect(result.markdown).toContain("2026-03-02");
   });
 
   test("uses markdown image output by default", async () => {
@@ -328,6 +344,22 @@ describe("zhihu metadata parsing", () => {
       authorId: "no-edit-author-id",
       authorHomepage: "https://www.zhihu.com/people/no-edit-author-home",
       publishTime: "2026-02-01",
+      editTime: undefined,
+    });
+  });
+
+  test("extracts metadata from alternate answer structure", async () => {
+    const result = await parseHtmlToMetadata({
+      html: zhihuAnswerAlternateStructureFixture,
+      sourceUrl: "https://www.zhihu.com/question/9/answer/10",
+    });
+
+    expect(result.ok).toBe(true);
+    expect(result.metadata).toEqual({
+      articleUrl: "https://www.zhihu.com/question/9/answer/10",
+      authorId: "alternate-author",
+      authorHomepage: "https://www.zhihu.com/people/alternate-author",
+      publishTime: "2026-03-02",
       editTime: undefined,
     });
   });

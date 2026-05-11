@@ -156,6 +156,29 @@ export const zhihuFixtureWithBracketAltButNoSticker = `<!doctype html>
   </body>
 </html>`;
 
+export const zhihuAnswerAlternateStructureFixture = `<!doctype html>
+<html>
+  <head>
+    <title>Zhihu Alternate Fixture Title</title>
+  </head>
+  <body>
+    <h1 class="ContentItem-title">Zhihu Alternate Fixture Title</h1>
+    <div class="AnswerItem">
+      <div class="AnswerItem-authorInfo">
+        <meta itemprop="name" content="alternate-author" />
+        <meta itemprop="url" content="https://www.zhihu.com/people/alternate-author" />
+      </div>
+      <div class="ContentItem-time">
+        <a href="//www.zhihu.com/question/9/answer/10" data-tooltip="2026-03-02">2026-03-02</a>
+      </div>
+      <div class="RichText">
+        <p>Alternate answer paragraph.</p>
+        <p>Second alternate paragraph.</p>
+      </div>
+    </div>
+  </body>
+</html>`;
+
 export const substackFixture = `<!doctype html>
 <html>
   <head>
@@ -228,6 +251,118 @@ export const substackPreloadOnlyFixture = `<!doctype html>
   <body>
     <article>
       <h1 class="post-title">Fallback Substack Title</h1>
+    </article>
+  </body>
+</html>`;
+
+export const substackMultiAuthorFixture = `<!doctype html>
+<html>
+  <head>
+    <title>Roundtable Dispatch - by Example Author and Guest Writer</title>
+    <meta name="author" content="Example Author" />
+    <meta property="og:title" content="Roundtable Dispatch" />
+    <meta property="og:url" content="https://examplepublication.substack.com/p/roundtable-dispatch" />
+    <link rel="canonical" href="https://examplepublication.substack.com/p/roundtable-dispatch" />
+    <script type="application/ld+json">
+      {
+        "@context": "https://schema.org",
+        "@type": "NewsArticle",
+        "url": "https://examplepublication.substack.com/p/roundtable-dispatch",
+        "mainEntityOfPage": "https://examplepublication.substack.com/p/roundtable-dispatch",
+        "headline": "Roundtable Dispatch",
+        "datePublished": "2026-06-11T14:00:00.000Z",
+        "dateModified": "2026-06-11T15:30:00.000Z",
+        "author": [
+          {
+            "@type": "Person",
+            "name": "Example Author",
+            "url": "https://substack.com/@exampleauthor"
+          },
+          {
+            "@type": "Person",
+            "name": "Guest Writer",
+            "url": "https://substack.com/@guestwriter"
+          }
+        ]
+      }
+    </script>
+  </head>
+  <body>
+    <article>
+      <h1 class="post-title">Roundtable Dispatch</h1>
+      <h3 class="subtitle">Notes from two desks.</h3>
+      <div class="byline-wrapper">
+        <a href="https://substack.com/@exampleauthor">Example Author</a>
+        <span>&amp;</span>
+        <a href="https://substack.com/@guestwriter">Guest Writer</a>
+        <div class="meta-EgzBVA">Jun 11, 2026</div>
+      </div>
+      <div class="available-content">
+        <div class="body markup">
+          <p>Shared opening paragraph.</p>
+          <p>Second perspective paragraph.</p>
+        </div>
+      </div>
+    </article>
+  </body>
+</html>`;
+
+export const substackCaptionHeavyFixture = `<!doctype html>
+<html>
+  <head>
+    <title>Charts And Embeds - by Example Author</title>
+    <meta name="author" content="Example Author" />
+    <meta property="og:title" content="Charts And Embeds" />
+    <meta property="og:url" content="https://examplepublication.substack.com/p/charts-and-embeds" />
+    <link rel="canonical" href="https://examplepublication.substack.com/p/charts-and-embeds" />
+    <script type="application/ld+json">
+      {
+        "@context": "https://schema.org",
+        "@type": "NewsArticle",
+        "url": "https://examplepublication.substack.com/p/charts-and-embeds",
+        "mainEntityOfPage": "https://examplepublication.substack.com/p/charts-and-embeds",
+        "headline": "Charts And Embeds",
+        "description": "A walkthrough of the visual stack.",
+        "datePublished": "2026-06-12T10:00:00.000Z",
+        "dateModified": "2026-06-12T10:30:00.000Z",
+        "author": {
+          "@type": "Person",
+          "name": "Example Author",
+          "url": "https://substack.com/@exampleauthor"
+        }
+      }
+    </script>
+  </head>
+  <body>
+    <article>
+      <h1 class="post-title">Charts And Embeds</h1>
+      <h3 class="subtitle">A walkthrough of the visual stack.</h3>
+      <div class="byline-wrapper">
+        <a href="https://substack.com/@exampleauthor">Example Author</a>
+        <div class="meta-EgzBVA">Jun 12, 2026</div>
+      </div>
+      <div class="available-content">
+        <div class="body markup">
+          <p>Lead paragraph before visuals.</p>
+          <div class="captioned-image-container">
+            <figure>
+              <a href="https://cdn.example.com/full-chart.png">
+                <img
+                  src="https://cdn.example.com/chart-preview.png"
+                  data-attrs="{&quot;src&quot;:&quot;https://cdn.example.com/chart-original.png&quot;}"
+                  alt=""
+                />
+                <button class="image-link-expand">Expand</button>
+              </a>
+              <figcaption>Chart caption with useful context.</figcaption>
+            </figure>
+          </div>
+          <blockquote>
+            <p>Embedded quote that should stay readable.</p>
+          </blockquote>
+          <div class="paywall-jump">Skip to paid section</div>
+        </div>
+      </div>
     </article>
   </body>
 </html>`;

@@ -139,7 +139,10 @@ function cleanTitleByType(value: string | undefined, type: ZhihuContentType): st
 }
 
 function getAnswerTitle($: ReturnType<typeof load>): string {
-  const title = cleanTitleByType($("h1.QuestionHeader-title").first().text(), "answer");
+  const title = cleanTitleByType(
+    $("h1.QuestionHeader-title, h1.ContentItem-title, h1.ztext-title").first().text(),
+    "answer",
+  );
   if (!title) {
     throw new Error("title selector returned no text for zhihu type: answer");
   }
@@ -147,7 +150,7 @@ function getAnswerTitle($: ReturnType<typeof load>): string {
 }
 
 function getAnswerContentNode($: ReturnType<typeof load>): ReturnType<ReturnType<typeof load>> {
-  return $("div.AnswerItem span.RichText").first();
+  return $("div.AnswerItem span.RichText, div.AnswerItem div.RichText, span.RichText").first();
 }
 
 function getPinTitle($: ReturnType<typeof load>): string {

@@ -4,6 +4,7 @@ import { afterEach, describe, expect, test } from "vitest";
 import { downloadHtml } from "../src/core/fetcher.js";
 import { parseHtmlToMarkdown } from "../src/core/parser.js";
 import { readFileSync } from "node:fs";
+import { substackFixture } from "./helpers/parser-fixtures.js";
 
 const fixture = readFileSync("tests/fixtures/zhihu-answer.html", "utf8");
 const zhuanlanFixture = readFileSync("tests/fixtures/zhihu-zhuanlan.html", "utf8");
@@ -81,5 +82,38 @@ describe("fetch + parse integration", () => {
 
     expect(parsed.ok).toBe(true);
     expect(parsed.markdown).toContain("Sanitized Zhuanlan Title");
+  });
+
+  test("downloads substack html and parses markdown", async () => {
+    server = createServer((_req, res) => {
+      res.writeHead(200, { "content-type": "text/html; charset=utf-8" });
+      res.end(substackFixture);
+    });
+
+    server.listen(0, "127.0.0.1");
+    await once(server, "listening");
+    const address = server.address();
+    if (!address || typeof address === "string") {
+      throw new Error("failed to get server address");
+    }
+
+    const download = await downloadHtml({
+      url: `http://127.0.0.1:${address.port}/substack`,
+      cookies: [{ name: "z_c0", value: "test" }],
+      downloadMethod: "http",
+    });
+
+    expect(download.ok).toBe(true);
+    expect(download.downloadMethod).toBe("http");
+    expect(download.html).toContain("Trading Post Friday May 8, 2026");
+
+    const parsed = await parseHtmlToMarkdown({
+      html: download.html ?? "",
+      sourceUrl: "https://michaeljburry.substack.com/p/trading-post-friday-may-8-2026",
+    });
+
+    expect(parsed.ok).toBe(true);
+    expect(parsed.markdown).toContain("# Trading Post Friday May 8, 2026");
+    expect(parsed.markdown).toContain("[Michael Burry](https://substack.com/@michaeljburry)");
   });
 });
