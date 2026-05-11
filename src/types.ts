@@ -32,6 +32,7 @@ export interface DownloadResult {
   ok: boolean;
   url: string;
   downloadMethod: DownloadMethod;
+  source?: SourceIdentity;
   finalUrl?: string;
   statusCode?: number;
   html?: string;
@@ -49,6 +50,7 @@ export interface ParseInput {
 
 export interface ParseResult {
   ok: boolean;
+  source?: SourceIdentity;
   title?: string;
   markdown?: string;
   stats?: {
@@ -75,6 +77,7 @@ export interface HtmlMetadata {
 
 export interface MetadataResult {
   ok: boolean;
+  source?: SourceIdentity;
   metadata?: HtmlMetadata;
   warnings?: string[];
   reason?: string;
@@ -169,7 +172,7 @@ export interface PipelineResult {
   reason?: string;
 }
 
-export type ZhihuContentType = "answer" | "pin" | "zhuanlan_article";
+export type ZhihuContentType = "answer" | "pin" | "post";
 export type SubstackContentType = "post";
 export type SourceId = "zhihu" | "substack";
 

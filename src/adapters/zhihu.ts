@@ -40,7 +40,7 @@ export const ZHIHU_SELECTORS_BY_TYPE: Record<ZhihuContentType, SelectorSet> = {
     timeContainer: "div.PinItem div.ContentItem-time",
     timeLink: "a",
   },
-  zhuanlan_article: {
+  post: {
     title: "h1.Post-Title, h1.ContentItem-title",
     content: "div.Post-RichTextContainer, article.Post-RichTextContainer, article",
     remove: [...ZHIHU_BASE_REMOVE_SELECTORS, "div.AuthorInfo", "div.Post-topicsAndReviewer"],
@@ -87,7 +87,7 @@ export function detectZhihuContentType(url: URL): ZhihuContentType | null {
   const pathname = url.pathname;
 
   if (hostname === "zhuanlan.zhihu.com" && /^\/p\/\d+/.test(pathname)) {
-    return "zhuanlan_article";
+    return "post";
   }
 
   if (!isZhihuHost(hostname)) {
@@ -163,9 +163,9 @@ function getPinContentNode($: ReturnType<typeof load>): ReturnType<ReturnType<ty
 }
 
 function getZhuanlanTitle($: ReturnType<typeof load>): string {
-  const title = cleanTitleByType($("h1.Post-Title").first().text(), "zhuanlan_article");
+  const title = cleanTitleByType($("h1.Post-Title").first().text(), "post");
   if (!title) {
-    throw new Error("title selector returned no text for zhihu type: zhuanlan_article");
+    throw new Error("title selector returned no text for zhihu type: post");
   }
   return title;
 }
@@ -315,7 +315,7 @@ function extractZhuanlanMarkdownContext(
   } catch {
     return {
       ok: false,
-      reason: "title selector returned no text for zhihu type: zhuanlan_article",
+      reason: "title selector returned no text for zhihu type: post",
       selectedNodes: 0,
     };
   }
@@ -324,7 +324,7 @@ function extractZhuanlanMarkdownContext(
   if (contentNode.length === 0) {
     return {
       ok: false,
-      reason: "content selector returned no nodes for zhihu type: zhuanlan_article",
+      reason: "content selector returned no nodes for zhihu type: post",
       selectedNodes: 0,
     };
   }
@@ -332,7 +332,7 @@ function extractZhuanlanMarkdownContext(
   if (!contentHtml.trim()) {
     return {
       ok: false,
-      reason: "content selector matched empty html for zhihu type: zhuanlan_article",
+      reason: "content selector matched empty html for zhihu type: post",
       selectedNodes: 1,
     };
   }
@@ -341,7 +341,7 @@ function extractZhuanlanMarkdownContext(
   if (zhuanlanTimeNode.length === 0) {
     return {
       ok: false,
-      reason: "time selector returned no nodes for zhihu type: zhuanlan_article",
+      reason: "time selector returned no nodes for zhihu type: post",
       selectedNodes: 0,
     };
   }
@@ -377,6 +377,7 @@ export async function parseZhihuMarkdown(
   if (!extractResult.ok) {
     return {
       ok: false,
+      source: input.source,
       reason: extractResult.reason,
       errorCode: "E_PARSE_SELECTOR",
       stats: {
@@ -386,7 +387,7 @@ export async function parseZhihuMarkdown(
     };
   }
 
-  return buildMarkdownResult(extractResult.context, turndownService);
+  return buildMarkdownResult(extractResult.context, turndownService, input.source);
 }
 
 function getPublishTimeByType(
@@ -394,7 +395,7 @@ function getPublishTimeByType(
   contentTimeNode: ReturnType<ReturnType<typeof load>>,
   contentTimeLink: ReturnType<ReturnType<typeof load>>,
 ): string {
-  if (contentType === "zhuanlan_article") {
+  if (contentType === "post") {
     const text = contentTimeNode.text().trim();
     if (text.length === 0) {
       throw new Error(`time selector matched nodes but found no publish time for zhihu type: ${contentType}`);
@@ -417,7 +418,7 @@ function getEditTimeByType(
   contentTimeNode: ReturnType<ReturnType<typeof load>>,
   contentTimeLink: ReturnType<ReturnType<typeof load>>,
 ): string | undefined {
-  if (contentType === "zhuanlan_article") {
+  if (contentType === "post") {
     const text = contentTimeNode.text().trim();
     return text.length > 0 ? text : undefined;
   }
@@ -435,6 +436,7 @@ export async function parseZhihuMetadata(
   if (authorMetaContainer.length === 0) {
     return {
       ok: false,
+      source: input.source,
       reason: `author selector returned no nodes for zhihu type: ${input.source.contentType}`,
       errorCode: "E_PARSE_SELECTOR",
     };
@@ -453,6 +455,7 @@ export async function parseZhihuMetadata(
   if (!authorIdFromMeta || !authorHomepageRaw) {
     return {
       ok: false,
+      source: input.source,
       reason: `author selector matched nodes but found no author name or homepage for zhihu type: ${input.source.contentType}`,
       errorCode: "E_PARSE_SELECTOR",
     };
@@ -463,6 +466,7 @@ export async function parseZhihuMetadata(
   } catch {
     return {
       ok: false,
+      source: input.source,
       reason: `author homepage is not an absolute url for zhihu type: ${input.source.contentType}`,
       errorCode: "E_PARSE_SELECTOR",
     };
@@ -472,6 +476,7 @@ export async function parseZhihuMetadata(
   if (contentTimeNode.length === 0) {
     return {
       ok: false,
+      source: input.source,
       reason: `time selector returned no nodes for zhihu type: ${input.source.contentType}`,
       errorCode: "E_PARSE_SELECTOR",
     };
@@ -484,6 +489,7 @@ export async function parseZhihuMetadata(
   } catch {
     return {
       ok: false,
+      source: input.source,
       reason: `time selector matched nodes but found no publish time for zhihu type: ${input.source.contentType}`,
       errorCode: "E_PARSE_SELECTOR",
     };
@@ -494,6 +500,7 @@ export async function parseZhihuMetadata(
 
   return {
     ok: true,
+    source: input.source,
     metadata: {
       articleUrl: input.sourceUrl,
       authorId: authorIdFromMeta,

@@ -116,7 +116,7 @@ describe("zhihu markdown parsing", () => {
     expect(result.markdown).not.toContain("![](https://picx.zhimg.com/pin-emoji.png)");
   });
 
-  test("converts zhuanlan sticker image with ascii-bracket alt to emoji text", async () => {
+  test("converts zhihu post sticker image with ascii-bracket alt to emoji text", async () => {
     const result = await parseHtmlToMarkdown({
       html: zhihuZhuanlanFixtureWithEmojiImage,
       sourceUrl: "https://zhuanlan.zhihu.com/p/3333333333333333333",
@@ -160,7 +160,7 @@ describe("zhihu markdown parsing", () => {
     expect(result.markdown).not.toContain("# Sanitized Pin Title");
   });
 
-  test("parses zhuanlan markdown", async () => {
+  test("parses zhihu post markdown", async () => {
     const result = await parseHtmlToMarkdown({
       html: zhihuZhuanlanFixture,
       sourceUrl: "https://zhuanlan.zhihu.com/p/3333333333333333333",
@@ -175,7 +175,7 @@ describe("zhihu markdown parsing", () => {
     expect(result.markdown).not.toContain("<style>");
   });
 
-  test("parses zhuanlan sample-like html without css leakage", async () => {
+  test("parses zhihu post sample-like html without css leakage", async () => {
     const result = await parseHtmlToMarkdown({
       html: zhihuZhuanlanSampleLikeFixture,
       sourceUrl: "https://zhuanlan.zhihu.com/p/3333333333333333333",
@@ -190,7 +190,7 @@ describe("zhihu markdown parsing", () => {
     expect(result.markdown).not.toContain("<style>");
   });
 
-  test("parses zhuanlan markdown when time is under article.Post-Main", async () => {
+  test("parses zhihu post markdown when time is under article.Post-Main", async () => {
     const html = `<!doctype html>
 <html>
   <body>
@@ -242,7 +242,7 @@ describe("zhihu markdown parsing", () => {
     expect(pinResult.reason).toContain("pin");
     expect(pinResult.reason).toContain("content selector");
     expect(zhuanlanResult.ok).toBe(false);
-    expect(zhuanlanResult.reason).toContain("zhuanlan_article");
+    expect(zhuanlanResult.reason).toContain("post");
     expect(answerTitleResult.ok).toBe(false);
     expect(answerTitleResult.reason).toContain("title selector");
     expect(pinTitleResult.ok).toBe(false);
@@ -285,7 +285,7 @@ describe("zhihu metadata parsing", () => {
     });
   });
 
-  test("extracts metadata for zhuanlan article", async () => {
+  test("extracts metadata for zhihu post", async () => {
     const result = await parseHtmlToMetadata({
       html: zhihuZhuanlanFixture,
       sourceUrl: "https://zhuanlan.zhihu.com/p/3333333333333333333",

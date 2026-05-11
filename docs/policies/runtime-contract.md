@@ -102,6 +102,18 @@ Exception policy:
 Default-layout note:
 - When public config does provide a default runtime output base via `pipeline.outDir`, the project default is `artifacts/runtime`.
 
+### 3.5 Canonical source identity in runtime results
+- Runtime stage results may include canonical source identity when the input URL can be resolved to a supported source.
+- The identity shape is source-aware and uses:
+  - `sourceId`
+  - `contentType`
+- Current canonical identities are:
+  - Zhihu answer -> `sourceId: "zhihu"`, `contentType: "answer"`
+  - Zhihu pin -> `sourceId: "zhihu"`, `contentType: "pin"`
+  - Zhihu post (`zhuanlan.zhihu.com/p/...`) -> `sourceId: "zhihu"`, `contentType: "post"`
+  - Substack post -> `sourceId: "substack"`, `contentType: "post"`
+- Source identity is additional result context and does not change existing artifact meanings or stage failure semantics by itself.
+
 ## 4. Cookie Contract
 
 ### 4.1 Merge-only cookie model

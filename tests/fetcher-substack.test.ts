@@ -19,6 +19,7 @@ describe("substack fetch normalization", () => {
 
     expect(result.ok).toBe(true);
     expect(result.url).toBe("https://substack.com/@exampleauthor/p-196918166");
+    expect(result.source).toEqual({ sourceId: "substack", contentType: "post" });
     expect(result.finalUrl).toBe("https://examplepublication.substack.com/p/canonical-post");
     expect(result.html).toContain("Canonical Post");
     expect(result.diagnostics?.normalizedFromUrl).toBe("https://substack.com/@exampleauthor/p-196918166");
@@ -39,6 +40,7 @@ describe("substack fetch normalization", () => {
     });
 
     expect(result.ok).toBe(true);
+    expect(result.source).toEqual({ sourceId: "substack", contentType: "post" });
     expect(result.finalUrl).toBe("https://substack.com/@exampleauthor/p-196918166");
     expect(result.html).toContain("Aggregator shell only.");
   });
@@ -55,6 +57,7 @@ describe("substack fetch normalization", () => {
     });
 
     expect(result.ok).toBe(true);
+    expect(result.source).toEqual({ sourceId: "substack", contentType: "post" });
     expect(result.finalUrl).toBe("https://examplepublication.substack.com/p/canonical-post");
     expect(result.html).toContain("Canonical Fallback Post");
     expect(result.html).toContain("Canonical fallback body.");
@@ -74,6 +77,7 @@ describe("substack fetch normalization", () => {
     });
 
     expect(result.ok).toBe(true);
+    expect(result.source).toEqual({ sourceId: "substack", contentType: "post" });
     expect(result.finalUrl).toBe("https://tritaparsi.substack.com/p/the-important-change-in-irans-latest");
     expect(result.html).toContain("The important change in Iran's latest response to Trump");
     expect(result.diagnostics?.normalizedFromUrl).toBe("https://substack.com/@tritaparsi/p-196179865");
@@ -141,6 +145,7 @@ fi
     });
 
     expect(result.ok).toBe(true);
+    expect(result.source).toEqual({ sourceId: "substack", contentType: "post" });
     expect(result.finalUrl).toBe("https://examplepublication.substack.com/p/canonical-post");
     expect(result.html).toContain("Canonical Nested Post");
   });

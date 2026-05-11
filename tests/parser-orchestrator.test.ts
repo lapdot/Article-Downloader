@@ -34,8 +34,10 @@ describe("parser orchestration", () => {
     });
 
     expect(zhihuResult.ok).toBe(true);
+    expect(zhihuResult.source).toEqual({ sourceId: "zhihu", contentType: "answer" });
     expect(zhihuResult.title).toBe("Zhihu Fixture Title");
     expect(substackResult.ok).toBe(true);
+    expect(substackResult.source).toEqual({ sourceId: "substack", contentType: "post" });
     expect(substackResult.title).toBe("Trading Post Friday May 8, 2026");
   });
 
@@ -50,8 +52,10 @@ describe("parser orchestration", () => {
     });
 
     expect(zhihuResult.ok).toBe(true);
+    expect(zhihuResult.source).toEqual({ sourceId: "zhihu", contentType: "answer" });
     expect(zhihuResult.metadata?.articleUrl).toBe("https://www.zhihu.com/question/1/answer/2");
     expect(substackResult.ok).toBe(true);
+    expect(substackResult.source).toEqual({ sourceId: "substack", contentType: "post" });
     expect(substackResult.metadata?.articleUrl).toBe(
       "https://michaeljburry.substack.com/p/trading-post-friday-may-8-2026",
     );

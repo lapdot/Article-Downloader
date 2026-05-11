@@ -31,18 +31,23 @@ Typical content flow:
 The parser stage is intentionally split between orchestration and source ownership:
 
 - `src/core/parser.ts` validates the source URL and reuses a shared explicit source-resolution helper before dispatching to source-owned capabilities
-- source adapters own source-native URL detection, content-kind detection, Markdown parsing, and metadata extraction
+- source adapters own source-native URL detection, canonical `sourceId/contentType` detection, Markdown parsing, and metadata extraction
 - `src/adapters/resolve-source.ts` centralizes static adapter imports and explicit source resolution order without introducing a registry layer
 - shared parser helpers may exist for behavior that is truly cross-source, but source-specific DOM and cleanup rules should live with the source adapter
 - this phase keeps adapter selection explicit in code rather than introducing a registry layer
 
-Current phase-1 scope:
+Current baseline:
 
 - canonical internal source identity exists for dispatch and future extensibility
+- current canonical identities are:
+  - Zhihu answer: `sourceId: "zhihu"`, `contentType: "answer"`
+  - Zhihu pin: `sourceId: "zhihu"`, `contentType: "pin"`
+  - Zhihu post: `sourceId: "zhihu"`, `contentType: "post"` for `zhuanlan.zhihu.com/p/...`
+  - Substack post: `sourceId: "substack"`, `contentType: "post"`
 - parser and metadata behavior are source-owned
 - fetch normalization is now a source-owned capability alongside parser and metadata behavior
 - no standalone verification capability is part of the current runtime surface
-- naming unification, broad fetch capabilities, and broader source symmetry are follow-up work rather than part of this phase
+- broader source-parallel test coverage and remaining source-logic cleanup are the main follow-up refactor areas
 
 ## Fetch Stage Architecture
 

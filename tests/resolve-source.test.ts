@@ -12,6 +12,16 @@ describe("shared source resolution", () => {
     });
   });
 
+  test("parses and resolves zhihu post urls", () => {
+    const url = parseSourceUrl("https://zhuanlan.zhihu.com/p/3333333333333333333");
+
+    expect(url).toBeInstanceOf(URL);
+    expect(resolveSource(url!)).toMatchObject({
+      adapter: { sourceId: "zhihu" },
+      source: { sourceId: "zhihu", contentType: "post" },
+    });
+  });
+
   test("parses and resolves substack urls", () => {
     const url = parseSourceUrl("https://examplepublication.substack.com/p/canonical-post");
 

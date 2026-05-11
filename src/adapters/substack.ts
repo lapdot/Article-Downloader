@@ -584,6 +584,7 @@ export async function parseSubstackMarkdown(
     if (!title) {
       return {
         ok: false,
+        source: input.source,
         reason: "title selector returned no text for substack type: post",
         errorCode: "E_PARSE_SELECTOR",
         stats: {
@@ -603,6 +604,7 @@ export async function parseSubstackMarkdown(
   if (!rawContentHtml.trim()) {
     return {
       ok: false,
+      source: input.source,
       reason: contentNode.length === 0
         ? "content selector returned no nodes for substack type: post"
         : "content selector matched empty html for substack type: post",
@@ -635,7 +637,7 @@ export async function parseSubstackMarkdown(
     contentHtml: cleanSubstackContentHtml(rawContentHtml, subtitle),
     authorBlock: authorName && authorHomepage ? `[${authorName}](${authorHomepage})` : "",
     contentTimeBlock,
-  }, turndownService);
+  }, turndownService, input.source);
 }
 
 export async function parseSubstackMetadata(
@@ -656,6 +658,7 @@ export async function parseSubstackMetadata(
   if (!isAbsoluteUrl(articleUrl)) {
     return {
       ok: false,
+      source: input.source,
       reason: "canonical article url is not an absolute url for substack type: post",
       errorCode: "E_PARSE_SELECTOR",
     };
@@ -677,6 +680,7 @@ export async function parseSubstackMetadata(
   if (!authorId || !authorHomepage) {
     return {
       ok: false,
+      source: input.source,
       reason: "author selector matched nodes but found no author name or homepage for substack type: post",
       errorCode: "E_PARSE_SELECTOR",
     };
@@ -684,6 +688,7 @@ export async function parseSubstackMetadata(
   if (!isAbsoluteUrl(authorHomepage)) {
     return {
       ok: false,
+      source: input.source,
       reason: "author homepage is not an absolute url for substack type: post",
       errorCode: "E_PARSE_SELECTOR",
     };
@@ -694,6 +699,7 @@ export async function parseSubstackMetadata(
   if (!publishTime) {
     return {
       ok: false,
+      source: input.source,
       reason: "time selector matched nodes but found no publish time for substack type: post",
       errorCode: "E_PARSE_SELECTOR",
     };
@@ -705,6 +711,7 @@ export async function parseSubstackMetadata(
 
   return {
     ok: true,
+    source: input.source,
     metadata: {
       articleUrl,
       authorId,

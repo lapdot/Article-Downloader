@@ -14,9 +14,9 @@ describe("zhihu adapter detection", () => {
     expect(type).toBe("pin");
   });
 
-  test("detects zhuanlan article from zhuanlan path", () => {
+  test("detects zhihu post from zhuanlan path", () => {
     const type = detectZhihuContentType(new URL("https://zhuanlan.zhihu.com/p/3333333333333333333"));
-    expect(type).toBe("zhuanlan_article");
+    expect(type).toBe("post");
   });
 
   test("returns null for unsupported zhihu path", () => {
@@ -29,10 +29,10 @@ describe("zhihu selectors by type", () => {
   test("returns typed selectors with required fields", () => {
     const answerSelectors = getSelectorsForZhihuType("answer");
     const pinSelectors = getSelectorsForZhihuType("pin");
-    const zhuanlanSelectors = getSelectorsForZhihuType("zhuanlan_article");
+    const postSelectors = getSelectorsForZhihuType("post");
 
     expect(answerSelectors.content.length).toBeGreaterThan(0);
     expect(pinSelectors.authorMetaContainer).toContain("PinItem-authorInfo");
-    expect(zhuanlanSelectors.title).toContain("Post-Title");
+    expect(postSelectors.title).toContain("Post-Title");
   });
 });

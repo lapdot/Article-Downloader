@@ -6,6 +6,7 @@ This plan is a handoff note for the next refactoring session after:
 - fetch-stage source ownership moved into `src/adapters/`
 - shared source resolution moved into `src/adapters/resolve-source.ts`
 - Substack aggregator normalization was expanded to support newer reader-shell preload shapes
+- canonical internal source identity was standardized across code, tests, and current docs
 
 This document is planning-only. It does not change the current runtime contract by itself.
 
@@ -17,10 +18,11 @@ The codebase now has a workable source-owned structure for two stages:
 - `src/core/fetcher.ts` is an orchestrator that handles transport and optional source normalization
 - `src/adapters/resolve-source.ts` centralizes explicit adapter imports and resolution order
 - `src/adapters/zhihu.ts` and `src/adapters/substack.ts` own source detection, parser behavior, metadata behavior, and any source-specific fetch normalization
+- supported-source runtime results may now carry canonical `sourceId/contentType` identity when the input URL resolves cleanly
 
 The main remaining problems are:
 
-- canonical internal naming is only partially introduced
+- canonical internal naming is established, but deeper coverage and residual-logic cleanup are still incomplete
 - test organization has improved for parser and fetch, but broader source symmetry is still incomplete
 - source-specific logic may still remain in non-adapter areas such as CLI-level workflows, policies, or future runtime helpers
 
@@ -55,28 +57,42 @@ Zhihu verification was removed from the product rather than migrated into the ad
 
 ### Phase 5: Strengthen canonical internal source modeling
 
+Status:
+- completed
+
 Goal:
-- make internal naming more explicit for multi-source growth without breaking user-facing terminology yet
+- make internal naming more explicit and consistent for multi-source growth
 
 Motivation:
-- terms like `answer`, `pin`, `post`, and `zhuanlan article` are still partly treated as flat concepts
+- terms like `answer`, `pin`, and `post` can still be misread as flat global concepts when they are really source-aware identities
 - future sources will make this ambiguity worse
 
 Proposed work:
-- audit `src/types.ts`, adapters, runtime outputs, and tests for places where source-native content kinds are treated too globally
-- prefer structured identity consistently:
-  - `sourceId`
-  - source-native `contentType`
-- add helper types where useful for source-aware branching and diagnostics
-- defer any user-facing renaming unless a contract change is intentionally approved
+- standardize on the current canonical map:
+  - Zhihu answer -> `sourceId: "zhihu"`, `contentType: "answer"`
+  - Zhihu pin -> `sourceId: "zhihu"`, `contentType: "pin"`
+  - Zhihu post (`zhuanlan.zhihu.com/p/...`) -> `sourceId: "zhihu"`, `contentType: "post"`
+  - Substack post -> `sourceId: "substack"`, `contentType: "post"`
+
+Completed work:
+- updated `src/types.ts` so Zhihu zhuanlan content uses canonical `contentType: "post"`
+- updated the Zhihu adapter, shared parser/fetcher orchestration, and result typing to carry canonical source identity consistently
+- added `source` identity coverage to relevant fetch, parser, and orchestrator tests
+- aligned README, architecture, workflow, and runtime-contract docs with the canonical source map
+- kept route examples explicit while unifying internal and documented content naming
 
 Constraints:
 - keep CLI output and existing artifact meaning stable
-- avoid renaming content kinds in README or runtime JSON unless explicitly planned
+- preserve current parser and fetch behavior while finishing the naming alignment
 
 Exit criteria:
 - internal typing consistently reflects source-aware content identity
 - fewer ambiguous content-type assumptions remain in shared code
+- docs and tests use the canonical Zhihu `post` naming consistently
+
+Outcome:
+- the codebase now has a stable canonical identity model that can support broader source-parallel refactor work
+- future sessions can assume `sourceId/contentType` is the baseline shared vocabulary
 
 ### Phase 6: Broaden source-parallel test coverage
 
@@ -122,13 +138,23 @@ Exit criteria:
 
 ## Suggested First Task For The Next Session
 
-Start with Phase 5: strengthen canonical internal source modeling.
+Start with Phase 6: broaden source-parallel test coverage.
 
 Why this is the best next step:
 
-- shared source resolution is already in place
-- canonical internal source modeling is the next active architectural gap for multi-source growth
-- this improves source-aware typing without reintroducing removed product surface
+- shared source resolution and canonical identity modeling are already in place
+- the next highest-value gap is making source-specific failures easier to localize and extend
+- better fixture coverage will reduce risk before the remaining source-logic audit in Phase 7
+
+## Suggested Scope For The Next Session
+
+- review the remaining mixed tests and split them where source ownership is now clear
+- add at least one new real-world-style fixture for:
+  - Substack multi-author or byline-variant handling
+  - Substack caption-heavy or embed-heavy content
+  - a Zhihu page variant that still depends on fragile selectors
+- preserve at least one integration-style orchestration path per stage
+- note any source-specific branches discovered during test work that should be queued for Phase 7 rather than moved immediately
 
 ## Validation Checklist For The Next Session
 

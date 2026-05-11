@@ -34,6 +34,7 @@ Add support for a new source in a way that keeps fetch, parse, test, and documen
 
 5. Add runtime support in the narrowest layer that solves the problem.
    - Add URL-family detection for the source.
+   - Define a canonical internal source identity as a `sourceId/contentType` pair before spreading source-specific branching across the runtime.
    - Add parser and metadata behavior for the actual article document shape in a source-owned adapter under `src/adapters/`.
    - Only add fetch-time normalization if parser support alone is not enough.
    - Keep `src/core/parser.ts` focused on orchestration and dispatch rather than source-native DOM logic.
@@ -84,6 +85,7 @@ Substack was added by following this pattern:
 The current parser-stage architecture uses explicit source adapters instead of a registry. When adding a source:
 
 - define source detection and parser-stage capabilities in `src/adapters/`
+- keep canonical identity naming source-aware so content kinds are not treated as global labels across unrelated sources
 - keep source-specific helpers with that source whenever possible
 - add source-focused tests rather than extending a single cross-source parser test file indefinitely
 - keep parser-stage changes narrow; only move into fetch-time normalization when parser-only support is insufficient

@@ -18,6 +18,7 @@ describe("fetcher core transport orchestration", () => {
 
     expect(result.ok).toBe(true);
     expect(result.downloadMethod).toBe("cookieproxy");
+    expect(result.source).toBeUndefined();
     expect(result.html).toContain("https://zhuanlan.zhihu.com/p/default");
   });
 
@@ -34,6 +35,7 @@ describe("fetcher core transport orchestration", () => {
 
     expect(result.ok).toBe(true);
     expect(result.downloadMethod).toBe("cookieproxy");
+    expect(result.source).toEqual({ sourceId: "zhihu", contentType: "post" });
     expect(result.html).toContain("https://zhuanlan.zhihu.com/p/456");
   });
 
@@ -50,6 +52,7 @@ describe("fetcher core transport orchestration", () => {
 
     expect(result.ok).toBe(false);
     expect(result.downloadMethod).toBe("cookieproxy");
+    expect(result.source).toEqual({ sourceId: "zhihu", contentType: "post" });
     expect(result.errorCode).toBe("E_FETCH_EXEC");
     expect(result.diagnostics?.stderr).toBe("cookieproxy exploded");
   });

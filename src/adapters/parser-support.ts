@@ -1,5 +1,5 @@
 import TurndownService from "turndown";
-import type { ParseResult } from "../types.js";
+import type { ParseResult, SourceIdentity } from "../types.js";
 
 export function createTurndownService(options: { useHtmlStyleForImage: boolean }): TurndownService {
   const turndownService = new TurndownService({
@@ -142,6 +142,7 @@ export interface MarkdownContext {
 export function buildMarkdownResult(
   context: MarkdownContext,
   turndownService: TurndownService,
+  source?: SourceIdentity,
 ): ParseResult {
   const markdownBody = turndownService.turndown(context.contentHtml).trim();
   const includeTitleInMarkdown = context.includeTitleInMarkdown ?? true;
@@ -154,6 +155,7 @@ export function buildMarkdownResult(
 
   return {
     ok: true,
+    source,
     title: context.title,
     markdown: markdownSegments.join("\n\n"),
     stats: {

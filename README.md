@@ -27,8 +27,8 @@ A Node.js (TypeScript + ESM) project for turning article URLs into local HTML, M
 - Parse supported article sources to Markdown using source-specific adapters for:
   - Zhihu:
     - answer (`/question/.../answer/...`)
-    - pin idea (`/pin/...`)
-    - zhuanlan article (`zhuanlan.zhihu.com/p/...`)
+    - pin (`/pin/...`)
+    - post (`zhuanlan.zhihu.com/p/...`)
   - Substack:
     - aggregator post (`substack.com/@<author>/p-<id>`)
     - publication post (`<publication>.substack.com/p/<slug>`)
@@ -69,6 +69,13 @@ Use this README for the quick path and `docs/workflows/url-driven-iteration.md` 
 ## Parser Stage Architecture
 
 The parser stage is intentionally lightweight in `src/core/parser.ts`: it validates the source URL and dispatches to source-owned parsing and metadata logic in `src/adapters/`. This keeps the README focused on operating the tool, while the fuller architecture details live in `docs/architecture/overview.md`.
+
+Internally, supported content is modeled by canonical source identity pairs:
+
+- Zhihu answer: `sourceId: "zhihu"`, `contentType: "answer"`
+- Zhihu pin: `sourceId: "zhihu"`, `contentType: "pin"`
+- Zhihu post: `sourceId: "zhihu"`, `contentType: "post"`
+- Substack post: `sourceId: "substack"`, `contentType: "post"`
 
 ## Config Model
 

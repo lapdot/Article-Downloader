@@ -167,14 +167,15 @@ export async function downloadHtml(input: DownloadInput): Promise<DownloadResult
 
   const resolved = resolveSource(sourceUrl);
   if (!resolved?.adapter.fetch) {
-    return initial;
+    return resolved ? { ...initial, source: resolved.source } : initial;
   }
 
-  return resolved.adapter.fetch.normalizeDownload({
+  const result = await resolved.adapter.fetch.normalizeDownload({
     source: resolved.source,
     input,
     initial,
     fetchedAt,
     runTransport: (nextInput) => downloadOnce(nextInput, fetchedAt),
   });
+  return result.source ? result : { ...result, source: resolved.source };
 }

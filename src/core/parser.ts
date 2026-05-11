@@ -29,10 +29,11 @@ export async function parseHtmlToMarkdown(input: ParseInput): Promise<ParseResul
     return buildUnsupportedSiteResult(url);
   }
 
-  return resolved.adapter.markdown.parseMarkdown({
+  const result = await resolved.adapter.markdown.parseMarkdown({
     ...input,
     source: resolved.source,
   });
+  return result.source ? result : { ...result, source: resolved.source };
 }
 
 export async function parseHtmlToMetadata(input: MetadataInput): Promise<MetadataResult> {
@@ -50,8 +51,9 @@ export async function parseHtmlToMetadata(input: MetadataInput): Promise<Metadat
     return buildUnsupportedSiteResult(url);
   }
 
-  return resolved.adapter.metadata.parseMetadata({
+  const result = await resolved.adapter.metadata.parseMetadata({
     ...input,
     source: resolved.source,
   });
+  return result.source ? result : { ...result, source: resolved.source };
 }
