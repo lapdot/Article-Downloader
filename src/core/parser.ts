@@ -1,48 +1,10 @@
-import { substackSourceAdapter } from "../adapters/substack.js";
-import { zhihuSourceAdapter } from "../adapters/zhihu.js";
+import { parseSourceUrl, resolveSource } from "../adapters/resolve-source.js";
 import type {
   MetadataInput,
   MetadataResult,
   ParseInput,
   ParseResult,
-  SourceIdentity,
 } from "../types.js";
-import type { SourceAdapter } from "../adapters/contracts.js";
-
-type ResolvedSource =
-  | {
-    adapter: SourceAdapter<SourceIdentity>;
-    source: SourceIdentity;
-  }
-  | null;
-
-function parseSourceUrl(sourceUrl: string): URL | null {
-  try {
-    return new URL(sourceUrl);
-  } catch {
-    return null;
-  }
-}
-
-function resolveSource(url: URL): ResolvedSource {
-  const zhihuSource = zhihuSourceAdapter.detect(url);
-  if (zhihuSource) {
-    return {
-      adapter: zhihuSourceAdapter as SourceAdapter<SourceIdentity>,
-      source: zhihuSource,
-    };
-  }
-
-  const substackSource = substackSourceAdapter.detect(url);
-  if (substackSource) {
-    return {
-      adapter: substackSourceAdapter as SourceAdapter<SourceIdentity>,
-      source: substackSource,
-    };
-  }
-
-  return null;
-}
 
 function buildUnsupportedSiteResult(url: URL): Pick<ParseResult, "ok" | "reason" | "errorCode"> {
   return {

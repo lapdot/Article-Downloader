@@ -4,12 +4,10 @@ import { tmpdir } from "node:os";
 import path from "node:path";
 import { promisify } from "node:util";
 import { fetch } from "undici";
-import { substackSourceAdapter } from "../adapters/substack.js";
-import { zhihuSourceAdapter } from "../adapters/zhihu.js";
-import type { SourceAdapter } from "../adapters/contracts.js";
+import { parseSourceUrl, resolveSource } from "../adapters/resolve-source.js";
 import { toCookieHeaderForUrl } from "./cookies.js";
 import { toIsoNow } from "../utils/time.js";
-import type { DownloadInput, DownloadMethod, DownloadResult, SourceIdentity } from "../types.js";
+import type { DownloadInput, DownloadMethod, DownloadResult } from "../types.js";
 
 const DEFAULT_USER_AGENT =
   "Mozilla/5.0 (Macintosh; Intel Mac OS X 10_15_7) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/123.0.0.0 Safari/537.36";
@@ -157,41 +155,6 @@ async function downloadOnce(input: DownloadInput, fetchedAt: string): Promise<Do
   return method === "cookieproxy"
     ? downloadViaCookieproxy(input, fetchedAt)
     : downloadViaHttp(input, fetchedAt);
-}
-
-type ResolvedSource =
-  | {
-    adapter: SourceAdapter<SourceIdentity>;
-    source: SourceIdentity;
-  }
-  | null;
-
-function parseSourceUrl(sourceUrl: string): URL | null {
-  try {
-    return new URL(sourceUrl);
-  } catch {
-    return null;
-  }
-}
-
-function resolveSource(url: URL): ResolvedSource {
-  const zhihuSource = zhihuSourceAdapter.detect(url);
-  if (zhihuSource) {
-    return {
-      adapter: zhihuSourceAdapter as SourceAdapter<SourceIdentity>,
-      source: zhihuSource,
-    };
-  }
-
-  const substackSource = substackSourceAdapter.detect(url);
-  if (substackSource) {
-    return {
-      adapter: substackSourceAdapter as SourceAdapter<SourceIdentity>,
-      source: substackSource,
-    };
-  }
-
-  return null;
 }
 
 export async function downloadHtml(input: DownloadInput): Promise<DownloadResult> {
