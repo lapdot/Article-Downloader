@@ -24,6 +24,10 @@ The baseline contract test matrix must continue to cover:
 - missing-path failure behavior
 - unknown-option failure behavior
 - ignored unrelated env vars
+- explicit output path rules
+- prerequisite behavior
+- strategy-dependent requirements
+- artifact preservation behavior
 
 ## 4. Closed-Loop Local Safety Gate
 

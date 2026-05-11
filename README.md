@@ -12,7 +12,6 @@ A Node.js (TypeScript + ESM) project for turning article URLs into local HTML, M
 - Runtime contract: `docs/policies/runtime-contract.md`
 - Testing and safety: `docs/policies/testing-and-safety.md`
 - GUI contract: `docs/policies/gui-contract.md`
-- Cross-project reference template: `docs/policies/portable-policy-template.md`
 - Architecture overview: `docs/architecture/overview.md`
 - Decision records: `docs/decisions/`
 - URL iteration workflow: `docs/workflows/url-driven-iteration.md`

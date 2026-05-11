@@ -19,9 +19,11 @@ If code and docs diverge, align code to this document unless a newer repo decisi
 ## 2. Configuration And Secret Model
 
 ### 2.1 Separation of concerns
+- Content inputs, configuration paths, and secret values are different classes of data and follow different rules.
 - Public config and secret config are stored in separate files.
 - Secret values are loaded from secret files, not from environment variable values.
 - Environment variables are used for path selection, not secret payloads.
+- When a required path cannot be resolved, the error must identify the missing key and the accepted sources for resolving it.
 
 ### 2.2 Public config path policy
 - Public config path sources:
