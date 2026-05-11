@@ -5,7 +5,9 @@ A Node.js (TypeScript + ESM) project for turning article URLs into local HTML, M
 ## Documentation Map
 
 - Human onboarding and usage: this README
-- Agent-facing repo guidance: `AGENTS.md`
+- Machine-facing repository context: `CONTEXT.md`
+- Portable cross-project agent guide: `AGENTS.md`
+- Documentation structure policy: `docs/policies/documentation-structure.md`
 - Docs index: `docs/README.md`
 - Runtime contract: `docs/policies/runtime-contract.md`
 - Testing and safety: `docs/policies/testing-and-safety.md`

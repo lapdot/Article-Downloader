@@ -2,6 +2,10 @@
 
 This directory now uses a simple split between active reference docs and historical planning docs.
 
+Top-level repository context for machine readers lives in `../CONTEXT.md`. Use this file as the index once you are already navigating within `docs/`.
+
+Documentation structure and role boundaries are governed by `policies/documentation-structure.md`.
+
 ## Active Reference Docs
 
 Use these first:
