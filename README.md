@@ -28,12 +28,14 @@ A Node.js (TypeScript + ESM) project for turning article URLs into local HTML, M
   - `301/302` means cookies are invalid or expired.
   - other status codes are treated as network/other issues.
 - Download webpage HTML with URL-aware cookie handling, with optional `cookieproxy` command execution.
-- Parse supported article sources to Markdown using source-specific selectors for:
-  - answer (`/question/.../answer/...`)
-  - pin idea (`/pin/...`)
-  - zhuanlan article (`zhuanlan.zhihu.com/p/...`)
-  - Substack aggregator post (`substack.com/@<author>/p-<id>`)
-  - Substack publication post (`<publication>.substack.com/p/<slug>`)
+- Parse supported article sources to Markdown using source-specific adapters for:
+  - Zhihu:
+    - answer (`/question/.../answer/...`)
+    - pin idea (`/pin/...`)
+    - zhuanlan article (`zhuanlan.zhihu.com/p/...`)
+  - Substack:
+    - aggregator post (`substack.com/@<author>/p-<id>`)
+    - publication post (`<publication>.substack.com/p/<slug>`)
 - Upload generated Notion blocks to a Notion database as a separate downstream step.
 - Run an end-to-end pipeline from URL to local artifacts and optional Notion upload.
 
@@ -67,6 +69,10 @@ Typical artifact locations:
 - Notion format: `artifacts/runtime/<transform-run>/notion-blocks.json`
 
 Use this README for the quick path and `docs/workflows/url-driven-iteration.md` for the full iterative workflow.
+
+## Parser Stage Architecture
+
+The parser stage is intentionally lightweight in `src/core/parser.ts`: it validates the source URL and dispatches to source-owned parsing and metadata logic in `src/adapters/`. This keeps the README focused on operating the tool, while the fuller architecture details live in `docs/architecture/overview.md`.
 
 ## Config Model
 

@@ -180,6 +180,16 @@ export interface PipelineResult {
 
 export type ZhihuContentType = "answer" | "pin" | "zhuanlan_article";
 export type SubstackContentType = "post";
+export type SourceId = "zhihu" | "substack";
+
+export interface SourceIdentityBase<TSourceId extends SourceId, TContentType extends string> {
+  sourceId: TSourceId;
+  contentType: TContentType;
+}
+
+export type ZhihuSourceIdentity = SourceIdentityBase<"zhihu", ZhihuContentType>;
+export type SubstackSourceIdentity = SourceIdentityBase<"substack", SubstackContentType>;
+export type SourceIdentity = ZhihuSourceIdentity | SubstackSourceIdentity;
 
 export interface SelectorSet {
   title: string;

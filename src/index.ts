@@ -40,6 +40,10 @@ export type {
   UploadResult,
   PipelineInput,
   PipelineResult,
+  SourceIdentity,
+  SourceId,
   ZhihuContentType,
+  ZhihuSourceIdentity,
   SelectorSet,
+  SubstackSourceIdentity,
 } from "./types.js";

@@ -33,13 +33,15 @@ Add support for a new source in a way that keeps fetch, parse, test, and documen
 
 5. Add runtime support in the narrowest layer that solves the problem.
    - Add URL-family detection for the source.
-   - Add parser and metadata behavior for the actual article document shape.
+   - Add parser and metadata behavior for the actual article document shape in a source-owned adapter under `src/adapters/`.
    - Only add fetch-time normalization if parser support alone is not enough.
+   - Keep `src/core/parser.ts` focused on orchestration and dispatch rather than source-native DOM logic.
 
 6. Add tests before considering the source complete.
    - Cover URL detection.
    - Cover markdown parsing and metadata extraction.
    - Cover any fetch-time normalization or fallback behavior introduced for the source.
+   - Prefer source-focused parser tests over expanding a single mixed cross-source parser fixture suite.
    - Keep at least one CLI-level smoke test when the source becomes a real supported surface.
 
 7. Run the full validation loop and update docs together.
@@ -57,7 +59,7 @@ Use the generated artifacts to locate the real problem before changing code.
 
 - If `page.html` is usable but `metadata.json` or `article.md` is wrong:
   - treat it as a parser-stage issue
-  - inspect source detection, selectors, cleanup rules, and structured-data fallbacks
+  - inspect source detection, selectors, cleanup rules, and structured-data fallbacks inside the relevant source adapter
 
 - If Markdown is correct but Notion blocks are wrong:
   - treat it as a transform-stage issue
@@ -73,3 +75,13 @@ Substack was added by following this pattern:
 - add fetch-time normalization because some aggregator URLs returned a reader shell instead of article HTML
 - prefer the publication-host canonical article URL when normalization succeeds
 - add parser, fetcher, adapter, and CLI-level tests before updating docs
+
+## Parser Refactor Note
+
+The current parser-stage architecture uses explicit source adapters instead of a registry. When adding a source:
+
+- define source detection and parser-stage capabilities in `src/adapters/`
+- keep source-specific helpers with that source whenever possible
+- add source-focused tests rather than extending a single cross-source parser test file indefinitely
+- keep parser-stage changes narrow; only move into fetch-time normalization or verification hooks when parser-only support is insufficient
+- keep naming compatibility unless the change is an intentional contract update
