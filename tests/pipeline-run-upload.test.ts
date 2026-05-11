@@ -3,10 +3,6 @@ import { mkdtemp } from "node:fs/promises";
 import { tmpdir } from "node:os";
 import { describe, expect, test, vi } from "vitest";
 
-vi.mock("../src/adapters/zhihu.js", () => ({
-  verifyZhihuCookies: vi.fn(async () => ({ ok: true, statusCode: 200 })),
-}));
-
 vi.mock("../src/core/fetcher.js", () => ({
   downloadHtml: vi.fn(async ({ url }: { url: string }) => ({
     ok: true,

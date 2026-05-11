@@ -24,6 +24,6 @@ The CLI is the primary execution surface for ArticleDownloader and remains the s
 - Core execution inputs come from explicit CLI parameters.
 - Unknown flags fail fast.
 - Strategy-dependent prerequisites are resolved from the effective runtime config.
-- Parser-stage source selection is explicit in `src/core/parser.ts`; source-specific DOM parsing and metadata extraction stay in `src/adapters/`.
+- Parser-stage source selection remains explicit through the shared source-resolution helper in `src/adapters/resolve-source.ts`; source-specific DOM parsing and metadata extraction stay in `src/adapters/`.
 
 See `docs/policies/runtime-contract.md` for the authoritative contract.

@@ -1,24 +1,16 @@
-import { fetch } from "undici";
 import { load } from "cheerio";
 import TurndownService from "turndown";
-import { toCookieHeaderForUrl } from "../core/cookies.js";
-import { toIsoNow } from "../utils/time.js";
 import { buildMarkdownResult, createTurndownService, normalizeProtocolRelativeHrefs } from "./parser-support.js";
 import type { SourceAdapter } from "./contracts.js";
 import type {
-  Cookie,
   MetadataInput,
   MetadataResult,
   ParseInput,
   ParseResult,
   SelectorSet,
-  VerifyResult,
   ZhihuContentType,
   ZhihuSourceIdentity,
 } from "../types.js";
-
-const ZHIHU_USER_AGENT =
-  "Mozilla/5.0 (Macintosh; Intel Mac OS X 10_15_7) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/123.0.0.0 Safari/537.36";
 
 const ZHIHU_BASE_REMOVE_SELECTORS = [
   "script",
@@ -522,68 +514,3 @@ export const zhihuSourceAdapter: SourceAdapter<ZhihuSourceIdentity> = {
     parseMetadata: parseZhihuMetadata,
   },
 };
-
-export async function verifyZhihuCookies(cookies: Cookie[], userAgent?: string): Promise<VerifyResult> {
-  const fetchedAt = toIsoNow();
-  const verifyUrl = "https://www.zhihu.com/settings/account";
-  try {
-    const response = await fetch(verifyUrl, {
-      method: "GET",
-      headers: {
-        cookie: toCookieHeaderForUrl(cookies, verifyUrl),
-        "user-agent": userAgent ?? ZHIHU_USER_AGENT,
-      },
-      redirect: "manual",
-    });
-
-    if (response.status === 200) {
-      return {
-        ok: true,
-        statusCode: response.status,
-        reason: "zhihu account settings returned 200",
-        diagnostics: {
-          fetchedAt,
-          verifyUrl,
-          verificationType: "verified",
-        },
-      };
-    }
-
-    if (response.status === 301 || response.status === 302) {
-      return {
-        ok: false,
-        statusCode: response.status,
-        reason: "zhihu account settings redirected (301/302), cookies are invalid or expired",
-        errorCode: "E_COOKIE_INVALID",
-        diagnostics: {
-          fetchedAt,
-          verifyUrl,
-          verificationType: "invalid_or_expired_cookies",
-        },
-      };
-    }
-
-    return {
-      ok: false,
-      statusCode: response.status,
-      reason: `zhihu account settings returned ${response.status}, likely network or other issue`,
-      errorCode: "E_FETCH_HTTP",
-      diagnostics: {
-        fetchedAt,
-        verifyUrl,
-        verificationType: "network_or_other_issue",
-      },
-    };
-  } catch (error) {
-    return {
-      ok: false,
-      reason: error instanceof Error ? error.message : "unknown verify error",
-      errorCode: "E_FETCH_HTTP",
-      diagnostics: {
-        fetchedAt,
-        verifyUrl,
-        verificationType: "network_or_other_issue",
-      },
-    };
-  }
-}

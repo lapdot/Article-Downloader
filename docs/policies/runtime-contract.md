@@ -151,10 +151,8 @@ Default-layout note:
 - A dependency is downstream-critical if needed only in later delivery stages; it may be validated at that stage and fail explicitly there.
 - Requirement strictness may also depend on the selected download strategy.
 - In this project:
-  - `verify-zhihu` remains cookie-required.
   - `fetch` requires cookies only when effective `pipeline.downloadMethod` is `http`.
   - `fetch` does not require cookies when effective `pipeline.downloadMethod` is `cookieproxy`.
-  - `run` does not perform Zhihu cookie verification before download.
   - Notion setup remains downstream-critical for `run`.
 
 ### 5.5 Download strategy policy

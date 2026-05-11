@@ -20,7 +20,6 @@ The codebase now has a workable source-owned structure for two stages:
 
 The main remaining problems are:
 
-- verification is still outside the adapter capability model
 - canonical internal naming is only partially introduced
 - test organization has improved for parser and fetch, but broader source symmetry is still incomplete
 - source-specific logic may still remain in non-adapter areas such as CLI-level workflows, policies, or future runtime helpers
@@ -50,30 +49,9 @@ Outcome:
 - parser and fetcher no longer maintain separate copies of source resolution logic
 - tests pass with unchanged public behavior
 
-### Phase 4: Verification capability refactor
+### Note On Verification
 
-Goal:
-- make verification a source-owned optional capability in the same style as parser and fetch normalization
-
-Why this next:
-- Zhihu verification is the next obvious source-specific behavior that still sits outside the adapter capability model
-- this will complete the main architectural pattern for source-specific runtime behaviors
-
-Proposed work:
-- extend `src/adapters/contracts.ts` with an optional verification capability
-- move Zhihu verification behavior behind the Zhihu adapter
-- keep the CLI command shape and current error semantics stable
-- make it easy for future sources to opt into verification without forcing no-op implementations
-
-Constraints:
-- do not redesign verification policy in the same step
-- preserve `verify-zhihu` behavior and diagnostics
-- do not force Substack to implement verification if it does not need it
-
-Exit criteria:
-- source verification is adapter-owned where applicable
-- CLI/runtime behavior remains stable
-- docs and tests reflect the new ownership boundary
+Zhihu verification was removed from the product rather than migrated into the adapter capability model. Future refactor work should not assume a verification capability exists unless the feature is intentionally reintroduced under a new contract.
 
 ### Phase 5: Strengthen canonical internal source modeling
 
@@ -144,13 +122,13 @@ Exit criteria:
 
 ## Suggested First Task For The Next Session
 
-Start with Phase 4: move verification into the adapter capability model.
+Start with Phase 5: strengthen canonical internal source modeling.
 
 Why this is the best next step:
 
-- shared source resolution is already in place, so the next architectural gap is clearer
-- Zhihu verification is still the most obvious source-specific behavior outside the adapter capability model
-- this continues the same source-owned runtime direction without broad contract churn
+- shared source resolution is already in place
+- canonical internal source modeling is the next active architectural gap for multi-source growth
+- this improves source-aware typing without reintroducing removed product surface
 
 ## Validation Checklist For The Next Session
 

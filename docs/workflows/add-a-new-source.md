@@ -86,5 +86,5 @@ The current parser-stage architecture uses explicit source adapters instead of a
 - define source detection and parser-stage capabilities in `src/adapters/`
 - keep source-specific helpers with that source whenever possible
 - add source-focused tests rather than extending a single cross-source parser test file indefinitely
-- keep parser-stage changes narrow; only move into fetch-time normalization or verification hooks when parser-only support is insufficient
+- keep parser-stage changes narrow; only move into fetch-time normalization when parser-only support is insufficient
 - keep naming compatibility unless the change is an intentional contract update

@@ -430,7 +430,7 @@ describe("cli", () => {
 
   test("commands expose expected options", () => {
     const program = createProgram();
-    const verifyCommand = program.commands.find((command) => command.name() === "verify-zhihu");
+    const removedVerifyCommand = program.commands.find((command) => command.name() === "verify-zhihu");
     const fetchCommand = program.commands.find((command) => command.name() === "fetch");
     const metadataCommand = program.commands.find((command) => command.name() === "get_metadata");
     const parseCommand = program.commands.find((command) => command.name() === "parse");
@@ -439,7 +439,7 @@ describe("cli", () => {
     const runCommand = program.commands.find((command) => command.name() === "run");
     const runOptionNames = runCommand?.options.map((option) => option.long);
 
-    expect(verifyCommand).toBeDefined();
+    expect(removedVerifyCommand).toBeUndefined();
     expect(fetchCommand).toBeDefined();
     expect(metadataCommand).toBeDefined();
     expect(parseCommand).toBeDefined();
@@ -447,7 +447,6 @@ describe("cli", () => {
     expect(uploadCommand).toBeDefined();
     expect(runCommand).toBeDefined();
 
-    mustHaveOption(verifyCommand!, "--config");
     mustRequireOption(fetchCommand!, "--url");
     mustRequireOption(fetchCommand!, "--out");
     mustHaveOption(fetchCommand!, "--config");
@@ -663,31 +662,17 @@ describe("cli", () => {
       await runCli([
         "node",
         "article-downloader",
-        "verify-zhihu",
+        "fetch",
+        "--url",
+        "https://zhuanlan.zhihu.com/p/123",
+        "--out",
+        path.join(tmpdir(), "fetch-out"),
         "--config",
         missingConfigPath,
       ]);
     });
 
     expect(stderr).toContain(`E_FILE_NOT_FOUND: public config: ${missingConfigPath}`);
-  });
-
-  test("verify-zhihu rejects irrelevant --notion-secrets flag", async () => {
-    const program = createProgram();
-    program.exitOverride();
-    await expect(
-      program.parseAsync(
-        [
-          "node",
-          "article-downloader",
-          "verify-zhihu",
-          "--config",
-          "./config/public.config.json",
-          "--notion-secrets",
-          "./config/notion.secrets.local.json",
-        ],
-      ),
-    ).rejects.toThrowError('process.exit unexpectedly called with "1"');
   });
 
   test("fetch rejects irrelevant --notion-secrets flag", async () => {

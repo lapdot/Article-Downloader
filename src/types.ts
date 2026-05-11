@@ -17,14 +17,6 @@ export interface Cookie {
   sameSite?: "Strict" | "Lax" | "None" | "unspecified" | "no_restriction";
 }
 
-export interface VerifyResult {
-  ok: boolean;
-  statusCode?: number;
-  reason?: string;
-  errorCode?: ErrorCode;
-  diagnostics?: Record<string, string | number | boolean>;
-}
-
 export type DownloadMethod = "http" | "cookieproxy";
 
 export interface DownloadInput {
@@ -170,7 +162,6 @@ export interface PipelineResult {
   markdownPath?: string;
   notionBlocksPath?: string;
   metaPath?: string;
-  verify?: VerifyResult;
   download?: DownloadResult;
   metadata?: MetadataResult;
   parse?: ParseResult;

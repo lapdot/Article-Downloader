@@ -41,7 +41,7 @@ Current phase-1 scope:
 - canonical internal source identity exists for dispatch and future extensibility
 - parser and metadata behavior are source-owned
 - fetch normalization is now a source-owned capability alongside parser and metadata behavior
-- verification remains source-specific follow-up work rather than part of the current adapter surface
+- no standalone verification capability is part of the current runtime surface
 - naming unification, broad fetch capabilities, and broader source symmetry are follow-up work rather than part of this phase
 
 ## Fetch Stage Architecture

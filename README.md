@@ -23,10 +23,6 @@ A Node.js (TypeScript + ESM) project for turning article URLs into local HTML, M
   - fetched source HTML (`page.html`)
   - parsed Markdown article (`article.md`)
   - Notion block JSON (`notion-blocks.json`)
-- Verify Zhihu cookies by checking `https://www.zhihu.com/settings/account`:
-  - `200` means valid login session.
-  - `301/302` means cookies are invalid or expired.
-  - other status codes are treated as network/other issues.
 - Download webpage HTML with URL-aware cookie handling, with optional `cookieproxy` command execution.
 - Parse supported article sources to Markdown using source-specific adapters for:
   - Zhihu:
@@ -164,7 +160,7 @@ For config-aware commands, path precedence is:
 
 Secret values are never loaded from environment variables.
 
-`pipeline.userAgent` is non-sensitive and controls the User-Agent header for both `verify-zhihu` and HTTP-based HTML download requests (`fetch`/`run`). If omitted, a built-in default browser UA is used.
+`pipeline.userAgent` is non-sensitive and controls the User-Agent header for HTTP-based HTML download requests (`fetch`/`run`). If omitted, a built-in default browser UA is used.
 
 `pipeline.downloadMethod` controls how HTML is downloaded:
 
@@ -198,13 +194,7 @@ Environment-specific troubleshooting notes, including sandbox DNS limitations ob
 
 CLI output is JSON by default and currently the only supported output format.
 
-### 1) Verify Zhihu cookies
-
-```bash
-npx tsx src/cli.ts verify-zhihu --config ./config/public.config.json
-```
-
-### 2) Fetch HTML
+### 1) Fetch HTML
 
 ```bash
 npx tsx src/cli.ts fetch \
@@ -217,13 +207,13 @@ To use `http` instead, set `"pipeline.downloadMethod": "http"` in `config/public
 
 When `downloadMethod` is `cookieproxy`, `fetch` does not require `--cookies-secrets`.
 
-### 3) Extract Metadata From HTML
+### 2) Extract Metadata From HTML
 
 ```bash
 npx tsx src/cli.ts get_metadata --html ./artifacts/runtime/<run>/page.html --url "https://substack.com/@michaeljburry/p-196918166" --out ./artifacts/runtime
 ```
 
-### 4) Parse HTML to Markdown
+### 3) Parse HTML to Markdown
 
 ```bash
 npx tsx src/cli.ts parse --html ./artifacts/runtime/<run>/page.html --url "https://substack.com/@michaeljburry/p-196918166" --out ./artifacts/runtime
@@ -235,7 +225,7 @@ Current recommendation: keep `--use-html-style-for-image` off for downstream com
 For core output paths:
 - `--out` is required for `fetch`, `get_metadata`, `parse`, `transform-notion`, and `run`.
 
-### 5) Transform Markdown to Notion Blocks
+### 4) Transform Markdown to Notion Blocks
 
 ```bash
 npx tsx src/cli.ts transform-notion \
@@ -246,7 +236,7 @@ npx tsx src/cli.ts transform-notion \
 This step produces the Notion format artifact: `notion-blocks.json`.
 Current note: dollar-delimited inline Markdown spans are preserved as inline equations in Notion block output. See `docs/decisions/0005-inline-equation-markdown-policy.md`.
 
-### 6) Upload Notion Blocks to Notion
+### 5) Upload Notion Blocks to Notion
 
 ```bash
 npx tsx src/cli.ts upload-notion \
@@ -257,7 +247,7 @@ npx tsx src/cli.ts upload-notion \
 
 Upload is optional and downstream from artifact generation. The project’s “Notion format” refers to the generated Notion block JSON, not the upload itself.
 
-### 7) End-to-end run
+### 6) End-to-end run
 
 ```bash
 npx tsx src/cli.ts run \
@@ -359,7 +349,6 @@ Public cookie entries use `cookies.publicEntries`:
 
 ```ts
 import {
-  verifyZhihuCookies,
   downloadHtml,
   parseHtmlToMarkdown,
   parseHtmlToMetadata,

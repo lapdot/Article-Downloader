@@ -1,4 +1,3 @@
-export { verifyZhihuCookies } from "./adapters/zhihu.js";
 export { downloadHtml } from "./core/fetcher.js";
 export { parseHtmlToMarkdown, parseHtmlToMetadata } from "./core/parser.js";
 export {
@@ -22,7 +21,6 @@ export {
 } from "./core/cookies.js";
 export type {
   Cookie,
-  VerifyResult,
   DownloadMethod,
   DownloadInput,
   DownloadResult,

@@ -1,7 +1,6 @@
 #!/usr/bin/env node
 import path from "node:path";
 import { Command } from "commander";
-import { verifyZhihuCookies } from "./adapters/zhihu.js";
 import { downloadHtml } from "./core/fetcher.js";
 import { parseHtmlToMarkdown, parseHtmlToMetadata } from "./core/parser.js";
 import {
@@ -165,31 +164,6 @@ function getRequiredNotionSecrets(runtimeConfig: ResolvedRuntimeConfig): {
 export function createProgram(): Command {
   const program = new Command();
   program.name("article-downloader").description("Download and process articles").version("0.1.0");
-
-  program
-    .command("verify-zhihu")
-    .option("--config <path>", "path to public config JSON")
-    .option("--cookies-secrets <path>", "path to cookies secrets JSON")
-    .action(async (opts) => {
-      try {
-        const runtimeConfig = await loadRuntimeConfig({
-          config: opts.config,
-          cookiesSecrets: opts.cookiesSecrets,
-          requireCookies: true,
-        });
-        const result = await verifyZhihuCookies(
-          runtimeConfig.cookies,
-          runtimeConfig.pipeline.userAgent,
-        );
-        printResult(result);
-        if (!result.ok) {
-          process.exitCode = 1;
-        }
-      } catch (error) {
-        logError(error instanceof Error ? error.message : "unknown error");
-        process.exitCode = 1;
-      }
-    });
 
   program
     .command("fetch")
