@@ -30,12 +30,14 @@ Add support for a new source in a way that keeps fetch, parse, test, and documen
 4. Decide whether the source needs parser-only support or fetch-time normalization too.
    - Parser-only support is enough when the fetched HTML already contains the real article document.
    - Fetch-time normalization is needed when a supported input URL fetches an intermediate shell, reader page, or other non-article wrapper.
+   - If the shell already contains a canonical post payload, prefer normalizing from that payload before adding a second network lookup.
 
 5. Add runtime support in the narrowest layer that solves the problem.
    - Add URL-family detection for the source.
    - Add parser and metadata behavior for the actual article document shape in a source-owned adapter under `src/adapters/`.
    - Only add fetch-time normalization if parser support alone is not enough.
    - Keep `src/core/parser.ts` focused on orchestration and dispatch rather than source-native DOM logic.
+   - Keep `src/core/fetcher.ts` focused on generic transport execution; source-specific normalization should live with the source adapter.
 
 6. Add tests before considering the source complete.
    - Cover URL detection.
@@ -73,6 +75,7 @@ Substack was added by following this pattern:
 - keep `cookieproxy` as the default fetch method
 - inspect fetched HTML artifacts first
 - add fetch-time normalization because some aggregator URLs returned a reader shell instead of article HTML
+- prefer a preloaded canonical post payload when the shell already exposes it
 - prefer the publication-host canonical article URL when normalization succeeds
 - add parser, fetcher, adapter, and CLI-level tests before updating docs
 

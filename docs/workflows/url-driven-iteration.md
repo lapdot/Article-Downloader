@@ -109,7 +109,7 @@ Use upload only after the local Notion block artifact looks correct.
 
 - HTML wrong or incomplete:
   - treat it as a fetch-stage issue
-  - inspect `page.html`, cookie handling, and download strategy
+  - inspect `page.html`, cookie handling, download strategy, and any source-owned normalization behavior
 
 - Markdown wrong but HTML correct:
   - treat it as a parser-stage issue
@@ -131,4 +131,6 @@ Use upload only after the local Notion block artifact looks correct.
 - Keep `--out` explicit when you want strong control over where artifacts are written.
 - Use the same fetched `page.html` across metadata and parse steps when debugging parser behavior.
 - Preserve local generated artifacts while iterating so you can compare outputs across revisions.
-- When using the default `cookieproxy` download flow, parser source detection still accepts both Substack URL families directly. For aggregator URLs like `substack.com/@<author>/p-<id>`, fetch may also normalize to the publication-host canonical URL before metadata and markdown parsing. If the canonical page cannot be fetched but the Substack posts lookup returned body content, runtime may continue with a synthetic article HTML artifact rather than the reader shell.
+- When using the default `cookieproxy` download flow, parser source detection still accepts both Substack URL families directly. For aggregator URLs like `substack.com/@<author>/p-<id>`, the Substack source adapter may normalize the fetched shell to the publication-host canonical URL before metadata and markdown parsing.
+- In newer Substack reader shells, normalization may come directly from a preloaded canonical post payload inside the fetched HTML rather than a separate posts lookup.
+- If the canonical page cannot be fetched but the preloaded shell payload or posts lookup returned enough article content, runtime may continue with a synthetic article HTML artifact rather than the reader shell.

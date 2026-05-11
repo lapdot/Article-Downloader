@@ -1,7 +1,8 @@
 import { load } from "cheerio";
 import { buildMarkdownResult, createTurndownService } from "./parser-support.js";
-import type { SourceAdapter } from "./contracts.js";
+import type { FetchNormalizationContext, SourceAdapter } from "./contracts.js";
 import type {
+  DownloadResult,
   MetadataInput,
   MetadataResult,
   ParseInput,
@@ -47,6 +48,33 @@ interface SubstackPreloadData {
   publishedBylines?: SubstackPreloadByline[];
 }
 
+interface SubstackShellPreloadData {
+  id?: number;
+  publication_id?: number;
+  subdomain?: string;
+  hostname?: string;
+  base_url?: string;
+  canonicalUrl?: string;
+  ogUrl?: string;
+  feedData?: {
+    initialPost?: {
+      post?: SubstackPostsLookupEntry;
+    };
+  };
+  [key: string]: unknown;
+}
+
+interface SubstackPostsLookupEntry {
+  id?: number;
+  canonical_url?: string;
+  title?: string;
+  subtitle?: string;
+  body_html?: string;
+  post_date?: string;
+  updated_at?: string;
+  publishedBylines?: SubstackPreloadByline[];
+}
+
 export function isSubstackHost(hostname: string): boolean {
   return hostname === "substack.com" || hostname.endsWith(".substack.com");
 }
@@ -71,6 +99,354 @@ export function detectSubstackSource(url: URL): SubstackSourceIdentity | null {
   return {
     sourceId: "substack",
     contentType,
+  };
+}
+
+function getSubstackAggregatorPostId(urlString: string): string | null {
+  try {
+    const url = new URL(urlString);
+    if (url.hostname !== "substack.com") {
+      return null;
+    }
+    const match = url.pathname.match(/^\/@[^/]+\/p-(\d+)\/?$/u);
+    return match?.[1] ?? null;
+  } catch {
+    return null;
+  }
+}
+
+function parseSubstackShellPreloadData(html: string): SubstackShellPreloadData | null {
+  const match = html.match(/window\._preloads\s*=\s*JSON\.parse\("([\s\S]*?)"\)/u);
+  if (!match) {
+    return null;
+  }
+
+  try {
+    const jsonString = JSON.parse(`"${match[1]}"`) as string;
+    return JSON.parse(jsonString) as SubstackShellPreloadData;
+  } catch {
+    return null;
+  }
+}
+
+function getSubstackLookupContext(html: string): { publicationId: number; baseUrl: string } | null {
+  const preload = parseSubstackShellPreloadData(html);
+  if (!preload) {
+    return null;
+  }
+
+  const visited = new Set<unknown>();
+
+  function resolveFromNode(node: unknown): { publicationId: number; baseUrl: string } | null {
+    if (!node || typeof node !== "object") {
+      return null;
+    }
+    if (visited.has(node)) {
+      return null;
+    }
+    visited.add(node);
+
+    if (Array.isArray(node)) {
+      for (const entry of node) {
+        const resolved = resolveFromNode(entry);
+        if (resolved) {
+          return resolved;
+        }
+      }
+      return null;
+    }
+
+    const record = node as Record<string, unknown>;
+    const baseUrlFromRecord =
+      typeof record.base_url === "string" && record.base_url.startsWith("https://")
+        ? record.base_url
+        : undefined;
+    const hostname =
+      typeof record.hostname === "string" && record.hostname.endsWith(".substack.com")
+        ? record.hostname
+        : undefined;
+    const subdomain =
+      typeof record.subdomain === "string" && record.subdomain.trim()
+        ? record.subdomain.trim()
+        : undefined;
+    const baseUrlFromHostname = hostname ? `https://${hostname}` : undefined;
+    const baseUrlFromSubdomain = subdomain ? `https://${subdomain}.substack.com` : undefined;
+    const baseUrl = [baseUrlFromRecord, baseUrlFromHostname, baseUrlFromSubdomain]
+      .find((value) => typeof value === "string" && value.endsWith(".substack.com"));
+    const publicationId =
+      typeof record.publication_id === "number"
+        ? record.publication_id
+        : typeof record.id === "number" && (typeof record.subdomain === "string" || typeof record.hostname === "string")
+          ? record.id
+          : undefined;
+    if (baseUrl && publicationId) {
+      return { baseUrl, publicationId };
+    }
+
+    for (const value of Object.values(record)) {
+      const resolved = resolveFromNode(value);
+      if (resolved) {
+        return resolved;
+      }
+    }
+
+    return null;
+  }
+
+  const resolved = resolveFromNode(preload);
+  if (!resolved?.baseUrl || !resolved.publicationId || !Number.isFinite(resolved.publicationId)) {
+    return null;
+  }
+
+  return {
+    publicationId: resolved.publicationId,
+    baseUrl: resolved.baseUrl,
+  };
+}
+
+function getSubstackInitialPostEntry(html: string): SubstackPostsLookupEntry | null {
+  const preload = parseSubstackShellPreloadData(html);
+  const post = preload?.feedData?.initialPost?.post;
+  if (!post || typeof post !== "object") {
+    return null;
+  }
+
+  return post;
+}
+
+function parseSubstackPostsLookupEntry(
+  payload: string,
+  expectedPostId: string,
+): SubstackPostsLookupEntry | null {
+  try {
+    const parsed = JSON.parse(payload) as SubstackPostsLookupEntry[];
+    if (!Array.isArray(parsed)) {
+      return null;
+    }
+
+    const exactMatch = parsed.find((candidate) => String(candidate?.id ?? "") === expectedPostId);
+    if (exactMatch) {
+      return exactMatch;
+    }
+
+    // Some newer Substack aggregator urls resolve to a single canonical post entry
+    // whose API id differs from the numeric suffix in the shell url.
+    if (parsed.length === 1 && parsed[0]?.canonical_url?.trim()) {
+      return parsed[0];
+    }
+
+    return null;
+  } catch {
+    return null;
+  }
+}
+
+function getCanonicalUrlFromSubstackPostsLookupEntry(
+  entry: SubstackPostsLookupEntry | null,
+): string | null {
+  try {
+    const canonicalUrl = entry?.canonical_url?.trim();
+    if (!canonicalUrl) {
+      return null;
+    }
+
+    return new URL(canonicalUrl).toString();
+  } catch {
+    return null;
+  }
+}
+
+function escapeHtmlAttribute(value: string): string {
+  return value
+    .replace(/&/gu, "&amp;")
+    .replace(/"/gu, "&quot;")
+    .replace(/</gu, "&lt;")
+    .replace(/>/gu, "&gt;");
+}
+
+function buildSyntheticSubstackHtml(
+  entry: SubstackPostsLookupEntry,
+  canonicalUrl: string,
+): string | null {
+  const title = entry.title?.trim();
+  const bodyHtml = entry.body_html?.trim();
+  const publishTime = entry.post_date?.trim();
+  const primaryByline = entry.publishedBylines?.[0];
+  const authorName = primaryByline?.name?.trim();
+  const authorHandle = primaryByline?.handle?.trim();
+
+  if (!title || !bodyHtml || !publishTime || !authorName || !authorHandle) {
+    return null;
+  }
+
+  const subtitle = entry.subtitle?.trim() ?? "";
+  const authorHomepage = `https://substack.com/@${authorHandle}`;
+  const preload = {
+    post: {
+      canonical_url: canonicalUrl,
+      post_date: publishTime,
+      updated_at: entry.updated_at?.trim() || publishTime,
+      subtitle,
+      title,
+      body_html: bodyHtml,
+    },
+    canonicalUrl,
+    ogUrl: canonicalUrl,
+    publishedBylines: [
+      {
+        name: authorName,
+        handle: authorHandle,
+      },
+    ],
+  };
+  const structuredData = {
+    "@context": "https://schema.org",
+    "@type": "NewsArticle",
+    url: canonicalUrl,
+    mainEntityOfPage: canonicalUrl,
+    headline: title,
+    description: subtitle || undefined,
+    datePublished: publishTime,
+    dateModified: entry.updated_at?.trim() || publishTime,
+    author: {
+      name: authorName,
+      url: authorHomepage,
+    },
+  };
+  const preloadLiteral = JSON.stringify(JSON.stringify(preload));
+
+  return `<!doctype html>
+<html>
+  <head>
+    <title>${escapeHtmlText(title)} - by ${escapeHtmlText(authorName)}</title>
+    <link rel="canonical" href="${escapeHtmlAttribute(canonicalUrl)}" />
+    <meta property="og:title" content="${escapeHtmlAttribute(title)}" />
+    <meta property="og:url" content="${escapeHtmlAttribute(canonicalUrl)}" />
+    <meta name="author" content="${escapeHtmlAttribute(authorName)}" />
+    <script type="application/ld+json">${JSON.stringify(structuredData)}</script>
+    <script>window._preloads = JSON.parse(${preloadLiteral});</script>
+  </head>
+  <body>
+    <article>
+      <h1 class="post-title">${escapeHtmlText(title)}</h1>
+      ${subtitle ? `<h3 class="subtitle">${escapeHtmlText(subtitle)}</h3>` : ""}
+      <div class="byline-wrapper">
+        <a href="${escapeHtmlAttribute(authorHomepage)}">${escapeHtmlText(authorName)}</a>
+      </div>
+      <div class="available-content">
+        <div class="body markup">${bodyHtml}</div>
+      </div>
+    </article>
+  </body>
+</html>`;
+}
+
+export async function normalizeSubstackDownload(
+  context: FetchNormalizationContext<SubstackSourceIdentity>,
+): Promise<DownloadResult> {
+  const postId = getSubstackAggregatorPostId(context.input.url);
+  if (!postId || !context.initial.ok || !context.initial.html) {
+    return context.initial;
+  }
+
+  const initialPostEntry = getSubstackInitialPostEntry(context.initial.html);
+  const preloadedCanonicalUrl = getCanonicalUrlFromSubstackPostsLookupEntry(initialPostEntry);
+  if (preloadedCanonicalUrl && preloadedCanonicalUrl !== context.input.url) {
+    const normalizedResult = await context.runTransport({
+      ...context.input,
+      url: preloadedCanonicalUrl,
+    });
+    if (!normalizedResult.ok || !normalizedResult.html) {
+      const syntheticHtml = initialPostEntry
+        ? buildSyntheticSubstackHtml(initialPostEntry, preloadedCanonicalUrl)
+        : null;
+      if (syntheticHtml) {
+        return {
+          ok: true,
+          url: context.input.url,
+          downloadMethod: normalizedResult.downloadMethod,
+          finalUrl: preloadedCanonicalUrl,
+          html: syntheticHtml,
+          fetchedAt: context.fetchedAt,
+          diagnostics: {
+            ...(context.initial.diagnostics ?? {}),
+            normalizedFromUrl: context.input.url,
+            substackSyntheticFallback: true,
+            substackNormalizationSource: "preloaded-canonical",
+          },
+        };
+      }
+      return context.initial;
+    }
+
+    return {
+      ...normalizedResult,
+      url: context.input.url,
+      finalUrl: preloadedCanonicalUrl,
+      diagnostics: {
+        ...(normalizedResult.diagnostics ?? {}),
+        normalizedFromUrl: context.input.url,
+        substackNormalizationSource: "preloaded-canonical",
+      },
+    };
+  }
+
+  const lookupContext = getSubstackLookupContext(context.initial.html);
+  if (!lookupContext) {
+    return context.initial;
+  }
+
+  const lookupUrl = `${lookupContext.baseUrl}/api/v1/posts?publication_id=${lookupContext.publicationId}&post_ids=${postId}`;
+  const lookupResult = await context.runTransport({
+    ...context.input,
+    url: lookupUrl,
+  });
+  if (!lookupResult.ok || !lookupResult.html) {
+    return context.initial;
+  }
+
+  const lookupEntry = parseSubstackPostsLookupEntry(lookupResult.html, postId);
+  const canonicalUrl = getCanonicalUrlFromSubstackPostsLookupEntry(lookupEntry);
+  if (!canonicalUrl || canonicalUrl === context.input.url) {
+    return context.initial;
+  }
+
+  const normalizedResult = await context.runTransport({
+    ...context.input,
+    url: canonicalUrl,
+  });
+  if (!normalizedResult.ok || !normalizedResult.html) {
+    const syntheticHtml = lookupEntry ? buildSyntheticSubstackHtml(lookupEntry, canonicalUrl) : null;
+    if (syntheticHtml) {
+      return {
+        ok: true,
+        url: context.input.url,
+        downloadMethod: normalizedResult.downloadMethod,
+        finalUrl: canonicalUrl,
+        html: syntheticHtml,
+        fetchedAt: context.fetchedAt,
+        diagnostics: {
+          ...(context.initial.diagnostics ?? {}),
+          normalizedFromUrl: context.input.url,
+          substackLookupUrl: lookupUrl,
+          substackSyntheticFallback: true,
+          substackNormalizationSource: "posts-lookup",
+        },
+      };
+    }
+    return context.initial;
+  }
+
+  return {
+    ...normalizedResult,
+    url: context.input.url,
+    finalUrl: canonicalUrl,
+    diagnostics: {
+      ...(normalizedResult.diagnostics ?? {}),
+      normalizedFromUrl: context.input.url,
+      substackLookupUrl: lookupUrl,
+      substackNormalizationSource: "posts-lookup",
+    },
   };
 }
 
@@ -342,6 +718,9 @@ export async function parseSubstackMetadata(
 export const substackSourceAdapter: SourceAdapter<SubstackSourceIdentity> = {
   sourceId: "substack",
   detect: detectSubstackSource,
+  fetch: {
+    normalizeDownload: normalizeSubstackDownload,
+  },
   markdown: {
     parseMarkdown: parseSubstackMarkdown,
   },

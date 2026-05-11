@@ -162,12 +162,14 @@ Default-layout note:
 - The effective selector may come from CLI override, public config, or built-in default according to precedence rules.
 - Method-dependent prerequisites must be decided from the effective resolved runtime value.
 - Under the default `cookieproxy` strategy, parser-stage source detection must not depend on redirect-normalized final URLs unless the fetch contract is explicitly extended to provide them.
-- Substack aggregator URLs are a supported fetch-time normalization exception:
+- Substack aggregator URLs are a supported source-owned fetch-time normalization exception:
   - when `substack.com/@<author>/p-<id>` fetches a Substack reader shell instead of article HTML
-  - runtime may derive the publication-host canonical article URL from the shell plus a Substack posts lookup
+  - runtime may derive the publication-host canonical article URL directly from preloaded shell data when the shell already contains a canonical post payload
+  - otherwise runtime may derive the publication-host canonical article URL from the shell plus a Substack posts lookup
   - runtime may then re-fetch the canonical article page using the same effective download method
-  - if the canonical page fetch fails but the lookup payload includes sufficient article content, runtime may emit a synthetic parser-friendly article HTML artifact derived from the lookup payload while still reporting the canonical article URL as `download.finalUrl`
+  - if the canonical page fetch fails but the preloaded shell payload or lookup payload includes sufficient article content, runtime may emit a synthetic parser-friendly article HTML artifact derived from that payload while still reporting the canonical article URL as `download.finalUrl`
   - when that normalization succeeds, `download.finalUrl` may differ from the original input URL even under `cookieproxy`
+  - source-owned diagnostics may indicate whether normalization came from a preloaded canonical payload or a posts lookup flow
   - rationale for this current Substack-specific canonical policy lives in `docs/decisions/0004-substack-canonical-url-policy.md`
 - Runtime requirement changes introduced by a new strategy must be reflected together in:
   - CLI and runtime behavior

@@ -9,7 +9,7 @@ ArticleDownloader has three main surfaces:
 
 Typical content flow:
 1. Resolve runtime config and input paths
-2. Download HTML
+2. Download HTML and apply any source-owned fetch normalization
 3. Parse HTML into metadata or Markdown
 4. Optionally transform Markdown into Notion blocks
 5. Optionally upload to Notion
@@ -18,9 +18,9 @@ Typical content flow:
 ## Main Areas
 
 - `src/core/runtime-config.ts`: config resolution and precedence
-- `src/core/fetcher.ts`: HTML acquisition
+- `src/core/fetcher.ts`: fetch-stage orchestration and generic transport execution
 - `src/core/parser.ts`: parser-stage orchestration and source dispatch
-- `src/adapters/`: source-owned detection, parser, metadata, and source-specific helpers
+- `src/adapters/`: source-owned detection, fetch normalization, parser, metadata, and source-specific helpers
 - `src/core/pipeline.ts`: end-to-end run orchestration
 - `src/core/notion*.ts`: Notion transform and upload
 - `src/gui/bridge/`: local bridge server, schemas, execution, and history
@@ -39,8 +39,18 @@ Current phase-1 scope:
 
 - canonical internal source identity exists for dispatch and future extensibility
 - parser and metadata behavior are source-owned
-- fetch normalization and verification remain source-specific concerns outside this parser-stage refactor unless a concrete source requires them
+- fetch normalization is now a source-owned capability alongside parser and metadata behavior
+- verification remains source-specific follow-up work rather than part of the current adapter surface
 - naming unification, broad fetch capabilities, and broader source symmetry are follow-up work rather than part of this phase
+
+## Fetch Stage Architecture
+
+The fetch stage is also split between orchestration and source ownership:
+
+- `src/core/fetcher.ts` owns generic transport behavior such as `http`, `cookieproxy`, timeouts, and low-level result shaping
+- source adapters may optionally normalize a fetched result when a supported input URL first returns a shell or wrapper page
+- source adapters may normalize from either a shell-level canonical pointer already embedded in the fetched HTML or a source-specific lookup flow when the shell does not expose enough direct information
+- this keeps source-specific fetch behavior with the same source module that already owns parsing and metadata logic
 
 ## Source Of Truth
 
