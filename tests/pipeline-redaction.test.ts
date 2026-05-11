@@ -7,7 +7,7 @@ vi.mock("../src/core/fetcher.js", () => ({
   downloadHtml: vi.fn(async ({ url }: { url: string }) => ({
     ok: true,
     url,
-    downloadMethod: "http",
+    downloadMethod: "cookieproxy",
     finalUrl: url,
     statusCode: 200,
     html: "<html><body><h1>Title</h1></body></html>",
@@ -50,11 +50,10 @@ describe("pipeline redaction", () => {
     const result = await runPipeline({
       url: "https://zhuanlan.zhihu.com/p/123",
       runtimeConfig: {
-        cookies: [{ name: "z_c0", value: secretValue, domain: ".zhihu.com", path: "/" }],
         pipeline: {
           outDir,
           useHtmlStyleForImage: false,
-          downloadMethod: "http",
+          downloadMethod: "cookieproxy",
           cookieproxyPath: "/tmp/cookieproxy",
         },
         notion: {
@@ -76,7 +75,6 @@ describe("pipeline redaction", () => {
     expect(metaRaw).not.toContain("cookies.secrets.local.json");
     expect(metaRaw).not.toContain("notion.secrets.local.json");
     expect(metaRaw).toContain("\"notionUploadAttempted\": true");
-    expect(metaRaw).toContain("\"cookieCount\": 1");
     expect(metaRaw).toContain("\"upload\": {");
     expect(metaRaw).toContain("\"errorCode\": \"E_NOTION_API\"");
     expect(metaRaw).toContain("\"reason\": \"notion upload failed\"");

@@ -34,7 +34,8 @@ This document defines the authoritative GUI and bridge contract for the local-on
   - `inputMode` with values `name | text`
 - Explicitly non-path arguments, for example `--fixture`, must not expose path-browse affordances.
 - Static GUI descriptor metadata must not imply stronger runtime requirements than the CLI and runtime actually enforce.
-- Dynamic GUI hint contracts are allowed when effective config or strategy changes whether an argument is relevant.
+- Dynamic GUI hint contracts are allowed when effective config changes useful runtime context.
+- `downloadMethod` remains a GUI-visible selector even though the current allowed value set is only `cookieproxy`.
 - GUI-visible fields and runtime-required fields are different contracts and must be treated separately.
 
 ## 4. Path Picker Interaction
@@ -66,7 +67,7 @@ This document defines the authoritative GUI and bridge contract for the local-on
 - GUI behavior coverage includes both unit or integration and browser E2E layers.
 - Bridge contract regression tests are required in `npm test` for:
   - API route contracts
-  - dynamic hint behavior when config or strategy changes argument relevance
+  - dynamic hint behavior when config resolution changes effective runtime context
   - history persistence behavior, including trim, dedupe, cap, and malformed-file fallback
 - Browser E2E baseline is maintained via Playwright and exercised through:
   - `npm run gui:test:e2e`

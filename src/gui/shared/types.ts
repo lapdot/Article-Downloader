@@ -29,7 +29,7 @@ export interface GuiCommandHintsRequest {
 
 export interface GuiCommandHintsResult {
   ok: boolean;
-  effectiveDownloadMethod?: "http" | "cookieproxy";
+  effectiveDownloadMethod?: "cookieproxy";
   hiddenArgKeys: string[];
 }
 

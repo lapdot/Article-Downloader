@@ -3,7 +3,6 @@ export { parseHtmlToMarkdown, parseHtmlToMetadata } from "./core/parser.js";
 export {
   resolveRuntimeConfig,
   readPublicConfig,
-  readCookiesSecretsConfig,
   readNotionSecretsConfig,
 } from "./core/runtime-config.js";
 export {
@@ -12,15 +11,7 @@ export {
   markdownToNotionBlocksMartian,
 } from "./core/notion.js";
 export { runPipeline } from "./core/pipeline.js";
-export {
-  assertValidCookies,
-  createCookieJar,
-  toCookieHeader,
-  toCookieHeaderForUrl,
-  validateCookies,
-} from "./core/cookies.js";
 export type {
-  Cookie,
   DownloadMethod,
   DownloadInput,
   DownloadResult,
@@ -29,9 +20,7 @@ export type {
   MetadataInput,
   HtmlMetadata,
   MetadataResult,
-  PublicCookieEntry,
   PublicConfig,
-  CookiesSecretsConfig,
   NotionSecretsConfig,
   ResolvedRuntimeConfig,
   UploadInput,

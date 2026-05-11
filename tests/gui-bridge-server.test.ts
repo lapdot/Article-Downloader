@@ -92,7 +92,7 @@ describe("gui bridge server", () => {
     expect(runInvalid.status).toBe(400);
   });
 
-  it("returns cookie hiding hints when config resolves to cookieproxy", async () => {
+  it("returns cookieproxy command hints when config resolves to cookieproxy", async () => {
     const { baseUrl, workspaceDir } = await startTestServer();
     const configPath = path.join(workspaceDir, "public.config.json");
     await writeFile(
@@ -119,17 +119,17 @@ describe("gui bridge server", () => {
     expect(response.status).toBe(200);
     expect(payload.ok).toBe(true);
     expect(payload.effectiveDownloadMethod).toBe("cookieproxy");
-    expect(payload.hiddenArgKeys).toEqual(["cookiesSecrets"]);
+    expect(payload.hiddenArgKeys).toEqual([]);
   });
 
-  it("returns cookie hiding hints from CLI override over config", async () => {
+  it("returns cookieproxy command hints from CLI override over config", async () => {
     const { baseUrl, workspaceDir } = await startTestServer();
     const configPath = path.join(workspaceDir, "public.config.json");
     await writeFile(
       configPath,
       JSON.stringify({
         pipeline: {
-          downloadMethod: "http",
+          downloadMethod: "cookieproxy",
         },
       }),
       "utf8",
@@ -149,10 +149,10 @@ describe("gui bridge server", () => {
     expect(response.status).toBe(200);
     expect(payload.ok).toBe(true);
     expect(payload.effectiveDownloadMethod).toBe("cookieproxy");
-    expect(payload.hiddenArgKeys).toEqual(["cookiesSecrets"]);
+    expect(payload.hiddenArgKeys).toEqual([]);
   });
 
-  it("returns cookie hiding hints when config resolves from env fallback", async () => {
+  it("returns cookieproxy command hints when config resolves from env fallback", async () => {
     const { baseUrl, workspaceDir } = await startTestServer();
     const configPath = path.join(workspaceDir, "public.config.json");
     await writeFile(
@@ -180,6 +180,18 @@ describe("gui bridge server", () => {
     expect(response.status).toBe(200);
     expect(payload.ok).toBe(true);
     expect(payload.effectiveDownloadMethod).toBe("cookieproxy");
-    expect(payload.hiddenArgKeys).toEqual(["cookiesSecrets"]);
+    expect(payload.hiddenArgKeys).toEqual([]);
+  });
+
+  it("rejects invalid download method values at the bridge boundary", async () => {
+    const { baseUrl } = await startTestServer();
+
+    const response = await fetch(`${baseUrl}/api/command-hints`, {
+      method: "POST",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify({ command: "fetch", downloadMethod: "http" }),
+    });
+
+    expect(response.status).toBe(400);
   });
 });

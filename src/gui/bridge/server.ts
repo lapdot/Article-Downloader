@@ -101,7 +101,7 @@ async function registerApiRoutes(app: FastifyInstance, options: Required<GuiServ
       reply.code(200).send({
         ok: true,
         effectiveDownloadMethod,
-        hiddenArgKeys: effectiveDownloadMethod === "cookieproxy" ? ["cookiesSecrets"] : [],
+        hiddenArgKeys: [],
       });
     } catch {
       reply.code(200).send({ ok: true, hiddenArgKeys: [] });

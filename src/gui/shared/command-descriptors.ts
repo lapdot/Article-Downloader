@@ -17,7 +17,6 @@ function inferUiHint(longFlag: string): ArgUiHint {
     longFlag === "--md" ||
     longFlag === "--blocks" ||
     longFlag === "--config" ||
-    longFlag === "--cookies-secrets" ||
     longFlag === "--notion-secrets"
   ) {
     return { valueHint: "path", pathMode: "file", inputMode: "text" };
@@ -34,7 +33,6 @@ function inferUiHint(longFlag: string): ArgUiHint {
     "md",
     "blocks",
     "config",
-    "cookies-secrets",
     "notion-secrets",
     "out",
   ];
@@ -49,7 +47,7 @@ function toArgDescriptor(option: Option): GuiArgDescriptor {
   const flag = option.long ?? "";
   const kind = option.isBoolean() ? "boolean" : "string";
   const uiHint = inferUiHint(flag || key);
-  const allowedValues = key === "downloadMethod" ? ["http", "cookieproxy"] : undefined;
+  const allowedValues = key === "downloadMethod" ? ["cookieproxy"] : undefined;
   return {
     key,
     flag,

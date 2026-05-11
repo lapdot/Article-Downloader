@@ -12,7 +12,6 @@ describe("fetcher core transport orchestration", () => {
 
     const result = await downloadHtml({
       url: "https://zhuanlan.zhihu.com/p/default",
-      cookies: [],
       cookieproxyPath,
     });
 
@@ -28,7 +27,6 @@ describe("fetcher core transport orchestration", () => {
 
     const result = await downloadHtml({
       url: "https://zhuanlan.zhihu.com/p/456",
-      cookies: [],
       downloadMethod: "cookieproxy",
       cookieproxyPath,
     });
@@ -45,7 +43,6 @@ describe("fetcher core transport orchestration", () => {
 
     const result = await downloadHtml({
       url: "https://zhuanlan.zhihu.com/p/789",
-      cookies: [],
       downloadMethod: "cookieproxy",
       cookieproxyPath,
     });

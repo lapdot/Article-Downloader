@@ -21,7 +21,7 @@ export const runRequestSchema = z.object({
 export const commandHintsBodySchema = z.object({
   command: z.string().min(1),
   configPath: z.string().optional(),
-  downloadMethod: z.enum(["http", "cookieproxy"]).optional(),
+  downloadMethod: z.literal("cookieproxy").optional(),
 });
 
 export const historyFileSchema = z.object({

@@ -32,27 +32,25 @@ If code and docs diverge, align code to this document unless a newer repo decisi
   - `missing public config path: provide --config or ARTICLE_DOWNLOADER_PUBLIC_CONFIG_PATH`
 
 ### 2.3 Secret path policy
-- Cookie secret path sources:
-  - CLI: `--cookies-secrets`
-  - Env: `ARTICLE_DOWNLOADER_COOKIES_SECRETS_PATH`
-  - Default: `config/cookies.secrets.local.json`
 - Notion secret path sources:
   - CLI: `--notion-secrets`
   - Env: `ARTICLE_DOWNLOADER_NOTION_SECRETS_PATH`
   - Default: `config/notion.secrets.local.json`
-- Precedence for both: CLI > env > default.
+- Precedence: CLI > env > default.
 
 ### 2.4 Public runtime selector policy
 - Public runtime selectors may be set by CLI override or by public config, depending on the field.
 - `downloadMethod` is the project's first-class public runtime selector.
 - Supported setting methods for `downloadMethod`:
-  - CLI: `--download-method <http|cookieproxy>`
+  - CLI: `--download-method <cookieproxy>`
   - Public config: `public.config.json -> pipeline.downloadMethod`
 - Precedence for `downloadMethod`:
   - CLI `--download-method`
   - public config `pipeline.downloadMethod`
   - built-in default `cookieproxy`
-- Strategy-dependent runtime behavior must always use the effective resolved value after precedence is applied.
+- The runtime intentionally keeps effective-method resolution even though the current concrete supported set contains only `cookieproxy`.
+- `http` is no longer supported and must fail validation early when supplied through CLI, config, or bridge inputs.
+- Method-dependent runtime behavior must always use the effective resolved value after precedence is applied.
 
 ### 2.5 Default local artifact layout
 - The default runtime artifact base directory is `artifacts/runtime`.
@@ -114,39 +112,14 @@ Default-layout note:
   - Substack post -> `sourceId: "substack"`, `contentType: "post"`
 - Source identity is additional result context and does not change existing artifact meanings or stage failure semantics by itself.
 
-## 4. Cookie Contract
+## 4. Failure And Error Semantics
 
-### 4.1 Merge-only cookie model
-- Public cookie source: `public.config.json -> cookies.publicEntries`
-- Secret cookie source: `cookies.secrets.local.json` in array format
-- Runtime behavior: merge both arrays directly.
-
-### 4.2 Classification rule
-- Runtime does not classify cookies as public vs secret.
-- Split is for storage and operational separation only.
-
-### 4.3 Identity and conflict rule
-- Cookie identity tuple: `name|normalizedDomain|normalizedPath`
-- Duplicate tuple is an error:
-  - across public and secrets sources
-  - within a single source
-
-### 4.4 Empty cookie behavior
-- Empty merged cookie list is allowed.
-
-## 5. Failure And Error Semantics
-
-### 5.1 Missing-file policy
+### 4.1 Missing-file policy
 - Required file reads fail with:
   - `E_FILE_NOT_FOUND: <kind>: <path>`
 - This applies only when the file is required by the active command flow.
 
-### 5.2 Cookie validation policy
-- Invalid cookie shapes fail with:
-  - `E_COOKIE_INVALID: ...detailed reason...`
-- Validation diagnostics are emitted as `[validateCookies] ...`.
-
-### 5.3 Run pipeline and Notion policy
+### 4.2 Run pipeline and Notion policy
 - `run` does not silently skip upload after markdown generation.
 - `run` reaches upload stage and reports explicit failure when Notion cannot succeed:
   - missing notion setup
@@ -157,21 +130,19 @@ Default-layout note:
   - `reason: "notion upload failed"`
 - Artifacts are preserved for inspection and retry.
 
-### 5.4 Requirement strictness follows stage criticality
+### 4.3 Requirement strictness follows stage criticality
 - Requirement flags are not forced to be symmetric across dependencies.
 - A dependency is upstream-critical if needed to start or produce core artifacts; it should be loaded fail-fast.
 - A dependency is downstream-critical if needed only in later delivery stages; it may be validated at that stage and fail explicitly there.
-- Requirement strictness may also depend on the selected download strategy.
 - In this project:
-  - `fetch` requires cookies only when effective `pipeline.downloadMethod` is `http`.
-  - `fetch` does not require cookies when effective `pipeline.downloadMethod` is `cookieproxy`.
   - Notion setup remains downstream-critical for `run`.
 
-### 5.5 Download strategy policy
+### 4.4 Download strategy policy
 - `downloadMethod` is a first-class execution selector.
 - The effective selector may come from CLI override, public config, or built-in default according to precedence rules.
-- Method-dependent prerequisites must be decided from the effective resolved runtime value.
-- Under the default `cookieproxy` strategy, parser-stage source detection must not depend on redirect-normalized final URLs unless the fetch contract is explicitly extended to provide them.
+- The current concrete supported method set is exactly `cookieproxy`.
+- The project still preserves the effective-method resolution layer intentionally, because future methods may be added later under a new ADR.
+- Under the current `cookieproxy` strategy, parser-stage source detection must not depend on redirect-normalized final URLs unless the fetch contract is explicitly extended to provide them.
 - Substack aggregator URLs are a supported source-owned fetch-time normalization exception:
   - when `substack.com/@<author>/p-<id>` fetches a Substack reader shell instead of article HTML
   - runtime may derive the publication-host canonical article URL directly from preloaded shell data when the shell already contains a canonical post payload
@@ -188,21 +159,21 @@ Default-layout note:
   - README
   - policy docs
 
-## 6. Runtime Debug Logging
+## 5. Runtime Debug Logging
 
-### 6.1 Default mode
+### 5.1 Default mode
 - Normal output is JSON results on stdout and error messages on stderr.
 
-### 6.2 Debug mode
+### 5.2 Debug mode
 - Runtime-config debug logs are gated by:
   - `ARTICLE_DOWNLOADER_DEBUG_CONFIG=1`
 - Debug messages use `[runtime-config] ...` prefix.
 
-## 7. Change Governance
+## 6. Change Governance
 
-### 7.1 When changing runtime contract
+### 6.1 When changing runtime contract
 - Update code, tests, and README together.
 - Preserve clear error surfaces and deterministic behavior.
 
-### 7.2 Backward-compatibility default
+### 6.2 Backward-compatibility default
 - Prefer strict, explicit contracts unless compatibility is explicitly requested and documented.

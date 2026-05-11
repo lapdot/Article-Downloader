@@ -12,7 +12,6 @@ describe("substack fetch normalization", () => {
 
     const result = await downloadHtml({
       url: "https://substack.com/@exampleauthor/p-196918166",
-      cookies: [],
       downloadMethod: "cookieproxy",
       cookieproxyPath,
     });
@@ -34,7 +33,6 @@ describe("substack fetch normalization", () => {
 
     const result = await downloadHtml({
       url: "https://substack.com/@exampleauthor/p-196918166",
-      cookies: [],
       downloadMethod: "cookieproxy",
       cookieproxyPath,
     });
@@ -51,7 +49,6 @@ describe("substack fetch normalization", () => {
 
     const result = await downloadHtml({
       url: "https://substack.com/@exampleauthor/p-196918166",
-      cookies: [],
       downloadMethod: "cookieproxy",
       cookieproxyPath,
     });
@@ -71,7 +68,6 @@ describe("substack fetch normalization", () => {
 
     const result = await downloadHtml({
       url: "https://substack.com/@tritaparsi/p-196179865",
-      cookies: [],
       downloadMethod: "cookieproxy",
       cookieproxyPath,
     });
@@ -139,7 +135,6 @@ fi
 
     const result = await downloadHtml({
       url: "https://substack.com/@exampleauthor/p-196918166",
-      cookies: [],
       downloadMethod: "cookieproxy",
       cookieproxyPath: scriptPath,
     });
@@ -156,7 +151,6 @@ fi
 
     const result = await downloadHtml({
       url: "https://example.com/article",
-      cookies: [],
       downloadMethod: "cookieproxy",
       cookieproxyPath,
     });

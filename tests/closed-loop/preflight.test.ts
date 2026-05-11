@@ -7,7 +7,6 @@ const runWhenClosedLoop = process.env[CLOSED_LOOP_ENV] === "1" ? test : test.ski
 
 const PATH_ENV_KEYS = [
   "ARTICLE_DOWNLOADER_PUBLIC_CONFIG_PATH",
-  "ARTICLE_DOWNLOADER_COOKIES_SECRETS_PATH",
   "ARTICLE_DOWNLOADER_NOTION_SECRETS_PATH",
 ] as const;
 

@@ -1,27 +1,13 @@
 export type ErrorCode =
-  | "E_COOKIE_INVALID"
-  | "E_FETCH_HTTP"
   | "E_FETCH_EXEC"
   | "E_PARSE_SELECTOR"
   | "E_PARSE_UNSUPPORTED_SITE"
   | "E_NOTION_API";
 
-export interface Cookie {
-  name: string;
-  value: string;
-  domain?: string;
-  path?: string;
-  expires?: number;
-  httpOnly?: boolean;
-  secure?: boolean;
-  sameSite?: "Strict" | "Lax" | "None" | "unspecified" | "no_restriction";
-}
-
-export type DownloadMethod = "http" | "cookieproxy";
+export type DownloadMethod = "cookieproxy";
 
 export interface DownloadInput {
   url: string;
-  cookies: Cookie[];
   userAgent?: string;
   timeoutMs?: number;
   downloadMethod?: DownloadMethod;
@@ -98,17 +84,6 @@ export interface UploadResult {
   errorCode?: ErrorCode;
 }
 
-export interface PublicCookieEntry {
-  name: string;
-  value: string;
-  domain?: string;
-  path?: string;
-  expires?: number;
-  httpOnly?: boolean;
-  secure?: boolean;
-  sameSite?: "Strict" | "Lax" | "None" | "unspecified" | "no_restriction";
-}
-
 export interface PublicConfig {
   pipeline?: {
     outDir?: string;
@@ -116,13 +91,6 @@ export interface PublicConfig {
     userAgent?: string;
     downloadMethod?: DownloadMethod;
   };
-  cookies?: {
-    publicEntries?: PublicCookieEntry[];
-  };
-}
-
-export interface CookiesSecretsConfig {
-  cookies: Cookie[];
 }
 
 export interface NotionSecretsConfig {
@@ -131,7 +99,6 @@ export interface NotionSecretsConfig {
 }
 
 export interface ResolvedRuntimeConfig {
-  cookies: Cookie[];
   pipeline: {
     outDir: string;
     useHtmlStyleForImage: boolean;

@@ -29,9 +29,7 @@ function assertNoDeprecatedFlags(argv: string[]): void {
     (arg) => arg === "--notion-config" || arg.startsWith("--notion-config="),
   );
   if (hasDeprecatedCookiesFlag || hasDeprecatedNotionFlag) {
-    throw new Error(
-      "deprecated flags detected: use --config with optional --cookies-secrets and --notion-secrets",
-    );
+    throw new Error('deprecated flags detected: use --config and --notion-secrets');
   }
 }
 
@@ -40,10 +38,10 @@ function printResult(value: unknown): void {
 }
 
 function parseDownloadMethod(value: string): DownloadMethod {
-  if (value === "http" || value === "cookieproxy") {
+  if (value === "cookieproxy") {
     return value;
   }
-  throw new Error(`invalid download method: ${value}`);
+  throw new Error(`invalid download method: ${value}; only "cookieproxy" is currently supported`);
 }
 
 function simplifyRunResult(result: PipelineResult): Record<string, unknown> {
@@ -97,20 +95,16 @@ async function readRequiredJsonInput<T>(kind: string, filePath: string): Promise
 
 interface RuntimeConfigOptions {
   config?: string;
-  cookiesSecrets?: string;
   notionSecrets?: string;
   downloadMethod?: DownloadMethod;
-  requireCookies?: boolean;
   requireNotion?: boolean;
 }
 
 async function loadRuntimeConfig(options: RuntimeConfigOptions): Promise<ResolvedRuntimeConfig> {
   return resolveRuntimeConfig({
     configPath: options.config,
-    cookiesSecretsPath: options.cookiesSecrets,
     notionSecretsPath: options.notionSecrets,
     downloadMethodOverride: options.downloadMethod,
-    requireCookies: options.requireCookies,
     requireNotion: options.requireNotion,
   });
 }
@@ -123,7 +117,6 @@ async function loadRuntimeConfigForDownload(options: RuntimeConfigOptions): Prom
   return loadRuntimeConfig({
     ...options,
     downloadMethod,
-    requireCookies: downloadMethod === "http",
   });
 }
 
@@ -171,21 +164,18 @@ export function createProgram(): Command {
     .option("--config <path>", "path to public config JSON")
     .option(
       "--download-method <method>",
-      "download method override (http or cookieproxy)",
+      "download method override (cookieproxy)",
       parseDownloadMethod,
     )
-    .option("--cookies-secrets <path>", "path to cookies secrets JSON")
     .requiredOption("--out <dir>", "output base directory")
     .action(async (opts) => {
       try {
         const runtimeConfig = await loadRuntimeConfigForDownload({
           config: opts.config,
           downloadMethod: opts.downloadMethod,
-          cookiesSecrets: opts.cookiesSecrets,
         });
         const result = await downloadHtml({
           url: opts.url,
-          cookies: runtimeConfig.cookies,
           userAgent: runtimeConfig.pipeline.userAgent,
           downloadMethod: runtimeConfig.pipeline.downloadMethod,
           cookieproxyPath: runtimeConfig.pipeline.cookieproxyPath,
@@ -323,7 +313,6 @@ export function createProgram(): Command {
         const runtimeConfig = await loadRuntimeConfig({
           config: opts.config,
           notionSecrets: opts.notionSecrets,
-          requireCookies: false,
           requireNotion: true,
         });
         const notionSecrets = getRequiredNotionSecrets(runtimeConfig);
@@ -368,10 +357,9 @@ export function createProgram(): Command {
     .option("--config <path>", "path to public config JSON")
     .option(
       "--download-method <method>",
-      "download method override (http or cookieproxy)",
+      "download method override (cookieproxy)",
       parseDownloadMethod,
     )
-    .option("--cookies-secrets <path>", "path to cookies secrets JSON")
     .option("--notion-secrets <path>", "path to notion secrets JSON")
     .requiredOption("--out <dir>", "output base directory")
     .option(
@@ -388,9 +376,7 @@ export function createProgram(): Command {
         const { runtimeConfig, notionSetupError } = await loadRuntimeConfigForRun({
           config: opts.config,
           downloadMethod: opts.downloadMethod,
-          cookiesSecrets: opts.cookiesSecrets,
           notionSecrets: opts.notionSecrets,
-          requireCookies: false,
         });
 
         const result = await runPipeline({

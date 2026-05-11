@@ -2,7 +2,9 @@
 
 ## Status
 
-Accepted
+Superseded by [0006-cookieproxy-only-download-method.md](./0006-cookieproxy-only-download-method.md)
+
+This ADR is retained only as historical context for the earlier transition to a cookieproxy-default runtime.
 
 ## Decision
 

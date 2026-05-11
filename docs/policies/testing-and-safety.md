@@ -7,8 +7,7 @@ This document defines the authoritative testing, fixture-safety, and validation 
 Tests are expected to protect:
 - Current CLI contract, including options and unknown-flag behavior
 - Runtime config resolution and precedence rules
-- Cookie merge and validation invariants
-- Strategy-dependent prerequisite behavior
+- Download-method selection logic and validation behavior
 - Parser correctness and strict selector behavior
 - Run upload-stage semantics
 - Redaction and safety guarantees

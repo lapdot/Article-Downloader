@@ -38,14 +38,12 @@ function redactForMeta(value: unknown): unknown {
 }
 
 export async function runPipeline(input: PipelineInput): Promise<PipelineResult> {
-  const cookies = input.runtimeConfig.cookies;
   const useHtmlStyleForImage =
     input.useHtmlStyleForImage ?? input.runtimeConfig.pipeline.useHtmlStyleForImage;
   const baseOutputDir = input.outDir ?? input.runtimeConfig.pipeline.outDir;
 
   const download = await downloadHtml({
     url: input.url,
-    cookies,
     userAgent: input.runtimeConfig.pipeline.userAgent,
     downloadMethod: input.runtimeConfig.pipeline.downloadMethod,
     cookieproxyPath: input.runtimeConfig.pipeline.cookieproxyPath,
@@ -128,7 +126,6 @@ export async function runPipeline(input: PipelineInput): Promise<PipelineResult>
       outDir: baseOutputDir,
       useHtmlStyleForImage,
       notionUploadAttempted: uploadAttempted,
-      cookieCount: cookies.length,
     },
     download: {
       ...download,

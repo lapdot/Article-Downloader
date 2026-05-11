@@ -37,6 +37,7 @@ For current project behavior:
 Recommended additions for this repo's current source work:
 - read `workflows/add-a-new-source.md` when onboarding a supported source
 - read `architecture/overview.md` for the current parser-stage orchestration and source-adapter structure
+- read `decisions/0006-cookieproxy-only-download-method.md` for the current download-method policy
 - read `decisions/0004-substack-canonical-url-policy.md` for the current Substack canonical-URL choice
 - read `decisions/0005-inline-equation-markdown-policy.md` for the current Markdown-to-Notion inline-equation behavior
 

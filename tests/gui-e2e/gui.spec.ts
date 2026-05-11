@@ -88,18 +88,18 @@ test("fetch resolves cookieproxy command hints in the browser", async ({ page })
 
   expect(hints).toMatchObject({
     effectiveDownloadMethod: "cookieproxy",
-    hiddenArgKeys: ["cookiesSecrets"],
+    hiddenArgKeys: [],
   });
 });
 
-test("fetch download method select overrides config in the GUI", async ({ page }) => {
-  const root = await mkdtemp(path.join(os.tmpdir(), "gui-http-config-"));
+test("fetch download method select exposes only cookieproxy in the GUI", async ({ page }) => {
+  const root = await mkdtemp(path.join(os.tmpdir(), "gui-cookieproxy-config-"));
   const configPath = path.join(root, "public.config.json");
   await writeFile(
     configPath,
     JSON.stringify({
       pipeline: {
-        downloadMethod: "http",
+        downloadMethod: "cookieproxy",
       },
     }),
     "utf8",
@@ -109,7 +109,6 @@ test("fetch download method select overrides config in the GUI", async ({ page }
   await selectCommandByName(page, "fetch");
   await page.getByTestId("arg-input-config").fill(configPath);
   await page.getByTestId("arg-select-downloadMethod").click();
-  await page.getByRole("option", { name: "cookieproxy" }).click();
-
-  await expect(page.getByText("--cookies-secrets")).toHaveCount(0);
+  await expect(page.getByRole("option", { name: "cookieproxy" })).toBeVisible();
+  await expect(page.getByRole("option", { name: "http" })).toHaveCount(0);
 });

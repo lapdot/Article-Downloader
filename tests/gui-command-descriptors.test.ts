@@ -21,17 +21,19 @@ describe("gui command descriptors", () => {
     const urlArg = fetchCommand?.args.find((arg) => arg.key === "url");
     const outArg = fetchCommand?.args.find((arg) => arg.key === "out");
     const configArg = fetchCommand?.args.find((arg) => arg.key === "config");
-    const cookiesSecretsArg = fetchCommand?.args.find((arg) => arg.key === "cookiesSecrets");
+    const downloadMethodArg = fetchCommand?.args.find((arg) => arg.key === "downloadMethod");
 
     expect(urlArg?.required).toBe(true);
     expect(outArg?.required).toBe(true);
     expect(configArg?.required).toBe(false);
-    expect(cookiesSecretsArg?.required).toBe(false);
+    expect(downloadMethodArg?.required).toBe(false);
   });
 
   it("exposes constrained values for download method", () => {
     const fetchCommand = findCommandDescriptor("fetch");
     const downloadMethodArg = fetchCommand?.args.find((arg) => arg.key === "downloadMethod");
-    expect(downloadMethodArg?.allowedValues).toEqual(["http", "cookieproxy"]);
+    const cookiesSecretsArg = fetchCommand?.args.find((arg) => arg.key === "cookiesSecrets");
+    expect(downloadMethodArg?.allowedValues).toEqual(["cookieproxy"]);
+    expect(cookiesSecretsArg).toBeUndefined();
   });
 });

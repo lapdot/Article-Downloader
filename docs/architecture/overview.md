@@ -55,11 +55,12 @@ Current baseline:
 
 The fetch stage is also split between orchestration and source ownership:
 
-- `src/core/fetcher.ts` owns generic transport behavior such as `http`, `cookieproxy`, timeouts, and low-level result shaping
+- `src/core/fetcher.ts` owns generic transport behavior, the effective `downloadMethod` seam, cookieproxy execution, and low-level result shaping
 - `src/core/fetcher.ts` reuses the same shared source-resolution helper before invoking any optional source-owned fetch normalization
 - source adapters may optionally normalize a fetched result when a supported input URL first returns a shell or wrapper page
 - source adapters may normalize from either a shell-level canonical pointer already embedded in the fetched HTML or a source-specific lookup flow when the shell does not expose enough direct information
 - this keeps source-specific fetch behavior with the same source module that already owns parsing and metadata logic
+- the current concrete transport set contains only `cookieproxy`, but the runtime intentionally keeps explicit effective-method resolution for future extensibility
 
 ## Source Of Truth
 

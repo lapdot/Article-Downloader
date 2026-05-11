@@ -23,7 +23,7 @@ A Node.js (TypeScript + ESM) project for turning article URLs into local HTML, M
   - fetched source HTML (`page.html`)
   - parsed Markdown article (`article.md`)
   - Notion block JSON (`notion-blocks.json`)
-- Download webpage HTML with URL-aware cookie handling, with optional `cookieproxy` command execution.
+- Download webpage HTML through the current `cookieproxy` transport, while preserving explicit `downloadMethod` selection for future extensibility.
 - Parse supported article sources to Markdown using source-specific adapters for:
   - Zhihu:
     - answer (`/question/.../answer/...`)
@@ -92,30 +92,11 @@ Configuration is split into non-sensitive and sensitive files.
     "useHtmlStyleForImage": false,
     "userAgent": "Mozilla/5.0 (Macintosh; Intel Mac OS X 10_15_7) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/123.0.0.0 Safari/537.36",
     "downloadMethod": "cookieproxy"
-  },
-  "cookies": {
-    "publicEntries": [
-      { "name": "_ga", "value": "GA1.2.example", "domain": ".zhihu.com", "path": "/" },
-      { "name": "public_cookie", "value": "public_value", "domain": ".zhihu.com", "path": "/" }
-    ]
   }
 }
 ```
 
 ### Sensitive (must be gitignored)
-
-`config/cookies.secrets.local.json`
-
-```json
-[
-  {
-    "name": "z_c0",
-    "value": "secret_cookie_value",
-    "domain": ".zhihu.com",
-    "path": "/"
-  }
-]
-```
 
 `config/notion.secrets.local.json`
 
@@ -129,7 +110,6 @@ Configuration is split into non-sensitive and sensitive files.
 The following files are included as templates:
 
 - `config/public.config.example.json`
-- `config/cookies.secrets.local.example.json`
 - `config/notion.secrets.local.example.json`
 
 ## Artifact Layout
@@ -153,13 +133,12 @@ Use `.local/` for operational state only, not for user content artifacts.
 Config file paths can be overridden:
 
 - `ARTICLE_DOWNLOADER_PUBLIC_CONFIG_PATH`
-- `ARTICLE_DOWNLOADER_COOKIES_SECRETS_PATH`
 - `ARTICLE_DOWNLOADER_NOTION_SECRETS_PATH`
 - `ARTICLE_DOWNLOADER_COOKIEPROXY_PATH`
 
 For config-aware commands, path precedence is:
 
-- CLI flag (`--config` / `--cookies-secrets` / `--notion-secrets`)
+- CLI flag (`--config` / `--notion-secrets`)
 - corresponding env variable
 - default (for secrets paths only)
 
@@ -167,16 +146,13 @@ For config-aware commands, path precedence is:
 
 Secret values are never loaded from environment variables.
 
-`pipeline.userAgent` is non-sensitive and controls the User-Agent header for HTTP-based HTML download requests (`fetch`/`run`). If omitted, a built-in default browser UA is used.
-
 `pipeline.downloadMethod` controls how HTML is downloaded:
 
-- `http`: use the in-process `undici` fetcher
-- `cookieproxy` (default): use the external `cookieproxy --url <url> --output <path>` command
+- `cookieproxy` (default and only currently supported value): use the external `cookieproxy --url <url> --output <path>` command
 
 `downloadMethod` can be set in two ways:
 
-- `--download-method <http|cookieproxy>` on supported download commands
+- `--download-method <cookieproxy>` on supported download commands
 - `pipeline.downloadMethod` in `public.config.json`
 
 Precedence is:
@@ -187,13 +163,15 @@ Precedence is:
 
 Both setting methods are optional on any given run.
 
+The project intentionally keeps effective `downloadMethod` resolution even though only `cookieproxy` is valid today. This is a deliberate extension seam for future methods, not leftover transition code. See `docs/decisions/0006-cookieproxy-only-download-method.md`.
+
 `ARTICLE_DOWNLOADER_COOKIEPROXY_PATH` overrides the executable path for the `cookieproxy` method. If unset, runtime falls back to `/Users/lapdot/Documents/projects/runnable/cookieproxy`.
 
 For Substack aggregator URLs like `https://substack.com/@<author>/p-<id>`, the downloader may perform extra fetches behind the scenes: it reads publication context from the fetched shell, resolves the publication-host canonical post URL through Substack's posts API, and then re-fetches the canonical article page with the same download method. If that final canonical-page fetch fails but the posts lookup already includes article body data, runtime may synthesize a parser-friendly article HTML artifact from the lookup payload instead of falling back to the reader shell.
 
 The current rationale for preferring the publication-host canonical URL for Substack aggregator inputs is recorded in `docs/decisions/0004-substack-canonical-url-policy.md`.
 
-For the full contract around config precedence, cookie behavior, file errors, and CLI strictness, see `docs/policies/runtime-contract.md`.
+For the full contract around config precedence, download-method selection, file errors, and CLI strictness, see `docs/policies/runtime-contract.md`.
 Deferred Substack ideas that we are not implementing right now are tracked in `docs/plans/substack-future-work.md`.
 Environment-specific troubleshooting notes, including sandbox DNS limitations observed during development, live in `docs/workflows/url-driven-iteration.md`.
 
@@ -209,10 +187,6 @@ npx tsx src/cli.ts fetch \
   --config ./config/public.config.json \
   --out ./artifacts/runtime
 ```
-
-To use `http` instead, set `"pipeline.downloadMethod": "http"` in `config/public.config.json` or pass `--download-method http`.
-
-When `downloadMethod` is `cookieproxy`, `fetch` does not require `--cookies-secrets`.
 
 ### 2) Extract Metadata From HTML
 
@@ -260,8 +234,7 @@ Upload is optional and downstream from artifact generation. The project’s “N
 npx tsx src/cli.ts run \
   --url "https://zhuanlan.zhihu.com/p/123" \
   --config ./config/public.config.json \
-  --download-method http \
-  --cookies-secrets ./config/cookies.secrets.local.json \
+  --download-method cookieproxy \
   --notion-secrets ./config/notion.secrets.local.json \
   --out ./artifacts/runtime
 ```
@@ -325,33 +298,6 @@ For GUI development details, script entrypoints, bridge routes, and path-picker 
 - `docs/workflows/local-dev.md`
 - `docs/policies/gui-contract.md`
 
-## Cookie Secrets Format
-
-Cookie secrets use list-only format:
-
-```json
-[
-  {
-    "name": "z_c0",
-    "value": "secret_cookie_value",
-    "domain": ".zhihu.com",
-    "path": "/"
-  }
-]
-```
-
-## Public Cookie Field
-
-Public cookie entries use `cookies.publicEntries`:
-
-```json
-{
-  "cookies": {
-    "publicEntries": [{ "name": "z_c0", "value": "cookie_value", "domain": ".zhihu.com", "path": "/" }]
-  }
-}
-```
-
 ## Library API
 
 ```ts
@@ -369,8 +315,6 @@ import {
 ## Error codes
 
 - `E_FILE_NOT_FOUND` (thrown for missing required files)
-- `E_COOKIE_INVALID`
-- `E_FETCH_HTTP`
 - `E_PARSE_SELECTOR`
 - `E_PARSE_UNSUPPORTED_SITE`
 - `E_NOTION_API`

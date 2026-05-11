@@ -3,14 +3,10 @@ import { mkdtemp, readFile, rm } from "node:fs/promises";
 import { tmpdir } from "node:os";
 import path from "node:path";
 import { promisify } from "node:util";
-import { fetch } from "undici";
 import { parseSourceUrl, resolveSource } from "../adapters/resolve-source.js";
-import { toCookieHeaderForUrl } from "./cookies.js";
 import { toIsoNow } from "../utils/time.js";
 import type { DownloadInput, DownloadMethod, DownloadResult } from "../types.js";
 
-const DEFAULT_USER_AGENT =
-  "Mozilla/5.0 (Macintosh; Intel Mac OS X 10_15_7) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/123.0.0.0 Safari/537.36";
 const DEFAULT_COOKIEPROXY_PATH = "/Users/lapdot/Documents/projects/runnable/cookieproxy";
 const execFileAsync = promisify(execFile);
 
@@ -20,63 +16,6 @@ function getDownloadMethod(input: DownloadInput): DownloadMethod {
 
 function getCookieproxyPath(input: DownloadInput): string {
   return input.cookieproxyPath ?? process.env.ARTICLE_DOWNLOADER_COOKIEPROXY_PATH ?? DEFAULT_COOKIEPROXY_PATH;
-}
-
-async function downloadViaHttp(
-  input: DownloadInput,
-  fetchedAt: string,
-): Promise<DownloadResult> {
-  const timeoutMs = input.timeoutMs ?? 15000;
-  const controller = new AbortController();
-  const timeout = setTimeout(() => controller.abort(), timeoutMs);
-
-  try {
-    const response = await fetch(input.url, {
-      method: "GET",
-      headers: {
-        cookie: toCookieHeaderForUrl(input.cookies, input.url),
-        "user-agent": input.userAgent ?? DEFAULT_USER_AGENT,
-      },
-      signal: controller.signal,
-      redirect: "follow",
-    });
-
-    const html = await response.text();
-    if (response.status !== 200) {
-      return {
-        ok: false,
-        url: input.url,
-        downloadMethod: "http",
-        finalUrl: response.url,
-        statusCode: response.status,
-        html,
-        fetchedAt,
-        reason: `unexpected status ${response.status}`,
-        errorCode: "E_FETCH_HTTP",
-      };
-    }
-
-    return {
-      ok: true,
-      url: input.url,
-      downloadMethod: "http",
-      finalUrl: response.url,
-      statusCode: response.status,
-      html,
-      fetchedAt,
-    };
-  } catch (error) {
-    return {
-      ok: false,
-      url: input.url,
-      downloadMethod: "http",
-      fetchedAt,
-      reason: error instanceof Error ? error.message : "unknown fetch error",
-      errorCode: "E_FETCH_HTTP",
-    };
-  } finally {
-    clearTimeout(timeout);
-  }
 }
 
 async function downloadViaCookieproxy(
@@ -151,10 +90,8 @@ async function downloadViaCookieproxy(
 }
 
 async function downloadOnce(input: DownloadInput, fetchedAt: string): Promise<DownloadResult> {
-  const method = getDownloadMethod(input);
-  return method === "cookieproxy"
-    ? downloadViaCookieproxy(input, fetchedAt)
-    : downloadViaHttp(input, fetchedAt);
+  void getDownloadMethod(input);
+  return downloadViaCookieproxy(input, fetchedAt);
 }
 
 export async function downloadHtml(input: DownloadInput): Promise<DownloadResult> {

@@ -7,7 +7,7 @@ vi.mock("../src/core/fetcher.js", () => ({
   downloadHtml: vi.fn(async ({ url }: { url: string }) => ({
     ok: true,
     url,
-    downloadMethod: "http",
+    downloadMethod: "cookieproxy",
     finalUrl: url,
     statusCode: 200,
     html: "<html><body><h1>Title</h1></body></html>",
@@ -47,11 +47,10 @@ describe("pipeline run upload behavior", () => {
     const result = await runPipeline({
       url: "https://zhuanlan.zhihu.com/p/123",
       runtimeConfig: {
-        cookies: [{ name: "z_c0", value: "cookie-v", domain: ".zhihu.com", path: "/" }],
         pipeline: {
           outDir,
           useHtmlStyleForImage: false,
-          downloadMethod: "http",
+          downloadMethod: "cookieproxy",
           cookieproxyPath: "/tmp/cookieproxy",
         },
         notion: {},
@@ -76,11 +75,10 @@ describe("pipeline run upload behavior", () => {
     const result = await runPipeline({
       url: "https://zhuanlan.zhihu.com/p/123",
       runtimeConfig: {
-        cookies: [{ name: "z_c0", value: "cookie-v", domain: ".zhihu.com", path: "/" }],
         pipeline: {
           outDir,
           useHtmlStyleForImage: false,
-          downloadMethod: "http",
+          downloadMethod: "cookieproxy",
           cookieproxyPath: "/tmp/cookieproxy",
         },
         notion: {
@@ -106,11 +104,10 @@ describe("pipeline run upload behavior", () => {
     const result = await runPipeline({
       url: "https://zhuanlan.zhihu.com/p/123",
       runtimeConfig: {
-        cookies: [{ name: "z_c0", value: "cookie-v", domain: ".zhihu.com", path: "/" }],
         pipeline: {
           outDir,
           useHtmlStyleForImage: false,
-          downloadMethod: "http",
+          downloadMethod: "cookieproxy",
           cookieproxyPath: "/tmp/cookieproxy",
         },
         notion: {

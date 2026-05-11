@@ -18,9 +18,10 @@ Add support for a new source in a way that keeps fetch, parse, test, and documen
    - List the real input URL shapes the source uses.
    - Decide which URL families count as supported inputs and which should remain unsupported.
 
-2. Confirm the default fetch strategy first.
-   - Use `cookieproxy` as the default acquisition path unless there is a concrete reason to choose another method.
+2. Confirm the current fetch method first.
+   - Use `cookieproxy` as the current acquisition path unless there is a concrete, approved reason to add another method.
    - Do not redesign fetch policy just because a new source is being added.
+   - If a new source truly needs another method, update the download-method ADR, runtime contract, tests, and GUI contract together.
 
 3. Collect real HTML artifacts through the normal URL-driven workflow.
    - Start from a real source URL.
@@ -75,7 +76,7 @@ Use the generated artifacts to locate the real problem before changing code.
 Substack was added by following this pattern:
 
 - support both aggregator and publication URL families
-- keep `cookieproxy` as the default fetch method
+- keep `cookieproxy` as the current fetch method
 - inspect fetched HTML artifacts first
 - add fetch-time normalization because some aggregator URLs returned a reader shell instead of article HTML
 - prefer a preloaded canonical post payload when the shell already exposes it
