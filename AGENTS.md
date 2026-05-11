@@ -12,6 +12,7 @@ For repository-specific machine context, read `CONTEXT.md`.
 ## General Operating Principles
 
 - Preserve explicit and deterministic behavior unless a requested change updates that contract.
+- Keep high-frequency and user-facing errors actionable: state what failed, where the system looked or what input it used, and what the next corrective action is.
 - Update tests and docs together when behavior or interfaces change.
 - Prefer targeted changes over broad rewrites unless the task clearly calls for structural work.
 - Preserve useful upstream artifacts and intermediate outputs when downstream work fails, unless the project explicitly documents a different rule.

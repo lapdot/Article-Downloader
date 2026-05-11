@@ -163,11 +163,18 @@ Default-layout note:
 
 ### 5.1 Default mode
 - Normal output is JSON results on stdout and error messages on stderr.
+- Normal machine-readable output must stay concise and contract-stable for automation.
+- Do not let normal machine-readable output get noisy over time.
 
 ### 5.2 Debug mode
 - Runtime-config debug logs are gated by:
   - `ARTICLE_DOWNLOADER_DEBUG_CONFIG=1`
 - Debug messages use `[runtime-config] ...` prefix.
+- Extra diagnostic detail belongs behind explicit debug modes or log channels, not in default machine-readable output.
+
+### 5.3 Redaction policy
+- Runtime-produced artifacts and runtime diagnostics must not expose secret values or secret file paths.
+- Redaction requirements apply even when a command fails after partial progress and leaves artifacts behind for debugging.
 
 ## 6. Change Governance
 

@@ -102,6 +102,7 @@ This document defines the authoritative GUI and bridge contract for the local-on
 
 - Bridge logging backend uses `pino` with file sink at:
   - `<logsDir>/gui-server.log`
+- Persisted GUI logs and bridge-surfaced diagnostics must not expose secret values or secret file paths.
 - GUI history persistence remains file-based through `history.json`, not database-backed.
 - History file loading must be schema-guarded with Zod and fall back safely to empty records on malformed content.
 - By default, GUI operational state stays under `.local/gui/`, while user-facing generated artifacts belong under `artifacts/runtime/`.
