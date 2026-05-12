@@ -1,8 +1,8 @@
 # Docs Index
 
-This directory now uses a simple split between active reference docs and historical planning docs.
+This directory uses a simple split between active reference docs and historical planning docs.
 
-Top-level repository context for machine readers lives in `../CONTEXT.md`. Use this file as the index once you are already navigating within `docs/`.
+Top-level repository context for agent readers lives in `../CONTEXT.md`. Use this file as the index once you are already navigating within `docs/`.
 
 Documentation structure and role boundaries are governed by `policies/documentation-structure.md`.
 
@@ -10,17 +10,21 @@ Documentation structure and role boundaries are governed by `policies/documentat
 
 Use these first:
 
-- `policies/`
-  - authoritative repo contracts
+- `reference/`
+  - human-first command and API lookup
+  - `cli-usage.md`: CLI command reference and examples
+  - `library-api.md`: exported package surface and public types
 - `workflows/`
-  - current operating procedures
+  - primarily human-first operating procedures
   - `url-driven-iteration.md`: primary URL-to-artifacts review and refinement loop
   - `add-a-new-source.md`: workflow for onboarding a new supported source
   - `local-dev.md`: local setup, test, and GUI operating loops
+- `policies/`
+  - shared authoritative contracts
 - `architecture/`
-  - current system structure
+  - shared structural explanation
 - `decisions/`
-  - accepted design decisions and rationale
+  - shared rationale and accepted design choices
 
 ## Archive
 
@@ -35,10 +39,13 @@ These files are useful background, but they are not the current source of truth 
 For current project behavior:
 1. `policies/`
 2. `workflows/`
-3. `architecture/`
-4. `decisions/`
+3. `reference/`
+4. `architecture/`
+5. `decisions/`
 
 Recommended additions for this repo's current source work:
+- read `reference/cli-usage.md` for command-by-command CLI usage
+- read `reference/library-api.md` for exported package surface
 - read `workflows/add-a-new-source.md` when onboarding a supported source
 - read `architecture/overview.md` for the current parser-stage orchestration and source-adapter structure
 - read `decisions/0006-cookieproxy-only-download-method.md` for the current download-method policy
@@ -50,8 +57,9 @@ For implementation history and planning context:
 
 ## Maintenance Rule
 
-- Put current rules in `policies/`.
+- Put command and API lookup docs in `reference/`.
 - Put current procedures in `workflows/`.
+- Put current rules in `policies/`.
 - Put stable structural explanation in `architecture/`.
 - Put accepted rationale in `decisions/`.
 - Avoid creating new root-level `docs/*.md` files for active policy unless they are clearly temporary planning material.

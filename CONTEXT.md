@@ -1,6 +1,6 @@
 # Repository Context
 
-ArticleDownloader is a Node.js + TypeScript project for downloading article pages, parsing them into Markdown, and optionally uploading the result to Notion. This file is the machine-facing entrypoint for repository context, contracts, and reading order.
+ArticleDownloader is a Node.js + TypeScript project for downloading article pages, parsing them into Markdown, and optionally uploading the result to Notion. This file is the top-level agent-first repository context entrypoint for ArticleDownloader.
 
 ## Primary Surfaces
 
@@ -22,7 +22,9 @@ ArticleDownloader is a Node.js + TypeScript project for downloading article page
 - GUI contract: `docs/policies/gui-contract.md`
 - Architecture overview: `docs/architecture/overview.md`
 - Docs index: `docs/README.md`
-- Human onboarding and usage: `README.md`
+- Human-first quickstart: `README.md`
+- CLI reference: `docs/reference/cli-usage.md`
+- Library API reference: `docs/reference/library-api.md`
 
 ## Reading Order
 

@@ -9,6 +9,8 @@ For authoritative contracts, use:
 - `docs/policies/testing-and-safety.md`
 - `docs/policies/gui-contract.md`
 
+For command-by-command CLI usage and copy-paste examples, see `docs/reference/cli-usage.md`.
+
 ## Goal
 
 Turn one source URL into reviewable local artifacts:
@@ -39,7 +41,9 @@ Notion upload is optional and is not part of the definition of â€œNotion formatâ
 7. Refine the relevant fetch, parser, or Notion-transform behavior.
 8. Regenerate and repeat until the artifacts are acceptable.
 
-## Command Sequence
+## Typical Command Sequence
+
+Use the following command sequence as a representative workflow loop. For the full CLI reference, flag notes, and command coverage beyond this loop, use `docs/reference/cli-usage.md`.
 
 ### 1. Fetch HTML
 

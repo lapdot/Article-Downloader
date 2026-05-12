@@ -161,6 +161,14 @@ Default-layout note:
   - README
   - policy docs
 
+### 4.5 Current named errors
+- Current notable named errors include:
+  - `E_FILE_NOT_FOUND`
+  - `E_PARSE_SELECTOR`
+  - `E_PARSE_UNSUPPORTED_SITE`
+  - `E_NOTION_API`
+- These identifiers are useful diagnostic surfaces, but they do not replace the command-level failure semantics defined above.
+
 ## 5. Runtime Debug Logging
 
 ### 5.1 Default mode

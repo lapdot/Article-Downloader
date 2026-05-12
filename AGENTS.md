@@ -1,12 +1,12 @@
 # Agent Guide
 
-This file is intended to be portable across repositories.
+This file is the portable agent-first operating guide across repositories.
 
-For repository-specific machine context, read `CONTEXT.md`.
+For repository-specific agent-first context, read `CONTEXT.md`.
 
 ## Working Model
 
-- Start with the repository-specific machine entrypoint before making assumptions about project structure or behavior.
+- Start with the repository-specific agent-first entrypoint before making assumptions about project structure or behavior.
 - Treat the most specific documented contract as the source of truth for runtime behavior, interfaces, and safety expectations.
 
 ## General Operating Principles
@@ -23,8 +23,8 @@ For repository-specific machine context, read `CONTEXT.md`.
 
 - For substantial feature plans that introduce a new dependency or materially rely on third-party libraries, include a short libraries section.
 - In that libraries section, name the main third-party libraries you plan to use and where each library will be used.
-- For substantial multi-phase, multi-batch, or likely multi-session work, write the plan into the repository under `docs/plans/`.
-- Update tracked plan docs in `docs/plans/` as phases or batches complete so future sessions can continue from current state.
+- For substantial multi-phase, multi-batch, or likely multi-session work, write the plan into the repository's established planning file and canonical in-repo location.
+- Update that tracked planning file as phases or batches complete so future sessions can continue from current state.
 
 ## Validation
 
