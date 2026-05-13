@@ -115,6 +115,7 @@ Default-layout note:
   - Substack post -> `sourceId: "substack"`, `contentType: "post"`
   - Foreign Affairs article page -> `sourceId: "foreignaffairs"`, `contentType: "post"`
   - Foreign Affairs podcast page -> `sourceId: "foreignaffairs"`, `contentType: "podcast"`
+  - Foreign Policy article page -> `sourceId: "foreignpolicy"`, `contentType: "post"`
 - Source identity is additional result context and does not change existing artifact meanings or stage failure semantics by itself.
 
 ## 4. Failure And Error Semantics
@@ -179,6 +180,14 @@ Default-layout note:
 - If no PDF link is available, `fetch` fails with an actionable no-PDF reason while preserving `page.html` and `meta.json`.
 - Metadata, Markdown parsing, Notion block generation, upload, and `run` are not implemented for Foreign Affairs.
 - Deterministic tests cover representative Foreign Affairs HTML/PDF/no-PDF behavior with fake cookieproxy fixtures. Live verification against `foreignaffairs.com` is environment-dependent because it requires external network access and the relevant cookieproxy session state.
+
+### 4.7 Foreign Policy fetch-only PDF policy
+- Foreign Policy support is currently limited to the `fetch` command.
+- `fetch` first downloads the HTML page through `cookieproxy` to verify that the page exists, then generates the official PDF URL by removing existing query/hash data and setting `download_pdf=true`, then downloads that PDF through the same effective download method.
+- The saved PDF artifact uses the article slug from the HTML URL path, such as `trump-china-hawk-xi-jinping-covid.pdf`.
+- If the generated PDF URL returns non-PDF content, `fetch` fails while preserving `page.html` and `meta.json`.
+- Metadata, Markdown parsing, Notion block generation, upload, and `run` are not implemented for Foreign Policy.
+- Deterministic tests cover representative Foreign Policy HTML/PDF and PDF-failure behavior with fake cookieproxy fixtures. Live verification against `foreignpolicy.com` is environment-dependent because it requires external network access and the relevant cookieproxy session state.
 
 ## 5. Runtime Debug Logging
 

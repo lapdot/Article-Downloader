@@ -150,6 +150,56 @@ esac
   return scriptPath;
 }
 
+async function createForeignPolicyFakeCookieproxy(
+  root: string,
+  mode: "success" | "html-failure" | "pdf-html",
+): Promise<string> {
+  const scriptPath = path.join(root, "fake-foreignpolicy-cookieproxy.sh");
+  const script = `#!/bin/sh
+output=""
+url=""
+while [ "$#" -gt 0 ]; do
+  case "$1" in
+    --url)
+      url="$2"
+      shift 2
+      ;;
+    --output)
+      output="$2"
+      shift 2
+      ;;
+    *)
+      shift
+      ;;
+  esac
+done
+case "$url" in
+  "https://foreignpolicy.com/2026/05/12/trump-china-hawk-xi-jinping-covid/")
+    ${
+      mode === "html-failure"
+        ? `echo "foreignpolicy html fetch failed" >&2
+    exit 9`
+        : `printf '<!doctype html><html><body><h1>Foreign Policy article</h1></body></html>' > "$output"`
+    }
+    ;;
+  "https://foreignpolicy.com/2026/05/12/trump-china-hawk-xi-jinping-covid/?download_pdf=true")
+    ${
+      mode === "pdf-html"
+        ? `printf '<!doctype html><html><body>login</body></html>' > "$output"`
+        : `printf '%s\\n' '%PDF-1.7 foreignpolicy pdf body' > "$output"`
+    }
+    ;;
+  *)
+    echo "unexpected url: $url" >&2
+    exit 9
+    ;;
+esac
+`;
+  await writeTextFile(scriptPath, script);
+  await chmod(scriptPath, 0o755);
+  return scriptPath;
+}
+
 describe("cli", () => {
   async function captureStderr(run: () => Promise<void>): Promise<string> {
     let stderr = "";
@@ -360,6 +410,113 @@ describe("cli", () => {
     expect(parsed.ok).toBe(false);
     expect(parsed.reason).toContain("downloaded file is not a pdf");
     await expect(readFile(path.join(runDir, "105301.pdf"), "utf8")).rejects.toMatchObject({
+      code: "ENOENT",
+    });
+  });
+
+  test("fetch command downloads foreignpolicy pdf using slug filename", async () => {
+    const root = await mkdtemp(path.join(tmpdir(), "article-downloader-test-"));
+    const outDir = path.join(root, "output");
+    const { configPath } = await writeConfigFiles(root);
+    process.env.ARTICLE_DOWNLOADER_COOKIEPROXY_PATH = await createForeignPolicyFakeCookieproxy(root, "success");
+
+    const stdout = await captureStdout(async () => {
+      await runCli([
+        "node",
+        "article-downloader",
+        "fetch",
+        "--url",
+        "https://foreignpolicy.com/2026/05/12/trump-china-hawk-xi-jinping-covid/",
+        "--config",
+        configPath,
+        "--out",
+        outDir,
+      ]);
+    });
+
+    const createdDirs = await (await import("node:fs/promises")).readdir(outDir);
+    const runDir = path.join(outDir, createdDirs[0]);
+    const pdf = await readFile(
+      path.join(runDir, "trump-china-hawk-xi-jinping-covid.pdf"),
+      "utf8",
+    );
+    const meta = await readFile(path.join(runDir, "meta.json"), "utf8");
+    const parsed = JSON.parse(stdout) as { ok: boolean; pdfPath?: string; pdfUrl?: string };
+    expect(parsed.ok).toBe(true);
+    expect(parsed.pdfPath).toBe(path.join(runDir, "trump-china-hawk-xi-jinping-covid.pdf"));
+    expect(parsed.pdfUrl).toBe(
+      "https://foreignpolicy.com/2026/05/12/trump-china-hawk-xi-jinping-covid/?download_pdf=true",
+    );
+    expect(pdf).toContain("%PDF-");
+    expect(meta).toContain('"sourceId": "foreignpolicy"');
+    expect(meta).toContain("download_pdf=true");
+  });
+
+  test("fetch command reports foreignpolicy html fetch failures before creating artifacts", async () => {
+    const root = await mkdtemp(path.join(tmpdir(), "article-downloader-test-"));
+    const outDir = path.join(root, "output");
+    const { configPath } = await writeConfigFiles(root);
+    process.env.ARTICLE_DOWNLOADER_COOKIEPROXY_PATH = await createForeignPolicyFakeCookieproxy(root, "html-failure");
+
+    const stdout = await captureStdout(async () => {
+      await runCli([
+        "node",
+        "article-downloader",
+        "fetch",
+        "--url",
+        "https://foreignpolicy.com/2026/05/12/trump-china-hawk-xi-jinping-covid/",
+        "--config",
+        configPath,
+        "--out",
+        outDir,
+      ]);
+    });
+
+    const parsed = JSON.parse(stdout) as { ok: boolean; reason?: string; errorCode?: string };
+    expect(process.exitCode).toBe(1);
+    expect(parsed.ok).toBe(false);
+    expect(parsed.errorCode).toBe("E_FETCH_EXEC");
+    expect(parsed.reason).toContain("Command failed");
+    await expect((await import("node:fs/promises")).readdir(outDir)).rejects.toMatchObject({
+      code: "ENOENT",
+    });
+  });
+
+  test("fetch command rejects foreignpolicy pdf responses that return html", async () => {
+    const root = await mkdtemp(path.join(tmpdir(), "article-downloader-test-"));
+    const outDir = path.join(root, "output");
+    const { configPath } = await writeConfigFiles(root);
+    process.env.ARTICLE_DOWNLOADER_COOKIEPROXY_PATH = await createForeignPolicyFakeCookieproxy(root, "pdf-html");
+
+    const stdout = await captureStdout(async () => {
+      await runCli([
+        "node",
+        "article-downloader",
+        "fetch",
+        "--url",
+        "https://foreignpolicy.com/2026/05/12/trump-china-hawk-xi-jinping-covid/",
+        "--config",
+        configPath,
+        "--out",
+        outDir,
+      ]);
+    });
+
+    const createdDirs = await (await import("node:fs/promises")).readdir(outDir);
+    const runDir = path.join(outDir, createdDirs[0]);
+    const parsed = JSON.parse(stdout) as { ok: boolean; reason?: string };
+    expect(process.exitCode).toBe(1);
+    expect(parsed.ok).toBe(false);
+    expect(parsed.reason).toContain("downloaded file is not a pdf");
+    await expect(readFile(path.join(runDir, "page.html"), "utf8")).resolves.toContain(
+      "Foreign Policy article",
+    );
+    await expect(readFile(path.join(runDir, "meta.json"), "utf8")).resolves.toContain(
+      "downloaded file is not a pdf",
+    );
+    await expect(
+      readFile(path.join(runDir, "trump-china-hawk-xi-jinping-covid.pdf"), "utf8"),
+    ).rejects.toMatchObject({
       code: "ENOENT",
     });
   });

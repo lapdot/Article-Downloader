@@ -58,11 +58,11 @@ npx tsx src/cli.ts fetch \
 Expected artifact:
 - `artifacts/runtime/<run>/page.html`
 
-For fetch-only PDF sources such as Foreign Affairs, `fetch` also writes the official PDF using the basename from the PDF URL. Downstream metadata, Markdown, Notion transform, and `run` flows are not supported for those pages.
+For fetch-only PDF sources such as Foreign Affairs and Foreign Policy, `fetch` also writes the official PDF. Foreign Affairs uses the basename from the PDF URL; Foreign Policy generates the PDF URL from the article URL and saves a slug-based filename. Downstream metadata, Markdown, Notion transform, and `run` flows are not supported for those pages.
 
-### Foreign Affairs Live Verification
+### Fetch-Only PDF Live Verification
 
-Use this optional manual check when cookieproxy has the required live `foreignaffairs.com` access. These checks are intentionally outside `npm run test:closed-loop`.
+Use these optional manual checks when cookieproxy has the required live source access. These checks are intentionally outside `npm run test:closed-loop`.
 
 ```bash
 npx tsx src/cli.ts fetch \
@@ -90,6 +90,17 @@ npx tsx src/cli.ts fetch \
 ```
 
 Expected result: fetch-stage failure with `no available pdf for foreignaffairs. maybe contentType is podcast.`, while preserving `page.html` and `meta.json`.
+
+Foreign Policy article with generated PDF URL:
+
+```bash
+npx tsx src/cli.ts fetch \
+  --url "https://foreignpolicy.com/2026/05/12/trump-china-hawk-xi-jinping-covid/" \
+  --config ./config/public.config.json \
+  --out ./artifacts/runtime
+```
+
+Expected result: `page.html`, `trump-china-hawk-xi-jinping-covid.pdf`, and `meta.json`, with `meta.json` recording the generated `?download_pdf=true` PDF request.
 
 ### 2. Extract Metadata
 

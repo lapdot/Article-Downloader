@@ -59,7 +59,7 @@ Rules:
 - Sanitize content-identifying Substack URLs:
   - `substack.com/@<author>/p-<id>`
   - `<publication>.substack.com/p/<slug>`
-- Sanitize content-identifying Foreign Affairs URLs only when they are curated as reusable fixtures; synthetic tests may use representative section paths and PDF basenames.
+- Sanitize content-identifying Foreign Affairs and Foreign Policy URLs only when they are curated as reusable fixtures; synthetic tests may use representative section paths, article slugs, and PDF basenames.
 - Sanitize long numeric IDs, 9 digits or more, to deterministic placeholders.
 - Do not over-sanitize route structure.
 - Replacements must be stable and repeatable across fixtures and tests.
@@ -69,6 +69,7 @@ Validation expectation:
 - Any policy-compliant test update must keep `npm test` and `npm run test:closed-loop` passing.
 - Add focused coverage when fetch-time normalization is introduced for a supported source. For Substack aggregator URLs, tests should cover successful canonical normalization, graceful fallback to the original fetched shell when lookup data is insufficient, and synthetic article fallback when canonical-page refetch fails after a successful lookup.
 - For fetch-only PDF sources such as Foreign Affairs, tests should cover link extraction, source filename preservation, non-PDF response rejection, no-PDF failure, and preservation of upstream HTML/meta artifacts.
+- For deterministic-link fetch-only PDF sources such as Foreign Policy, tests should cover generated PDF URL construction, slug filename preservation, HTML-stage failure, non-PDF response rejection, and preservation of upstream HTML/meta artifacts after PDF-stage failure.
 - Live source checks that require external network access, authentication, cookies, or paid-site session state are optional manual verification steps. They must not be required by `npm run test:closed-loop`, which stays deterministic and localhost-only.
 - Keep at least one CLI-level smoke test for each supported non-Zhihu source so source support is exercised through the user-facing command surface, not only lower-level parser/fetch helpers.
 - Keep redaction coverage aligned with the current policy surface, including artifacts and any persisted diagnostics or logs that are part of the repo's operational contract.

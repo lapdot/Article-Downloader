@@ -1,4 +1,5 @@
 import { foreignAffairsSourceAdapter } from "./foreignaffairs.js";
+import { foreignPolicySourceAdapter } from "./foreignpolicy.js";
 import { substackSourceAdapter } from "./substack.js";
 import { zhihuSourceAdapter } from "./zhihu.js";
 import type { SourceAdapter } from "./contracts.js";
@@ -41,6 +42,14 @@ export function resolveSource(url: URL): ResolvedSource {
     return {
       adapter: foreignAffairsSourceAdapter as SourceAdapter<SourceIdentity>,
       source: foreignAffairsSource,
+    };
+  }
+
+  const foreignPolicySource = foreignPolicySourceAdapter.detect(url);
+  if (foreignPolicySource) {
+    return {
+      adapter: foreignPolicySourceAdapter as SourceAdapter<SourceIdentity>,
+      source: foreignPolicySource,
     };
   }
 

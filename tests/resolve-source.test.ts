@@ -32,6 +32,16 @@ describe("shared source resolution", () => {
     });
   });
 
+  test("parses and resolves foreignpolicy urls", () => {
+    const url = parseSourceUrl("https://foreignpolicy.com/2026/05/12/example-article/");
+
+    expect(url).toBeInstanceOf(URL);
+    expect(resolveSource(url!)).toMatchObject({
+      adapter: { sourceId: "foreignpolicy" },
+      source: { sourceId: "foreignpolicy", contentType: "post" },
+    });
+  });
+
   test("returns null for unsupported hosts", () => {
     const url = parseSourceUrl("https://example.com/article");
 

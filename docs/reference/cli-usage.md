@@ -35,7 +35,9 @@ Expected artifacts:
 - `artifacts/runtime/<run>/page.html`
 - `artifacts/runtime/<run>/meta.json`
 
-Foreign Affairs is fetch-only and downloads the official PDF linked from the HTML page:
+Fetch-only PDF sources write `page.html`, one official PDF, and `meta.json`. Downstream metadata, Markdown, Notion transform, and `run` flows are not supported for these sources.
+
+Foreign Affairs discovers the official PDF link from the fetched HTML page:
 
 ```bash
 npx tsx src/cli.ts fetch \
@@ -57,6 +59,23 @@ Known Foreign Affairs fetch outcomes covered by deterministic tests:
 - Podcast: `https://www.foreignaffairs.com/podcasts/irans-tenacious-regime-and-future-gulf` fails with `no available pdf for foreignaffairs. maybe contentType is podcast.`
 
 Podcast pages, and other pages where no official PDF link is available, fail at the fetch stage while preserving `page.html` and `meta.json`. Live checks against `foreignaffairs.com` depend on cookieproxy access and are not part of the closed-loop test suite.
+
+Foreign Policy verifies the article HTML first, then downloads the official PDF by adding `?download_pdf=true` to the article URL:
+
+```bash
+npx tsx src/cli.ts fetch \
+  --url "https://foreignpolicy.com/2026/05/12/trump-china-hawk-xi-jinping-covid/" \
+  --config ./config/public.config.json \
+  --out ./artifacts/runtime
+```
+
+Expected Foreign Policy artifacts:
+
+- `artifacts/runtime/<run>/page.html`
+- `artifacts/runtime/<run>/trump-china-hawk-xi-jinping-covid.pdf`
+- `artifacts/runtime/<run>/meta.json`
+
+Live checks against `foreignpolicy.com` depend on cookieproxy access and are not part of the closed-loop test suite.
 
 ## `get_metadata`
 

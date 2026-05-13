@@ -142,7 +142,8 @@ export interface PipelineResult {
 export type ZhihuContentType = "answer" | "pin" | "post";
 export type SubstackContentType = "post";
 export type ForeignAffairsContentType = "post" | "podcast";
-export type SourceId = "zhihu" | "substack" | "foreignaffairs";
+export type ForeignPolicyContentType = "post";
+export type SourceId = "zhihu" | "substack" | "foreignaffairs" | "foreignpolicy";
 
 export interface SourceIdentityBase<TSourceId extends SourceId, TContentType extends string> {
   sourceId: TSourceId;
@@ -155,10 +156,15 @@ export type ForeignAffairsSourceIdentity = SourceIdentityBase<
   "foreignaffairs",
   ForeignAffairsContentType
 >;
+export type ForeignPolicySourceIdentity = SourceIdentityBase<
+  "foreignpolicy",
+  ForeignPolicyContentType
+>;
 export type SourceIdentity =
   | ZhihuSourceIdentity
   | SubstackSourceIdentity
-  | ForeignAffairsSourceIdentity;
+  | ForeignAffairsSourceIdentity
+  | ForeignPolicySourceIdentity;
 
 export interface PdfDownloadInput extends DownloadInput {
   outDir: string;

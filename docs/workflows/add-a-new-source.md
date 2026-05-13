@@ -75,11 +75,14 @@ Use the generated artifacts to locate the real problem before changing code.
 
 Some sources may provide an official PDF as the intended artifact instead of needing Markdown or Notion support. For those sources:
 
-- keep the source adapter responsible for detecting source URLs and extracting the official PDF link
+- keep the source adapter responsible for detecting source URLs and any source-specific PDF URL or filename rules
+- use HTML inspection when the official PDF link is embedded in the fetched page, as with Foreign Affairs
+- use deterministic URL generation when the site has a stable URL rule for official PDFs, as with Foreign Policy's `?download_pdf=true` URL
 - reuse the normal `cookieproxy` transport path for both the HTML discovery request and the PDF request
-- save the PDF using the basename from the source PDF URL
+- save the PDF using the source-owned filename rule, such as the PDF URL basename or the article slug
 - document unsupported downstream stages explicitly
 - add CLI smoke coverage that verifies `page.html`, the PDF artifact, and `meta.json`
+- cover source-specific failure modes, including no embedded PDF link for extraction-style sources and non-PDF responses for deterministic-link sources
 
 ## Substack Example
 

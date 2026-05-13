@@ -37,4 +37,6 @@ export type {
   SubstackSourceIdentity,
   ForeignAffairsContentType,
   ForeignAffairsSourceIdentity,
+  ForeignPolicyContentType,
+  ForeignPolicySourceIdentity,
 } from "./types.js";

@@ -16,6 +16,10 @@ import {
   getForeignAffairsPdfFilename,
 } from "./adapters/foreignaffairs.js";
 import {
+  getForeignPolicyPdfFilename,
+  getForeignPolicyPdfUrl,
+} from "./adapters/foreignpolicy.js";
+import {
   createOutputDir,
   formatMissingFileError,
   isNotFoundError,
@@ -230,6 +234,40 @@ export function createProgram(): Command {
             cookieproxyPath: runtimeConfig.pipeline.cookieproxyPath,
             outDir: outputDir,
             filename: getForeignAffairsPdfFilename(pdfUrl),
+          });
+          const pdfResultWithSource = {
+            ...pdfResult,
+            source: result.source,
+          };
+          await writeJsonFile(path.join(outputDir, "meta.json"), {
+            download: {
+              ...result,
+              html: undefined,
+            },
+            pdf: pdfResultWithSource,
+          });
+
+          printResult({
+            ...pdfResultWithSource,
+            htmlPath,
+            pdfPath: pdfResult.pdfPath,
+            pdfUrl,
+          });
+          if (!pdfResult.ok) {
+            process.exitCode = 1;
+          }
+          return;
+        }
+
+        if (result.source?.sourceId === "foreignpolicy") {
+          const pdfUrl = getForeignPolicyPdfUrl(opts.url);
+          const pdfResult = await downloadPdf({
+            url: pdfUrl,
+            userAgent: runtimeConfig.pipeline.userAgent,
+            downloadMethod: runtimeConfig.pipeline.downloadMethod,
+            cookieproxyPath: runtimeConfig.pipeline.cookieproxyPath,
+            outDir: outputDir,
+            filename: getForeignPolicyPdfFilename(opts.url),
           });
           const pdfResultWithSource = {
             ...pdfResult,
