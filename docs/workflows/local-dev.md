@@ -18,6 +18,15 @@ Install dependencies:
 npm install
 ```
 
+Enable the tracked pre-commit hook for this checkout:
+
+```bash
+npm run hooks:install
+```
+
+The pre-commit hook runs the full canonical validation gate before allowing a commit:
+`npm test`, `npm run test:closed-loop`, and `npm run gui:test:e2e`. This means commits wait for unit tests, closed-loop checks, TypeScript no-emit validation, production builds, and Playwright GUI E2E coverage.
+
 Run the default runtime-behavior test suite:
 
 ```bash
