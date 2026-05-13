@@ -1,7 +1,7 @@
 #!/usr/bin/env node
 import path from "node:path";
 import { Command } from "commander";
-import { downloadHtml } from "./core/fetcher.js";
+import { downloadHtml, downloadPdf } from "./core/fetcher.js";
 import { parseHtmlToMarkdown, parseHtmlToMetadata } from "./core/parser.js";
 import {
   markdownToNotionBlocks,
@@ -11,6 +11,10 @@ import {
 import { runPipeline } from "./core/pipeline.js";
 import { browsePath } from "./core/browse-path.js";
 import { resolveEffectiveDownloadMethod, resolveRuntimeConfig } from "./core/runtime-config.js";
+import {
+  extractForeignAffairsPdfUrl,
+  getForeignAffairsPdfFilename,
+} from "./adapters/foreignaffairs.js";
 import {
   createOutputDir,
   formatMissingFileError,
@@ -190,6 +194,67 @@ export function createProgram(): Command {
         const outputDir = await createOutputDir(outputBaseDir, opts.url);
         const htmlPath = path.join(outputDir, "page.html");
         await writeTextFile(htmlPath, result.html);
+
+        if (result.source?.sourceId === "foreignaffairs") {
+          const pdfUrl = extractForeignAffairsPdfUrl(result.html);
+          if (!pdfUrl) {
+            const failedPdfResult = {
+              ok: false,
+              url: opts.url,
+              downloadMethod: result.downloadMethod,
+              source: result.source,
+              finalUrl: result.finalUrl,
+              fetchedAt: result.fetchedAt,
+              reason: "no available pdf for foreignaffairs. maybe contentType is podcast.",
+              errorCode: "E_FETCH_EXEC",
+            };
+            await writeJsonFile(path.join(outputDir, "meta.json"), {
+              download: {
+                ...result,
+                html: undefined,
+              },
+              pdf: failedPdfResult,
+            });
+            printResult({
+              ...failedPdfResult,
+              htmlPath,
+            });
+            process.exitCode = 1;
+            return;
+          }
+
+          const pdfResult = await downloadPdf({
+            url: pdfUrl,
+            userAgent: runtimeConfig.pipeline.userAgent,
+            downloadMethod: runtimeConfig.pipeline.downloadMethod,
+            cookieproxyPath: runtimeConfig.pipeline.cookieproxyPath,
+            outDir: outputDir,
+            filename: getForeignAffairsPdfFilename(pdfUrl),
+          });
+          const pdfResultWithSource = {
+            ...pdfResult,
+            source: result.source,
+          };
+          await writeJsonFile(path.join(outputDir, "meta.json"), {
+            download: {
+              ...result,
+              html: undefined,
+            },
+            pdf: pdfResultWithSource,
+          });
+
+          printResult({
+            ...pdfResultWithSource,
+            htmlPath,
+            pdfPath: pdfResult.pdfPath,
+            pdfUrl,
+          });
+          if (!pdfResult.ok) {
+            process.exitCode = 1;
+          }
+          return;
+        }
+
         await writeJsonFile(path.join(outputDir, "meta.json"), {
           download: {
             ...result,

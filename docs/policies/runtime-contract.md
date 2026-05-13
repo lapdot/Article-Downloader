@@ -60,6 +60,7 @@ If code and docs diverge, align code to this document unless a newer repo decisi
 - `.local/` is reserved for local operational state, not user content artifacts.
 - Current user-visible artifact meanings are:
   - HTML format: fetched source page artifact (`page.html`)
+  - PDF format: source-owned fetched PDF artifact for fetch-only PDF sources
   - Markdown format: parsed article artifact (`article.md`)
   - Notion format: generated Notion block artifact (`notion-blocks.json`)
 - Current local operational state includes:
@@ -112,6 +113,8 @@ Default-layout note:
   - Zhihu pin -> `sourceId: "zhihu"`, `contentType: "pin"`
   - Zhihu post (`zhuanlan.zhihu.com/p/...`) -> `sourceId: "zhihu"`, `contentType: "post"`
   - Substack post -> `sourceId: "substack"`, `contentType: "post"`
+  - Foreign Affairs article page -> `sourceId: "foreignaffairs"`, `contentType: "post"`
+  - Foreign Affairs podcast page -> `sourceId: "foreignaffairs"`, `contentType: "podcast"`
 - Source identity is additional result context and does not change existing artifact meanings or stage failure semantics by itself.
 
 ## 4. Failure And Error Semantics
@@ -168,6 +171,14 @@ Default-layout note:
   - `E_PARSE_UNSUPPORTED_SITE`
   - `E_NOTION_API`
 - These identifiers are useful diagnostic surfaces, but they do not replace the command-level failure semantics defined above.
+
+### 4.6 Foreign Affairs fetch-only PDF policy
+- Foreign Affairs support is currently limited to the `fetch` command.
+- `fetch` first downloads the HTML page through `cookieproxy`, then extracts an official PDF link under `/system/files/pdf/.../*.pdf`, then downloads that PDF through the same effective download method.
+- The saved PDF artifact uses the basename from the official PDF URL, not a generic filename.
+- If no PDF link is available, `fetch` fails with an actionable no-PDF reason while preserving `page.html` and `meta.json`.
+- Metadata, Markdown parsing, Notion block generation, upload, and `run` are not implemented for Foreign Affairs.
+- Deterministic tests cover representative Foreign Affairs HTML/PDF/no-PDF behavior with fake cookieproxy fixtures. Live verification against `foreignaffairs.com` is environment-dependent because it requires external network access and the relevant cookieproxy session state.
 
 ## 5. Runtime Debug Logging
 

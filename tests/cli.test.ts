@@ -11,6 +11,7 @@ const ORIGINAL_ENV = { ...process.env };
 
 afterEach(() => {
   process.env = { ...ORIGINAL_ENV };
+  process.exitCode = undefined;
 });
 
 async function writeConfigFiles(
@@ -79,6 +80,76 @@ printf '<!doctype html><html><body><h1>Cookieproxy %s</h1></body></html>' "$url"
   return scriptPath;
 }
 
+async function createForeignAffairsFakeCookieproxy(
+  root: string,
+  mode: "magazine" | "non-magazine" | "podcast" | "pdf-html",
+): Promise<string> {
+  const scriptPath = path.join(root, "fake-foreignaffairs-cookieproxy.sh");
+  const magazineHtml = `<!doctype html>
+<html><body><a href="/system/files/pdf/2026/105301.pdf">Download PDF</a></body></html>`;
+  const nonMagazineHtml = `<!doctype html>
+<html><body><script>window.settings = {"pdf":"https:\\/\\/foreignaffairs.com\\/system\\/files\\/pdf\\/2026\\/the-dangers-of-a-weak-iran-2026-03-12-10-17.pdf"};</script></body></html>`;
+  const podcastHtml = `<!doctype html>
+<html><body><h1>Podcast only</h1></body></html>`;
+  const script = `#!/bin/sh
+output=""
+url=""
+while [ "$#" -gt 0 ]; do
+  case "$1" in
+    --url)
+      url="$2"
+      shift 2
+      ;;
+    --output)
+      output="$2"
+      shift 2
+      ;;
+    *)
+      shift
+      ;;
+  esac
+done
+case "$url" in
+  "https://www.foreignaffairs.com/iran/real-war-irans-future-islamic-republic")
+    cat > "$output" <<'EOF'
+${magazineHtml}
+EOF
+    ;;
+  "https://www.foreignaffairs.com/middle-east/dangers-weak-iran")
+    cat > "$output" <<'EOF'
+${nonMagazineHtml}
+EOF
+    ;;
+  "https://www.foreignaffairs.com/podcasts/irans-tenacious-regime-and-future-gulf")
+    cat > "$output" <<'EOF'
+${podcastHtml}
+EOF
+    ;;
+  "https://www.foreignaffairs.com/system/files/pdf/2026/105301.pdf")
+    ${
+      mode === "pdf-html"
+        ? `printf '<!doctype html><html><body>login</body></html>' > "$output"`
+        : `printf '%s\\n' '%PDF-1.7 magazine pdf body' > "$output"`
+    }
+    ;;
+  "https://foreignaffairs.com/system/files/pdf/2026/the-dangers-of-a-weak-iran-2026-03-12-10-17.pdf")
+    ${
+      mode === "pdf-html"
+        ? `printf '<!doctype html><html><body>login</body></html>' > "$output"`
+        : `printf '%s\\n' '%PDF-1.7 non-magazine pdf body' > "$output"`
+    }
+    ;;
+  *)
+    echo "unexpected url: $url" >&2
+    exit 9
+    ;;
+esac
+`;
+  await writeTextFile(scriptPath, script);
+  await chmod(scriptPath, 0o755);
+  return scriptPath;
+}
+
 describe("cli", () => {
   async function captureStderr(run: () => Promise<void>): Promise<string> {
     let stderr = "";
@@ -91,6 +162,22 @@ describe("cli", () => {
     try {
       await run();
       return stderr;
+    } finally {
+      spy.mockRestore();
+    }
+  }
+
+  async function captureStdout(run: () => Promise<void>): Promise<string> {
+    let stdout = "";
+    const spy = vi
+      .spyOn(process.stdout, "write")
+      .mockImplementation(((chunk: string | Uint8Array) => {
+        stdout += typeof chunk === "string" ? chunk : chunk.toString("utf8");
+        return true;
+      }) as typeof process.stdout.write);
+    try {
+      await run();
+      return stdout;
     } finally {
       spy.mockRestore();
     }
@@ -157,6 +244,124 @@ describe("cli", () => {
     const createdDirs = await (await import("node:fs/promises")).readdir(outDir);
     const meta = await readFile(path.join(outDir, createdDirs[0], "meta.json"), "utf8");
     expect(meta).toContain('"downloadMethod": "cookieproxy"');
+  });
+
+  test("fetch command downloads foreignaffairs magazine pdf using link filename", async () => {
+    const root = await mkdtemp(path.join(tmpdir(), "article-downloader-test-"));
+    const outDir = path.join(root, "output");
+    const { configPath } = await writeConfigFiles(root);
+    process.env.ARTICLE_DOWNLOADER_COOKIEPROXY_PATH = await createForeignAffairsFakeCookieproxy(root, "magazine");
+
+    const stdout = await captureStdout(async () => {
+      await runCli([
+        "node",
+        "article-downloader",
+        "fetch",
+        "--url",
+        "https://www.foreignaffairs.com/iran/real-war-irans-future-islamic-republic",
+        "--config",
+        configPath,
+        "--out",
+        outDir,
+      ]);
+    });
+
+    const createdDirs = await (await import("node:fs/promises")).readdir(outDir);
+    const runDir = path.join(outDir, createdDirs[0]);
+    const pdf = await readFile(path.join(runDir, "105301.pdf"), "utf8");
+    const meta = await readFile(path.join(runDir, "meta.json"), "utf8");
+    const parsed = JSON.parse(stdout) as { ok: boolean; pdfPath?: string; pdfUrl?: string };
+    expect(parsed.ok).toBe(true);
+    expect(parsed.pdfPath).toBe(path.join(runDir, "105301.pdf"));
+    expect(parsed.pdfUrl).toBe("https://www.foreignaffairs.com/system/files/pdf/2026/105301.pdf");
+    expect(pdf).toContain("%PDF-");
+    expect(meta).toContain('"sourceId": "foreignaffairs"');
+    expect(meta).toContain("/105301.pdf");
+  });
+
+  test("fetch command downloads foreignaffairs non-magazine pdf using link filename", async () => {
+    const root = await mkdtemp(path.join(tmpdir(), "article-downloader-test-"));
+    const outDir = path.join(root, "output");
+    const { configPath } = await writeConfigFiles(root);
+    process.env.ARTICLE_DOWNLOADER_COOKIEPROXY_PATH = await createForeignAffairsFakeCookieproxy(root, "non-magazine");
+
+    await runCli([
+      "node",
+      "article-downloader",
+      "fetch",
+      "--url",
+      "https://www.foreignaffairs.com/middle-east/dangers-weak-iran",
+      "--config",
+      configPath,
+      "--out",
+      outDir,
+    ]);
+
+    const createdDirs = await (await import("node:fs/promises")).readdir(outDir);
+    const filename = "the-dangers-of-a-weak-iran-2026-03-12-10-17.pdf";
+    const pdf = await readFile(path.join(outDir, createdDirs[0], filename), "utf8");
+    expect(pdf).toContain("%PDF-");
+  });
+
+  test("fetch command reports foreignaffairs no-pdf pages and preserves html/meta", async () => {
+    const root = await mkdtemp(path.join(tmpdir(), "article-downloader-test-"));
+    const outDir = path.join(root, "output");
+    const { configPath } = await writeConfigFiles(root);
+    process.env.ARTICLE_DOWNLOADER_COOKIEPROXY_PATH = await createForeignAffairsFakeCookieproxy(root, "podcast");
+
+    const stdout = await captureStdout(async () => {
+      await runCli([
+        "node",
+        "article-downloader",
+        "fetch",
+        "--url",
+        "https://www.foreignaffairs.com/podcasts/irans-tenacious-regime-and-future-gulf",
+        "--config",
+        configPath,
+        "--out",
+        outDir,
+      ]);
+    });
+
+    const createdDirs = await (await import("node:fs/promises")).readdir(outDir);
+    const runDir = path.join(outDir, createdDirs[0]);
+    const parsed = JSON.parse(stdout) as { ok: boolean; reason?: string };
+    expect(process.exitCode).toBe(1);
+    expect(parsed.ok).toBe(false);
+    expect(parsed.reason).toBe("no available pdf for foreignaffairs. maybe contentType is podcast.");
+    await expect(readFile(path.join(runDir, "page.html"), "utf8")).resolves.toContain("Podcast only");
+    await expect(readFile(path.join(runDir, "meta.json"), "utf8")).resolves.toContain("no available pdf");
+  });
+
+  test("fetch command rejects foreignaffairs pdf links that return html", async () => {
+    const root = await mkdtemp(path.join(tmpdir(), "article-downloader-test-"));
+    const outDir = path.join(root, "output");
+    const { configPath } = await writeConfigFiles(root);
+    process.env.ARTICLE_DOWNLOADER_COOKIEPROXY_PATH = await createForeignAffairsFakeCookieproxy(root, "pdf-html");
+
+    const stdout = await captureStdout(async () => {
+      await runCli([
+        "node",
+        "article-downloader",
+        "fetch",
+        "--url",
+        "https://www.foreignaffairs.com/iran/real-war-irans-future-islamic-republic",
+        "--config",
+        configPath,
+        "--out",
+        outDir,
+      ]);
+    });
+
+    const createdDirs = await (await import("node:fs/promises")).readdir(outDir);
+    const runDir = path.join(outDir, createdDirs[0]);
+    const parsed = JSON.parse(stdout) as { ok: boolean; reason?: string };
+    expect(process.exitCode).toBe(1);
+    expect(parsed.ok).toBe(false);
+    expect(parsed.reason).toContain("downloaded file is not a pdf");
+    await expect(readFile(path.join(runDir, "105301.pdf"), "utf8")).rejects.toMatchObject({
+      code: "ENOENT",
+    });
   });
 
   test("fetch command rejects removed http override clearly", async () => {

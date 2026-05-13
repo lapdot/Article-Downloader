@@ -3,7 +3,15 @@ import path from "node:path";
 
 export async function createFakeCookieproxy(
   root: string,
-  mode: "success" | "failure" | "substack-normalize" | "substack-normalize-lookup-failure" | "substack-normalize-canonical-fetch-failure" | "substack-normalize-single-mismatched-id",
+  mode:
+    | "success"
+    | "failure"
+    | "pdf-success"
+    | "pdf-html"
+    | "substack-normalize"
+    | "substack-normalize-lookup-failure"
+    | "substack-normalize-canonical-fetch-failure"
+    | "substack-normalize-single-mismatched-id",
 ): Promise<string> {
   const scriptPath = path.join(root, "fake-cookieproxy.sh");
   const script =
@@ -27,6 +35,53 @@ while [ "$#" -gt 0 ]; do
   esac
 done
 printf '<!doctype html><html><body><h1>%s</h1></body></html>' "$url" > "$output"
+`
+      : mode === "pdf-success"
+        ? `#!/bin/sh
+output=""
+url=""
+while [ "$#" -gt 0 ]; do
+  case "$1" in
+    --url)
+      url="$2"
+      shift 2
+      ;;
+    --output)
+      output="$2"
+      shift 2
+      ;;
+    *)
+      shift
+      ;;
+  esac
+done
+if [ "$url" = "https://www.foreignaffairs.com/system/files/pdf/2026/105301.pdf" ]; then
+  printf '%s\\n' '%PDF-1.7 fake pdf body' > "$output"
+else
+  echo "unexpected url: $url" >&2
+  exit 9
+fi
+`
+        : mode === "pdf-html"
+          ? `#!/bin/sh
+output=""
+url=""
+while [ "$#" -gt 0 ]; do
+  case "$1" in
+    --url)
+      url="$2"
+      shift 2
+      ;;
+    --output)
+      output="$2"
+      shift 2
+      ;;
+    *)
+      shift
+      ;;
+  esac
+done
+printf '<!doctype html><html><body>login</body></html>' > "$output"
 `
       : mode === "substack-normalize"
         ? `#!/bin/sh

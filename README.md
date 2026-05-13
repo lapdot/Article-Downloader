@@ -13,6 +13,7 @@ ArticleDownloader is a Node.js (TypeScript + ESM) project for turning article UR
   - generated Notion block JSON (`notion-blocks.json`)
 - Download through the current `cookieproxy` transport.
 - Parse supported Zhihu and Substack article URLs with source-specific adapters.
+- Fetch official Foreign Affairs PDFs from article pages. Foreign Affairs support is fetch-only.
 - Optionally upload generated Notion blocks to a Notion database.
 
 ## Requirements
@@ -65,6 +66,10 @@ Typical artifacts:
 - metadata: `artifacts/runtime/<run>/metadata.json`
 - Markdown: `artifacts/runtime/<run>/article.md`
 - Notion blocks: `artifacts/runtime/<transform-run>/notion-blocks.json`
+
+Foreign Affairs fetches write `page.html`, the official PDF using the source filename such as `105301.pdf`, and `meta.json`; Markdown, metadata, Notion transform, and `run` are not supported for Foreign Affairs.
+
+The automated suite covers the current Foreign Affairs scenarios with deterministic cookieproxy fixtures, including magazine PDF links, non-magazine PDF links, and podcast/no-PDF failures. Live verification against `foreignaffairs.com` still requires a working cookieproxy session with the needed site access.
 
 For command-by-command usage, see `docs/reference/cli-usage.md`.
 

@@ -16,6 +16,7 @@ For command-by-command CLI usage and copy-paste examples, see `docs/reference/cl
 Turn one source URL into reviewable local artifacts:
 
 - HTML format: fetched source page (`page.html`)
+- PDF format: fetched source PDF for fetch-only PDF sources
 - metadata: extracted article metadata (`metadata.json`)
 - Markdown format: parsed article body (`article.md`)
 - Notion format: generated Notion block JSON (`notion-blocks.json`)
@@ -56,6 +57,39 @@ npx tsx src/cli.ts fetch \
 
 Expected artifact:
 - `artifacts/runtime/<run>/page.html`
+
+For fetch-only PDF sources such as Foreign Affairs, `fetch` also writes the official PDF using the basename from the PDF URL. Downstream metadata, Markdown, Notion transform, and `run` flows are not supported for those pages.
+
+### Foreign Affairs Live Verification
+
+Use this optional manual check when cookieproxy has the required live `foreignaffairs.com` access. These checks are intentionally outside `npm run test:closed-loop`.
+
+```bash
+npx tsx src/cli.ts fetch \
+  --url "https://www.foreignaffairs.com/iran/real-war-irans-future-islamic-republic" \
+  --config ./config/public.config.json \
+  --out ./artifacts/runtime
+```
+
+Expected result: `page.html`, `105301.pdf`, and `meta.json`.
+
+```bash
+npx tsx src/cli.ts fetch \
+  --url "https://www.foreignaffairs.com/middle-east/dangers-weak-iran" \
+  --config ./config/public.config.json \
+  --out ./artifacts/runtime
+```
+
+Expected result: `page.html`, `the-dangers-of-a-weak-iran-2026-03-12-10-17.pdf`, and `meta.json`.
+
+```bash
+npx tsx src/cli.ts fetch \
+  --url "https://www.foreignaffairs.com/podcasts/irans-tenacious-regime-and-future-gulf" \
+  --config ./config/public.config.json \
+  --out ./artifacts/runtime
+```
+
+Expected result: fetch-stage failure with `no available pdf for foreignaffairs. maybe contentType is podcast.`, while preserving `page.html` and `meta.json`.
 
 ### 2. Extract Metadata
 

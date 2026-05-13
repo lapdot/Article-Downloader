@@ -1,8 +1,8 @@
-import { mkdtemp } from "node:fs/promises";
+import { mkdtemp, readFile, readdir } from "node:fs/promises";
 import path from "node:path";
 import { tmpdir } from "node:os";
 import { describe, expect, test } from "vitest";
-import { downloadHtml } from "../src/core/fetcher.js";
+import { downloadHtml, downloadPdf } from "../src/core/fetcher.js";
 import { createFakeCookieproxy } from "./helpers/fake-cookieproxy.js";
 
 describe("fetcher core transport orchestration", () => {
@@ -52,5 +52,41 @@ describe("fetcher core transport orchestration", () => {
     expect(result.source).toEqual({ sourceId: "zhihu", contentType: "post" });
     expect(result.errorCode).toBe("E_FETCH_EXEC");
     expect(result.diagnostics?.stderr).toBe("cookieproxy exploded");
+  });
+
+  test("downloads pdf through shared cookieproxy transport", async () => {
+    const root = await mkdtemp(path.join(tmpdir(), "fetcher-cookieproxy-test-"));
+    const outDir = path.join(root, "output");
+    const cookieproxyPath = await createFakeCookieproxy(root, "pdf-success");
+
+    const result = await downloadPdf({
+      url: "https://www.foreignaffairs.com/system/files/pdf/2026/105301.pdf",
+      downloadMethod: "cookieproxy",
+      cookieproxyPath,
+      outDir,
+    });
+
+    expect(result.ok).toBe(true);
+    expect(result.downloadMethod).toBe("cookieproxy");
+    expect(result.pdfPath).toBe(path.join(outDir, "105301.pdf"));
+    await expect(readFile(path.join(outDir, "105301.pdf"), "utf8")).resolves.toContain("%PDF-");
+  });
+
+  test("rejects non-pdf responses without creating final pdf artifact", async () => {
+    const root = await mkdtemp(path.join(tmpdir(), "fetcher-cookieproxy-test-"));
+    const outDir = path.join(root, "output");
+    const cookieproxyPath = await createFakeCookieproxy(root, "pdf-html");
+
+    const result = await downloadPdf({
+      url: "https://www.foreignaffairs.com/system/files/pdf/2026/105301.pdf",
+      downloadMethod: "cookieproxy",
+      cookieproxyPath,
+      outDir,
+    });
+
+    expect(result.ok).toBe(false);
+    expect(result.errorCode).toBe("E_FETCH_EXEC");
+    expect(result.reason).toContain("downloaded file is not a pdf");
+    await expect(readdir(outDir)).rejects.toMatchObject({ code: "ENOENT" });
   });
 });

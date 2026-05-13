@@ -71,6 +71,16 @@ Use the generated artifacts to locate the real problem before changing code.
   - treat it as a transform-stage issue
   - inspect Markdown-to-block conversion rather than fetch or parser logic
 
+## Fetch-Only PDF Sources
+
+Some sources may provide an official PDF as the intended artifact instead of needing Markdown or Notion support. For those sources:
+
+- keep the source adapter responsible for detecting source URLs and extracting the official PDF link
+- reuse the normal `cookieproxy` transport path for both the HTML discovery request and the PDF request
+- save the PDF using the basename from the source PDF URL
+- document unsupported downstream stages explicitly
+- add CLI smoke coverage that verifies `page.html`, the PDF artifact, and `meta.json`
+
 ## Substack Example
 
 Substack was added by following this pattern:

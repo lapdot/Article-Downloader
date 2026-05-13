@@ -11,6 +11,7 @@ For runtime behavior that must stay aligned with CLI behavior, see `../policies/
 ```ts
 import {
   downloadHtml,
+  downloadPdf,
   parseHtmlToMarkdown,
   parseHtmlToMetadata,
   markdownToNotionBlocks,
@@ -23,6 +24,7 @@ import {
 ## Exported Functions
 
 - `downloadHtml`: fetch HTML for a supported URL with the effective download method.
+- `downloadPdf`: fetch a PDF through the same cookieproxy transport core and save it to a caller-provided output directory.
 - `parseHtmlToMarkdown`: parse fetched HTML into Markdown for a supported source URL.
 - `parseHtmlToMetadata`: extract article metadata from fetched HTML.
 - `markdownToNotionBlocks`: convert Markdown into Notion block JSON.
@@ -45,6 +47,8 @@ Key exported types include:
 - stage input and result types:
   - `DownloadInput`
   - `DownloadResult`
+  - `PdfDownloadInput`
+  - `PdfDownloadResult`
   - `ParseInput`
   - `ParseResult`
   - `MetadataInput`
@@ -60,6 +64,8 @@ Key exported types include:
   - `ZhihuContentType`
   - `ZhihuSourceIdentity`
   - `SubstackSourceIdentity`
+  - `ForeignAffairsContentType`
+  - `ForeignAffairsSourceIdentity`
   - `SelectorSet`
 
 ## Usage Notes

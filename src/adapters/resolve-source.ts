@@ -1,3 +1,4 @@
+import { foreignAffairsSourceAdapter } from "./foreignaffairs.js";
 import { substackSourceAdapter } from "./substack.js";
 import { zhihuSourceAdapter } from "./zhihu.js";
 import type { SourceAdapter } from "./contracts.js";
@@ -32,6 +33,14 @@ export function resolveSource(url: URL): ResolvedSource {
     return {
       adapter: substackSourceAdapter as SourceAdapter<SourceIdentity>,
       source: substackSource,
+    };
+  }
+
+  const foreignAffairsSource = foreignAffairsSourceAdapter.detect(url);
+  if (foreignAffairsSource) {
+    return {
+      adapter: foreignAffairsSourceAdapter as SourceAdapter<SourceIdentity>,
+      source: foreignAffairsSource,
     };
   }
 

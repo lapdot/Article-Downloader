@@ -141,7 +141,8 @@ export interface PipelineResult {
 
 export type ZhihuContentType = "answer" | "pin" | "post";
 export type SubstackContentType = "post";
-export type SourceId = "zhihu" | "substack";
+export type ForeignAffairsContentType = "post" | "podcast";
+export type SourceId = "zhihu" | "substack" | "foreignaffairs";
 
 export interface SourceIdentityBase<TSourceId extends SourceId, TContentType extends string> {
   sourceId: TSourceId;
@@ -150,7 +151,33 @@ export interface SourceIdentityBase<TSourceId extends SourceId, TContentType ext
 
 export type ZhihuSourceIdentity = SourceIdentityBase<"zhihu", ZhihuContentType>;
 export type SubstackSourceIdentity = SourceIdentityBase<"substack", SubstackContentType>;
-export type SourceIdentity = ZhihuSourceIdentity | SubstackSourceIdentity;
+export type ForeignAffairsSourceIdentity = SourceIdentityBase<
+  "foreignaffairs",
+  ForeignAffairsContentType
+>;
+export type SourceIdentity =
+  | ZhihuSourceIdentity
+  | SubstackSourceIdentity
+  | ForeignAffairsSourceIdentity;
+
+export interface PdfDownloadInput extends DownloadInput {
+  outDir: string;
+  filename?: string;
+}
+
+export interface PdfDownloadResult {
+  ok: boolean;
+  url: string;
+  downloadMethod: DownloadMethod;
+  source?: SourceIdentity;
+  finalUrl?: string;
+  fetchedAt: string;
+  pdfPath?: string;
+  bytes?: number;
+  reason?: string;
+  errorCode?: ErrorCode;
+  diagnostics?: Record<string, string | number | boolean>;
+}
 
 export interface SelectorSet {
   title: string;

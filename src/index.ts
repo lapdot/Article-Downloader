@@ -1,4 +1,4 @@
-export { downloadHtml } from "./core/fetcher.js";
+export { downloadHtml, downloadPdf } from "./core/fetcher.js";
 export { parseHtmlToMarkdown, parseHtmlToMetadata } from "./core/parser.js";
 export {
   resolveRuntimeConfig,
@@ -15,6 +15,8 @@ export type {
   DownloadMethod,
   DownloadInput,
   DownloadResult,
+  PdfDownloadInput,
+  PdfDownloadResult,
   ParseInput,
   ParseResult,
   MetadataInput,
@@ -33,4 +35,6 @@ export type {
   ZhihuSourceIdentity,
   SelectorSet,
   SubstackSourceIdentity,
+  ForeignAffairsContentType,
+  ForeignAffairsSourceIdentity,
 } from "./types.js";

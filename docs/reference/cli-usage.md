@@ -21,7 +21,7 @@ For authoritative rules about config precedence, required flags, output-path pol
 
 ## `fetch`
 
-Fetch HTML for a supported source URL and write `page.html` plus fetch metadata.
+Fetch a supported source URL and write fetch-stage artifacts.
 
 ```bash
 npx tsx src/cli.ts fetch \
@@ -34,6 +34,29 @@ Expected artifacts:
 
 - `artifacts/runtime/<run>/page.html`
 - `artifacts/runtime/<run>/meta.json`
+
+Foreign Affairs is fetch-only and downloads the official PDF linked from the HTML page:
+
+```bash
+npx tsx src/cli.ts fetch \
+  --url "https://www.foreignaffairs.com/iran/real-war-irans-future-islamic-republic" \
+  --config ./config/public.config.json \
+  --out ./artifacts/runtime
+```
+
+Expected Foreign Affairs artifacts:
+
+- `artifacts/runtime/<run>/page.html`
+- `artifacts/runtime/<run>/<official-pdf-filename>.pdf`
+- `artifacts/runtime/<run>/meta.json`
+
+Known Foreign Affairs fetch outcomes covered by deterministic tests:
+
+- Magazine article: `https://www.foreignaffairs.com/iran/real-war-irans-future-islamic-republic` saves `105301.pdf`.
+- Non-magazine article: `https://www.foreignaffairs.com/middle-east/dangers-weak-iran` saves `the-dangers-of-a-weak-iran-2026-03-12-10-17.pdf`.
+- Podcast: `https://www.foreignaffairs.com/podcasts/irans-tenacious-regime-and-future-gulf` fails with `no available pdf for foreignaffairs. maybe contentType is podcast.`
+
+Podcast pages, and other pages where no official PDF link is available, fail at the fetch stage while preserving `page.html` and `meta.json`. Live checks against `foreignaffairs.com` depend on cookieproxy access and are not part of the closed-loop test suite.
 
 ## `get_metadata`
 
