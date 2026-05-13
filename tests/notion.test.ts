@@ -46,6 +46,32 @@ describe("markdownToNotionBlocks", () => {
     expect(content).toContain("Emoji [捂脸]");
   });
 
+  test("preserves escaped dollar signs as literal text", () => {
+    const markdown = "Price \\$5 to \\$7.";
+
+    const blocks = markdownToNotionBlocks(markdown);
+    const richText = blocks[0]?.type === "paragraph" ? blocks[0].paragraph.rich_text : [];
+
+    expect(richText).toHaveLength(1);
+    expect(richText[0]?.type).toBe("text");
+    if (richText[0]?.type === "text") {
+      expect(richText[0].text.content).toBe("Price $5 to $7.");
+    }
+  });
+
+  test("preserves dollar-delimited markdown as an inline equation", () => {
+    const markdown = "Formula $x+y=z$.";
+
+    const blocks = markdownToNotionBlocks(markdown);
+    const richText = blocks[0]?.type === "paragraph" ? blocks[0].paragraph.rich_text : [];
+    const equation = richText.find((item) => item.type === "equation");
+
+    expect(equation?.type).toBe("equation");
+    if (equation?.type === "equation") {
+      expect(equation.equation.expression).toBe("x+y=z");
+    }
+  });
+
   test("preserves empty-text inline links by promoting the url into link text", () => {
     const markdown = ["Reference:", "", "[](https://example.com/path?q=1)"].join("\n");
 

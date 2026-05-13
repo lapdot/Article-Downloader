@@ -1,5 +1,5 @@
 import { load } from "cheerio";
-import { buildMarkdownResult, createTurndownService } from "./parser-support.js";
+import { buildMarkdownLink, buildMarkdownResult, createTurndownService } from "./parser-support.js";
 import type { FetchNormalizationContext, SourceAdapter } from "./contracts.js";
 import type {
   DownloadResult,
@@ -635,7 +635,7 @@ export async function parseSubstackMarkdown(
   return buildMarkdownResult({
     title,
     contentHtml: cleanSubstackContentHtml(rawContentHtml, subtitle),
-    authorBlock: authorName && authorHomepage ? `[${authorName}](${authorHomepage})` : "",
+    authorBlock: authorName && authorHomepage ? buildMarkdownLink(authorName, authorHomepage) : "",
     contentTimeBlock,
   }, turndownService, input.source);
 }

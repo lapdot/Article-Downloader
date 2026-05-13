@@ -1,11 +1,42 @@
 import TurndownService from "turndown";
 import type { ParseResult, SourceIdentity } from "../types.js";
 
+const MARKDOWN_TEXT_ESCAPES: Array<[RegExp, string]> = [
+  [/\\/g, "\\\\"],
+  [/\*/g, "\\*"],
+  [/^-/g, "\\-"],
+  [/^\+ /g, "\\+ "],
+  [/^(=+)/g, "\\$1"],
+  [/^(#{1,6}) /g, "\\$1 "],
+  [/`/g, "\\`"],
+  [/^~~~/g, "\\~~~"],
+  [/\[/g, "\\["],
+  [/\]/g, "\\]"],
+  [/^>/g, "\\>"],
+  [/_/g, "\\_"],
+  [/^(\d+)\. /g, "$1\\. "],
+];
+
+export function escapeMarkdownPlainText(value: string): string {
+  const turndownEscaped = MARKDOWN_TEXT_ESCAPES.reduce((escaped, [pattern, replacement]) => {
+    return escaped.replace(pattern, replacement);
+  }, value);
+  return turndownEscaped.replace(/\$/gu, () => "\\$");
+}
+
+export function buildMarkdownLink(label: string, url: string): string {
+  return `[${escapeMarkdownPlainText(label)}](${url})`;
+}
+
 export function createTurndownService(options: { useHtmlStyleForImage: boolean }): TurndownService {
   const turndownService = new TurndownService({
     headingStyle: "atx",
     codeBlockStyle: "fenced",
   });
+  const turndownEscape = turndownService.escape.bind(turndownService);
+  turndownService.escape = (value: string): string => {
+    return turndownEscape(value).replace(/\$/gu, () => "\\$");
+  };
 
   function extractZhihuMathTex(node: {
     getAttribute: (name: string) => string | null;
@@ -147,7 +178,7 @@ export function buildMarkdownResult(
   const markdownBody = turndownService.turndown(context.contentHtml).trim();
   const includeTitleInMarkdown = context.includeTitleInMarkdown ?? true;
   const markdownSegments = [
-    includeTitleInMarkdown && context.title ? `# ${context.title}` : "",
+    includeTitleInMarkdown && context.title ? `# ${escapeMarkdownPlainText(context.title)}` : "",
     context.authorBlock,
     markdownBody,
     context.contentTimeBlock,

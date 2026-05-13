@@ -85,6 +85,36 @@ describe("zhihu markdown parsing", () => {
     expect(result.markdown).toContain("Empty:");
   });
 
+  test("escapes literal dollar signs while preserving zhihu math", async () => {
+    const html = `<!doctype html>
+<html>
+  <body>
+    <h1 class="QuestionHeader-title">Price $ Watch</h1>
+    <div class="AnswerItem">
+      <div class="AnswerItem-authorInfo">
+        <meta itemprop="name" content="Author $ Name" />
+        <meta itemprop="url" content="https://www.zhihu.com/people/author-$-url" />
+      </div>
+      <span class="RichText">
+        <p>Price moved from $5 to $7.</p>
+        <p>Formula: <span class="ztext-math" data-tex="x+y=z">x+y=z</span></p>
+      </span>
+    </div>
+  </body>
+</html>`;
+    const result = await parseHtmlToMarkdown({
+      html,
+      sourceUrl: "https://www.zhihu.com/question/1/answer/1",
+    });
+
+    expect(result.ok).toBe(true);
+    expect(result.title).toBe("Price $ Watch");
+    expect(result.markdown).toContain("# Price \\$ Watch");
+    expect(result.markdown).toContain("[Author \\$ Name](https://www.zhihu.com/people/author-$-url)");
+    expect(result.markdown).toContain("Price moved from \\$5 to \\$7.");
+    expect(result.markdown).toContain("$x+y=z$");
+  });
+
   test("converts zhihu display math to markdown block equation", async () => {
     const result = await parseHtmlToMarkdown({
       html: zhihuFixtureWithBlockMath,

@@ -1,6 +1,11 @@
 import { load } from "cheerio";
 import TurndownService from "turndown";
-import { buildMarkdownResult, createTurndownService, normalizeProtocolRelativeHrefs } from "./parser-support.js";
+import {
+  buildMarkdownLink,
+  buildMarkdownResult,
+  createTurndownService,
+  normalizeProtocolRelativeHrefs,
+} from "./parser-support.js";
 import type { SourceAdapter } from "./contracts.js";
 import type {
   MetadataInput,
@@ -198,7 +203,7 @@ function buildAuthorBlock(
     .find((el) => $(el).attr("itemprop") === "url")
     ?.attribs.content;
   if (authorName && authorUrl) {
-    return `[${authorName}](${authorUrl})`;
+    return buildMarkdownLink(authorName, authorUrl);
   }
   return "";
 }
