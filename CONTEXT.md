@@ -23,6 +23,7 @@ ArticleDownloader is a Node.js + TypeScript project for downloading article page
 - Architecture overview: `docs/architecture/overview.md`
 - Docs index: `docs/README.md`
 - Human-first quickstart: `README.md`
+- Tracked experiments: `experiments/README.md`
 - CLI reference: `docs/reference/cli-usage.md`
 - Library API reference: `docs/reference/library-api.md`
 
@@ -39,3 +40,4 @@ ArticleDownloader is a Node.js + TypeScript project for downloading article page
 
 - Treat CLI and core runtime behavior as the source of truth; the GUI is a thin wrapper.
 - Preserve upstream artifacts when downstream stages fail.
+- Put tracked prototype code under `experiments/<experiment-name>/`; generated scratch outputs should stay in ignored artifact locations unless intentionally curated.

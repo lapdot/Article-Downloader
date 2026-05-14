@@ -94,6 +94,7 @@ For validation expectations and safety rules, see `docs/policies/testing-and-saf
 - agent-first repository context: `CONTEXT.md`
 - portable agent guide: `AGENTS.md`
 - docs index: `docs/README.md`
+- tracked experiments: `experiments/README.md`
 - CLI command reference: `docs/reference/cli-usage.md`
 - library API reference: `docs/reference/library-api.md`
 - URL-to-artifacts workflow: `docs/workflows/url-driven-iteration.md`
