@@ -58,6 +58,16 @@ Start the full GUI flow:
 npm run gui
 ```
 
+Forward bridge server arguments through the full rebuild-and-run flow:
+
+```bash
+npm run gui -- \
+  --workspace-dir=/secure/workspace \
+  --history-dir=/secure/gui-history \
+  --logs-dir=/secure/gui-logs \
+  --output-dir=/secure/artifacts/runtime
+```
+
 Start the built bridge only:
 
 ```bash
