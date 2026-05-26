@@ -96,6 +96,7 @@ For validation expectations and safety rules, see `docs/policies/testing-and-saf
 - docs index: `docs/README.md`
 - tracked experiments: `experiments/README.md`
 - CLI command reference: `docs/reference/cli-usage.md`
+- environment variables: `docs/reference/environment-variables.md`
 - library API reference: `docs/reference/library-api.md`
 - URL-to-artifacts workflow: `docs/workflows/url-driven-iteration.md`
 - local development and GUI workflow: `docs/workflows/local-dev.md`

@@ -13,6 +13,7 @@ Use these first:
 - `reference/`
   - human-first command and API lookup
   - `cli-usage.md`: CLI command reference and examples
+  - `environment-variables.md`: supported and safety-checked environment variables
   - `library-api.md`: exported package surface and public types
 - `workflows/`
   - primarily human-first operating procedures
@@ -45,6 +46,7 @@ For current project behavior:
 
 Recommended additions for this repo's current source work:
 - read `reference/cli-usage.md` for command-by-command CLI usage
+- read `reference/environment-variables.md` for supported runtime and test environment variables
 - read `reference/library-api.md` for exported package surface
 - read `workflows/add-a-new-source.md` when onboarding a supported source
 - read `architecture/overview.md` for the current parser-stage orchestration and source-adapter structure

@@ -24,6 +24,7 @@ If code and docs diverge, align code to this document unless a newer repo decisi
 - Secret values are loaded from secret files, not from environment variable values.
 - Environment variables are used for path selection, not secret payloads.
 - When a required path cannot be resolved, the error must identify the missing key and the accepted sources for resolving it.
+- The complete environment-variable catalog lives in `../reference/environment-variables.md`.
 
 ### 2.2 Public config path policy
 - Public config path sources:
@@ -40,7 +41,15 @@ If code and docs diverge, align code to this document unless a newer repo decisi
   - Default: `config/notion.secrets.local.json`
 - Precedence: CLI > env > default.
 
-### 2.4 Public runtime selector policy
+### 2.4 Cookieproxy path policy
+- Cookieproxy executable path sources:
+  - Runtime input, including CLI-derived runtime input where applicable
+  - Env: `ARTICLE_DOWNLOADER_COOKIEPROXY_PATH`
+  - Default: `/Users/lapdot/Documents/projects/runnable/cookieproxy`
+- Precedence: runtime input > env > default.
+- `ARTICLE_DOWNLOADER_COOKIEPROXY_PATH` is a non-secret path selector.
+
+### 2.5 Public runtime selector policy
 - Public runtime selectors may be set by CLI override or by public config, depending on the field.
 - `downloadMethod` is the project's first-class public runtime selector.
 - Supported setting methods for `downloadMethod`:
@@ -54,7 +63,7 @@ If code and docs diverge, align code to this document unless a newer repo decisi
 - `http` is no longer supported and must fail validation early when supplied through CLI, config, or bridge inputs.
 - Method-dependent runtime behavior must always use the effective resolved value after precedence is applied.
 
-### 2.5 Default local artifact layout
+### 2.6 Default local artifact layout
 - The default runtime artifact base directory is `artifacts/runtime`.
 - LLM-oriented local materials should live under `artifacts/llm/`.
 - `.local/` is reserved for local operational state, not user content artifacts.

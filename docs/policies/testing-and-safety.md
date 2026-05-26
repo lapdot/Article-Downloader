@@ -32,9 +32,11 @@ The baseline contract test matrix must continue to cover:
 ## 4. Closed-Loop Local Safety Gate
 
 - The project defines a local closed test loop via `npm run test:closed-loop`.
+- `ARTICLE_DOWNLOADER_CLOSED_LOOP=1` enables closed-loop test behavior for the relevant test setup and suites.
 - The closed loop runs preflight checks, then `npm run typecheck`, and then the full test suite.
 - Closed-loop execution must not require real secrets.
 - Closed-loop execution enforces localhost-only network access; external hosts are blocked.
+- The complete environment-variable catalog, including secret-related variables rejected by preflight, lives in `../reference/environment-variables.md`.
 - Test fixtures must not contain real secret material or obvious secret markers.
 - Runtime artifacts and persisted diagnostics or logs must not expose secret values or secret file paths.
 
