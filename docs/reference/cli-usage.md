@@ -129,6 +129,53 @@ Expected artifact:
 
 Current note: dollar-delimited inline Markdown spans are preserved as inline equations in Notion block output. See `../decisions/0005-inline-equation-markdown-policy.md`.
 
+## `youtube-transcript`
+
+Fetch a public YouTube transcript and write readable Markdown plus structured transcript snippets.
+
+```bash
+npx tsx src/cli.ts youtube-transcript \
+  --url "https://www.youtube.com/watch?v=cg6MD07Vz6U" \
+  --out ./artifacts/runtime
+```
+
+The Node.js-facing command intentionally exposes no transcript selection options.
+It uses English transcripts, plain text formatting, and the `python3` executable
+internally.
+
+Expected artifacts:
+
+- `artifacts/runtime/<run>/transcript.md`
+- `artifacts/runtime/<run>/transcript.json`
+- `artifacts/runtime/<run>/meta.json`
+
+`transcript.md` keeps one timestamped bullet per transcript snippet:
+
+```md
+# YouTube Transcript: cg6MD07Vz6U
+
+- Source URL: https://www.youtube.com/watch?v=cg6MD07Vz6U
+- Video ID: cg6MD07Vz6U
+- Language: English (en)
+- Transcript type: auto-generated
+- Snippets: 2
+- Fetched at: 2026-05-26T12:00:00+00:00
+
+## Transcript
+
+- [00:00:00.000 - 00:00:01.200] Hello from the video.
+- [00:00:01.200 - 00:00:03.600] This is the transcript.
+```
+
+This command uses the production Python helper at `scripts/youtube_transcript_fetcher.py`, which depends on `youtube-transcript-api`. Install it with:
+
+```bash
+python3 -m pip install -r requirements-youtube-transcript.txt
+```
+
+The Python helper's direct-debug interface is preserved separately from the
+Node.js CLI.
+
 ## `upload-notion`
 
 Upload generated Notion blocks to a Notion database.

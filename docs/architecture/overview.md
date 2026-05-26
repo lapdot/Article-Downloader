@@ -23,6 +23,7 @@ Typical content flow:
 - `src/adapters/`: source-owned detection, fetch normalization, parser, metadata, and source-specific helpers
 - `src/core/pipeline.ts`: end-to-end run orchestration
 - `src/core/notion*.ts`: Notion transform and upload
+- `src/core/youtube-transcript.ts`: Node/TypeScript orchestration for the Python-backed YouTube transcript helper
 - `src/gui/bridge/`: local bridge server, schemas, execution, and history
 - `src/gui/frontend-react/`: React frontend
 
@@ -61,6 +62,14 @@ The fetch stage is also split between orchestration and source ownership:
 - source adapters may normalize from either a shell-level canonical pointer already embedded in the fetched HTML or a source-specific lookup flow when the shell does not expose enough direct information
 - this keeps source-specific fetch behavior with the same source module that already owns parsing and metadata logic
 - the current concrete transport set contains only `cookieproxy`, but the runtime intentionally keeps explicit effective-method resolution for future extensibility
+
+## YouTube Transcript Architecture
+
+The production YouTube transcript path is intentionally split:
+
+- `scripts/youtube_transcript_fetcher.py` owns the `youtube-transcript-api` call and prints structured JSON.
+- `src/core/youtube-transcript.ts` invokes the helper, formats Markdown, writes runtime artifacts, and returns the public result shape.
+- `experiments/youtube-transcript-api/` remains prototype/reference material and is not part of the runtime path.
 
 ## Source Of Truth
 

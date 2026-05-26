@@ -10,6 +10,7 @@ import {
 } from "./core/notion.js";
 import { runPipeline } from "./core/pipeline.js";
 import { browsePath } from "./core/browse-path.js";
+import { fetchYoutubeTranscript } from "./core/youtube-transcript.js";
 import { resolveEffectiveDownloadMethod, resolveRuntimeConfig } from "./core/runtime-config.js";
 import {
   extractForeignAffairsPdfUrl,
@@ -29,7 +30,7 @@ import {
   writeTextFile,
 } from "./utils/fs.js";
 import { logError, logInfo } from "./utils/log.js";
-import type { DownloadMethod, PipelineResult, ResolvedRuntimeConfig } from "./types.js";
+import type { DownloadMethod, PipelineResult, ResolvedRuntimeConfig, YoutubeTranscriptResult } from "./types.js";
 
 function assertNoDeprecatedFlags(argv: string[]): void {
   const hasDeprecatedCookiesFlag = argv.some((arg) => arg === "--cookies" || arg.startsWith("--cookies="));
@@ -65,6 +66,22 @@ function simplifyRunResult(result: PipelineResult): Record<string, unknown> {
     metaPath: result.metaPath,
     pageId: result.upload?.pageId,
     blocksAppended: result.upload?.blocksAppended,
+  };
+}
+
+function simplifyYoutubeTranscriptResult(result: YoutubeTranscriptResult): Record<string, unknown> {
+  return {
+    ok: result.ok,
+    url: result.url,
+    videoId: result.videoId,
+    outputDir: result.outputDir,
+    markdownPath: result.markdownPath,
+    transcriptJsonPath: result.transcriptJsonPath,
+    metaPath: result.metaPath,
+    metadata: result.metadata,
+    reason: result.reason,
+    errorCode: result.errorCode,
+    diagnostics: result.diagnostics,
   };
 }
 
@@ -429,6 +446,27 @@ export function createProgram(): Command {
         });
 
         printResult(result);
+        if (!result.ok) {
+          process.exitCode = 1;
+        }
+      } catch (error) {
+        logError(error instanceof Error ? error.message : "unknown error");
+        process.exitCode = 1;
+      }
+    });
+
+  program
+    .command("youtube-transcript")
+    .description("Fetch a YouTube transcript and write Markdown artifacts")
+    .requiredOption("--url <url>", "YouTube video URL or video ID")
+    .requiredOption("--out <dir>", "output base directory")
+    .action(async (opts) => {
+      try {
+        const result = await fetchYoutubeTranscript({
+          url: opts.url,
+          outDir: opts.out,
+        });
+        printResult(simplifyYoutubeTranscriptResult(result));
         if (!result.ok) {
           process.exitCode = 1;
         }

@@ -17,6 +17,7 @@ import {
   markdownToNotionBlocks,
   uploadNotionBlocksToNotion,
   runPipeline,
+  fetchYoutubeTranscript,
   resolveRuntimeConfig,
 } from "article-downloader";
 ```
@@ -34,6 +35,7 @@ import {
 - `readPublicConfig`: read public config JSON directly.
 - `readNotionSecretsConfig`: read Notion secrets JSON directly.
 - `runPipeline`: run the end-to-end URL-to-artifacts pipeline with downstream Notion upload.
+- `fetchYoutubeTranscript`: fetch a YouTube transcript through the production Python helper and write Markdown/runtime artifacts using fixed Node-facing defaults.
 
 ## Exported Public Types
 
@@ -57,6 +59,10 @@ Key exported types include:
   - `UploadResult`
   - `PipelineInput`
   - `PipelineResult`
+  - `YoutubeTranscriptInput`
+  - `YoutubeTranscriptMetadata`
+  - `YoutubeTranscriptResult`
+  - `YoutubeTranscriptSnippet`
 - metadata and source identity types:
   - `HtmlMetadata`
   - `SourceIdentity`

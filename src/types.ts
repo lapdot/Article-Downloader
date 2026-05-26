@@ -2,7 +2,8 @@ export type ErrorCode =
   | "E_FETCH_EXEC"
   | "E_PARSE_SELECTOR"
   | "E_PARSE_UNSUPPORTED_SITE"
-  | "E_NOTION_API";
+  | "E_NOTION_API"
+  | "E_YOUTUBE_TRANSCRIPT";
 
 export type DownloadMethod = "cookieproxy";
 
@@ -137,6 +138,44 @@ export interface PipelineResult {
   parse?: ParseResult;
   upload?: UploadResult;
   reason?: string;
+}
+
+export interface YoutubeTranscriptSnippet {
+  text: string;
+  start: number;
+  duration: number;
+}
+
+export interface YoutubeTranscriptInput {
+  url: string;
+  outDir: string;
+}
+
+export interface YoutubeTranscriptMetadata {
+  videoInput: string;
+  videoId: string;
+  languages: string[];
+  language?: string;
+  languageCode?: string;
+  isGenerated?: boolean;
+  snippetCount: number;
+  characterCount: number;
+  fetchedAt: string;
+}
+
+export interface YoutubeTranscriptResult {
+  ok: boolean;
+  url: string;
+  videoId?: string;
+  outputDir?: string;
+  markdownPath?: string;
+  transcriptJsonPath?: string;
+  metaPath?: string;
+  metadata?: YoutubeTranscriptMetadata;
+  snippets?: YoutubeTranscriptSnippet[];
+  reason?: string;
+  errorCode?: ErrorCode;
+  diagnostics?: Record<string, string | number | boolean>;
 }
 
 export type ZhihuContentType = "answer" | "pin" | "post";

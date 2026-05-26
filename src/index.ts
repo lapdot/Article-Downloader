@@ -11,6 +11,7 @@ export {
   markdownToNotionBlocksMartian,
 } from "./core/notion.js";
 export { runPipeline } from "./core/pipeline.js";
+export { fetchYoutubeTranscript } from "./core/youtube-transcript.js";
 export type {
   DownloadMethod,
   DownloadInput,
@@ -29,6 +30,10 @@ export type {
   UploadResult,
   PipelineInput,
   PipelineResult,
+  YoutubeTranscriptInput,
+  YoutubeTranscriptMetadata,
+  YoutubeTranscriptResult,
+  YoutubeTranscriptSnippet,
   SourceIdentity,
   SourceId,
   ZhihuContentType,

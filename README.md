@@ -14,17 +14,25 @@ ArticleDownloader is a Node.js (TypeScript + ESM) project for turning article UR
 - Download through the current `cookieproxy` transport.
 - Parse supported Zhihu and Substack article URLs with source-specific adapters.
 - Fetch official PDFs from Foreign Affairs and Foreign Policy article pages. These sources are fetch-only.
+- Fetch public YouTube transcripts into readable Markdown through the `youtube-transcript` command.
 - Optionally upload generated Notion blocks to a Notion database.
 
 ## Requirements
 
 - Node.js `>=20`
 - npm
+- Optional for YouTube transcripts: Python 3 with `youtube-transcript-api`
 
 ## Install
 
 ```bash
 npm install
+```
+
+For YouTube transcript support, install the Python helper dependency:
+
+```bash
+python3 -m pip install -r requirements-youtube-transcript.txt
 ```
 
 ## Quickstart
@@ -70,6 +78,29 @@ Typical artifacts:
 Foreign Affairs and Foreign Policy fetch flows write `page.html`, the official PDF, and `meta.json`; Markdown, metadata, Notion transform, and `run` are not supported for these fetch-only PDF sources. Foreign Affairs uses the official PDF filename linked from the HTML, such as `105301.pdf`; Foreign Policy generates the PDF URL from the article URL and saves a slug filename such as `trump-china-hawk-xi-jinping-covid.pdf`.
 
 The automated suite covers the current fetch-only PDF scenarios with deterministic cookieproxy fixtures. Live verification against `foreignaffairs.com` or `foreignpolicy.com` still requires a working cookieproxy session with the needed site access.
+
+YouTube transcript flow:
+
+```bash
+npx tsx src/cli.ts youtube-transcript \
+  --url "https://www.youtube.com/watch?v=cg6MD07Vz6U" \
+  --out ./artifacts/runtime
+```
+
+The Node.js CLI uses English transcripts, plain text formatting, and `python3` internally.
+
+Expected artifacts:
+
+- Markdown transcript: `artifacts/runtime/<run>/transcript.md`
+- structured transcript snippets: `artifacts/runtime/<run>/transcript.json`
+- run metadata: `artifacts/runtime/<run>/meta.json`
+
+Markdown transcript entries are timestamped:
+
+```md
+- [00:00:00.000 - 00:00:01.200] Hello from the video.
+- [00:00:01.200 - 00:00:03.600] This is the transcript.
+```
 
 For command-by-command usage, see `docs/reference/cli-usage.md`.
 

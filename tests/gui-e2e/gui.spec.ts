@@ -16,6 +16,16 @@ test("renders GUI shell and switches command", async ({ page }) => {
   await expect(page.getByTestId("run-btn")).toBeVisible();
 });
 
+test("renders youtube transcript command", async ({ page }) => {
+  await page.goto("/");
+  await selectCommandByName(page, "youtube-transcript");
+  await expect(page.getByText("--url (required)")).toBeVisible();
+  await expect(page.getByText("--out (required)")).toBeVisible();
+  await expect(page.getByText("--python")).toHaveCount(0);
+  await expect(page.getByText("--languages")).toHaveCount(0);
+  await expect(page.getByText("--preserve-formatting")).toHaveCount(0);
+});
+
 test("modal picker applies manual path in desktop mode", async ({ page }) => {
   await page.setViewportSize({ width: 1200, height: 900 });
   await page.goto("/");

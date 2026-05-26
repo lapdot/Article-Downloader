@@ -200,6 +200,33 @@ esac
   return scriptPath;
 }
 
+async function createYoutubeTranscriptFakePython(root: string): Promise<string> {
+  const binDir = path.join(root, "bin");
+  const scriptPath = path.join(binDir, "python3");
+  const payload = JSON.stringify({
+    ok: true,
+    video_input: "https://www.youtube.com/watch?v=abc123",
+    video_id: "abc123",
+    languages: ["en"],
+    fetched_at: "2026-05-26T12:00:00+00:00",
+    transcript: {
+      video_id: "abc123",
+      language: "English",
+      language_code: "en",
+      is_generated: false,
+      snippet_count: 1,
+      character_count: 21,
+      snippets: [
+        { text: "A CLI transcript line.", start: 0, duration: 1 },
+      ],
+    },
+  });
+  await writeTextFile(scriptPath, `#!/bin/sh\nprintf '%s\\n' '${payload}'\n`);
+  await chmod(scriptPath, 0o755);
+  process.env.PATH = `${binDir}${path.delimiter}${ORIGINAL_ENV.PATH ?? ""}`;
+  return scriptPath;
+}
+
 describe("cli", () => {
   async function captureStderr(run: () => Promise<void>): Promise<string> {
     let stderr = "";
@@ -738,6 +765,7 @@ describe("cli", () => {
     const parseCommand = program.commands.find((command) => command.name() === "parse");
     const transformCommand = program.commands.find((command) => command.name() === "transform-notion");
     const uploadCommand = program.commands.find((command) => command.name() === "upload-notion");
+    const youtubeTranscriptCommand = program.commands.find((command) => command.name() === "youtube-transcript");
     const runCommand = program.commands.find((command) => command.name() === "run");
     const runOptionNames = runCommand?.options.map((option) => option.long);
 
@@ -747,6 +775,7 @@ describe("cli", () => {
     expect(parseCommand).toBeDefined();
     expect(transformCommand).toBeDefined();
     expect(uploadCommand).toBeDefined();
+    expect(youtubeTranscriptCommand).toBeDefined();
     expect(runCommand).toBeDefined();
 
     mustRequireOption(fetchCommand!, "--url");
@@ -763,6 +792,11 @@ describe("cli", () => {
     mustRequireOption(transformCommand!, "--out");
     mustRequireOption(uploadCommand!, "--blocks");
     mustHaveOption(uploadCommand!, "--config");
+    mustRequireOption(youtubeTranscriptCommand!, "--url");
+    mustRequireOption(youtubeTranscriptCommand!, "--out");
+    expect(youtubeTranscriptCommand?.options.map((option) => option.long)).not.toEqual(
+      expect.arrayContaining(["--languages", "--preserve-formatting", "--python"]),
+    );
     mustRequireOption(runCommand!, "--url");
     mustRequireOption(runCommand!, "--out");
     mustHaveOption(runCommand!, "--config");
@@ -772,6 +806,39 @@ describe("cli", () => {
     expect(runOptionNames).not.toContain("--cookies-secrets");
     expect(runOptionNames).toContain("--notion-secrets");
     expect(runOptionNames).toContain("--full-result");
+  });
+
+  test("youtube-transcript command writes transcript artifacts", async () => {
+    const root = await mkdtemp(path.join(tmpdir(), "cli-youtube-transcript-test-"));
+    await createYoutubeTranscriptFakePython(root);
+    const outDir = path.join(root, "out");
+
+    const stdout = await captureStdout(async () => {
+      await runCli([
+        "node",
+        "article-downloader",
+        "youtube-transcript",
+        "--url",
+        "https://www.youtube.com/watch?v=abc123",
+        "--out",
+        outDir,
+      ]);
+    });
+
+    const payload = JSON.parse(stdout) as {
+      ok: boolean;
+      markdownPath: string;
+      transcriptJsonPath: string;
+      metaPath: string;
+    };
+    expect(payload.ok).toBe(true);
+    const markdown = await readFile(payload.markdownPath, "utf8");
+    const transcriptJson = await readFile(payload.transcriptJsonPath, "utf8");
+    const meta = await readFile(payload.metaPath, "utf8");
+
+    expect(markdown).toContain("- [00:00:00.000 - 00:00:01.000] A CLI transcript line.");
+    expect(transcriptJson).toContain("A CLI transcript line.");
+    expect(meta).toContain('"videoId": "abc123"');
   });
 
   test("run command fails when config path is missing in both arg and env", async () => {

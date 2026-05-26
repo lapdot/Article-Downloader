@@ -36,4 +36,16 @@ describe("gui command descriptors", () => {
     expect(downloadMethodArg?.allowedValues).toEqual(["cookieproxy"]);
     expect(cookiesSecretsArg).toBeUndefined();
   });
+
+  it("exposes youtube transcript command with path and url hints", () => {
+    const transcriptCommand = findCommandDescriptor("youtube-transcript");
+    const urlArg = transcriptCommand?.args.find((arg) => arg.key === "url");
+    const outArg = transcriptCommand?.args.find((arg) => arg.key === "out");
+    const argKeys = transcriptCommand?.args.map((arg) => arg.key) ?? [];
+
+    expect(transcriptCommand).toBeDefined();
+    expect(urlArg?.valueHint).toBe("url");
+    expect(outArg?.pathMode).toBe("dir");
+    expect(argKeys).not.toEqual(expect.arrayContaining(["languages", "preserveFormatting", "python"]));
+  });
 });

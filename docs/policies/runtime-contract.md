@@ -71,6 +71,8 @@ If code and docs diverge, align code to this document unless a newer repo decisi
   - HTML format: fetched source page artifact (`page.html`)
   - PDF format: source-owned fetched PDF artifact for fetch-only PDF sources
   - Markdown format: parsed article artifact (`article.md`)
+  - YouTube transcript Markdown format: fetched transcript artifact (`transcript.md`)
+  - YouTube transcript JSON format: structured transcript snippets (`transcript.json`)
   - Notion format: generated Notion block artifact (`notion-blocks.json`)
 - Current local operational state includes:
   - `.local/gui/history/`
@@ -102,6 +104,7 @@ Current core output path flags:
   - `get_metadata`
   - `parse`
   - `transform-notion`
+  - `youtube-transcript`
   - `run`
 
 Exception policy:
@@ -197,6 +200,15 @@ Default-layout note:
 - If the generated PDF URL returns non-PDF content, `fetch` fails while preserving `page.html` and `meta.json`.
 - Metadata, Markdown parsing, Notion block generation, upload, and `run` are not implemented for Foreign Policy.
 - Deterministic tests cover representative Foreign Policy HTML/PDF and PDF-failure behavior with fake cookieproxy fixtures. Live verification against `foreignpolicy.com` is environment-dependent because it requires external network access and the relevant cookieproxy session state.
+
+### 4.8 YouTube transcript policy
+- YouTube transcript fetching is exposed through the `youtube-transcript` command and `fetchYoutubeTranscript` library helper.
+- The Node/TypeScript runtime remains the production orchestration layer; it invokes `scripts/youtube_transcript_fetcher.py` as a subprocess and consumes structured JSON from stdout.
+- Production code must not invoke experiment files under `experiments/`.
+- The Python helper owns interaction with `youtube-transcript-api`; the Node runtime owns artifact layout, Markdown formatting, CLI/GUI contract, and result shaping.
+- The Node-facing API and CLI use fixed defaults: English transcript lookup, plain text formatting, and `python3`.
+- `transcript.md` must preserve snippet timing as one bullet per snippet in `[HH:MM:SS.mmm - HH:MM:SS.mmm] text` format.
+- Failures from Python startup, missing Python dependencies, missing transcripts, blocked transcript access, or malformed helper output must return actionable `E_YOUTUBE_TRANSCRIPT` failures.
 
 ## 5. Runtime Debug Logging
 
