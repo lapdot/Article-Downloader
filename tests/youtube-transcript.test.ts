@@ -11,9 +11,9 @@ afterEach(() => {
   process.env = { ...ORIGINAL_ENV };
 });
 
-async function createFakePython(root: string, mode: "success" | "error" | "malformed"): Promise<string> {
+async function createFakeUv(root: string, mode: "success" | "error" | "malformed"): Promise<string> {
   const binDir = path.join(root, "bin");
-  const scriptPath = path.join(binDir, "python3");
+  const scriptPath = path.join(binDir, "uv");
   const successPayload = JSON.stringify({
     ok: true,
     video_input: "https://www.youtube.com/watch?v=abc123",
@@ -52,7 +52,17 @@ async function createFakePython(root: string, mode: "success" | "error" | "malfo
 exit 1`
         : `printf '%s\\n' 'not json'
 exit 1`;
-  await writeTextFile(scriptPath, `#!/bin/sh\n${body}\n`);
+  await writeTextFile(
+    scriptPath,
+    `#!/bin/sh
+if [ "$1" != "run" ] || [ "$2" != "python" ]; then
+  echo "unexpected uv invocation: $*" >&2
+  exit 9
+fi
+shift 2
+${body}
+`,
+  );
   await chmod(scriptPath, 0o755);
   process.env.PATH = `${binDir}${path.delimiter}${ORIGINAL_ENV.PATH ?? ""}`;
   return scriptPath;
@@ -61,7 +71,7 @@ exit 1`;
 describe("youtube transcript core", () => {
   test("runs the Python helper and writes markdown artifacts", async () => {
     const root = await mkdtemp(path.join(tmpdir(), "youtube-transcript-test-"));
-    await createFakePython(root, "success");
+    await createFakeUv(root, "success");
 
     const result = await fetchYoutubeTranscript({
       url: "https://www.youtube.com/watch?v=abc123",
@@ -86,7 +96,7 @@ describe("youtube transcript core", () => {
 
   test("returns structured failure when helper reports an error", async () => {
     const root = await mkdtemp(path.join(tmpdir(), "youtube-transcript-test-"));
-    await createFakePython(root, "error");
+    await createFakeUv(root, "error");
 
     const result = await fetchYoutubeTranscript({
       url: "https://www.youtube.com/watch?v=missing",
@@ -103,7 +113,7 @@ describe("youtube transcript core", () => {
 
   test("returns structured failure when helper output is malformed", async () => {
     const root = await mkdtemp(path.join(tmpdir(), "youtube-transcript-test-"));
-    await createFakePython(root, "malformed");
+    await createFakeUv(root, "malformed");
 
     const result = await fetchYoutubeTranscript({
       url: "https://www.youtube.com/watch?v=abc123",

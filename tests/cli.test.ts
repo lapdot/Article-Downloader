@@ -200,9 +200,9 @@ esac
   return scriptPath;
 }
 
-async function createYoutubeTranscriptFakePython(root: string): Promise<string> {
+async function createYoutubeTranscriptFakeUv(root: string): Promise<string> {
   const binDir = path.join(root, "bin");
-  const scriptPath = path.join(binDir, "python3");
+  const scriptPath = path.join(binDir, "uv");
   const payload = JSON.stringify({
     ok: true,
     video_input: "https://www.youtube.com/watch?v=abc123",
@@ -221,7 +221,16 @@ async function createYoutubeTranscriptFakePython(root: string): Promise<string> 
       ],
     },
   });
-  await writeTextFile(scriptPath, `#!/bin/sh\nprintf '%s\\n' '${payload}'\n`);
+  await writeTextFile(
+    scriptPath,
+    `#!/bin/sh
+if [ "$1" != "run" ] || [ "$2" != "python" ]; then
+  echo "unexpected uv invocation: $*" >&2
+  exit 9
+fi
+printf '%s\\n' '${payload}'
+`,
+  );
   await chmod(scriptPath, 0o755);
   process.env.PATH = `${binDir}${path.delimiter}${ORIGINAL_ENV.PATH ?? ""}`;
   return scriptPath;
@@ -810,7 +819,7 @@ describe("cli", () => {
 
   test("youtube-transcript command writes transcript artifacts", async () => {
     const root = await mkdtemp(path.join(tmpdir(), "cli-youtube-transcript-test-"));
-    await createYoutubeTranscriptFakePython(root);
+    await createYoutubeTranscriptFakeUv(root);
     const outDir = path.join(root, "out");
 
     const stdout = await captureStdout(async () => {

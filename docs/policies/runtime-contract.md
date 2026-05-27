@@ -203,10 +203,10 @@ Default-layout note:
 
 ### 4.8 YouTube transcript policy
 - YouTube transcript fetching is exposed through the `youtube-transcript` command and `fetchYoutubeTranscript` library helper.
-- The Node/TypeScript runtime remains the production orchestration layer; it invokes `scripts/youtube_transcript_fetcher.py` as a subprocess and consumes structured JSON from stdout.
+- The Node/TypeScript runtime remains the production orchestration layer; it invokes `scripts/youtube_transcript_fetcher.py` through `uv run python` and consumes structured JSON from stdout.
 - Production code must not invoke experiment files under `experiments/`.
 - The Python helper owns interaction with `youtube-transcript-api`; the Node runtime owns artifact layout, Markdown formatting, CLI/GUI contract, and result shaping.
-- The Node-facing API and CLI use fixed defaults: English transcript lookup, plain text formatting, and `python3`.
+- The Node-facing API and CLI use fixed defaults: English transcript lookup, plain text formatting, and `uv run python`.
 - `transcript.md` must preserve snippet timing as one bullet per snippet in `[HH:MM:SS.mmm - HH:MM:SS.mmm] text` format.
 - Failures from Python startup, missing Python dependencies, missing transcripts, blocked transcript access, or malformed helper output must return actionable `E_YOUTUBE_TRANSCRIPT` failures.
 

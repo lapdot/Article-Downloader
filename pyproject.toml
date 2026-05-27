@@ -1,0 +1,36 @@
+[project]
+name = "article-downloader-python"
+version = "0.1.0"
+description = "Python helper tooling for ArticleDownloader."
+requires-python = ">=3.11"
+dependencies = [
+  "youtube-transcript-api",
+]
+
+[dependency-groups]
+dev = [
+  "poethepoet>=0.30.0",
+  "pytest>=8.0.0",
+  "ruff>=0.8.0",
+]
+
+[tool.uv]
+package = false
+
+[tool.ruff]
+line-length = 100
+target-version = "py311"
+
+[tool.ruff.lint]
+select = ["E", "F", "I", "UP"]
+
+[tool.pytest.ini_options]
+testpaths = ["tests/python"]
+
+[tool.poe.tasks]
+lint = "ruff check scripts tests/python"
+format-check = "ruff format --check scripts tests/python"
+pytest = "pytest"
+
+[tool.poe.tasks.check]
+sequence = ["lint", "format-check", "pytest"]

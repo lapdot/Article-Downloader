@@ -140,8 +140,8 @@ npx tsx src/cli.ts youtube-transcript \
 ```
 
 The Node.js-facing command intentionally exposes no transcript selection options.
-It uses English transcripts, plain text formatting, and the `python3` executable
-internally.
+It uses English transcripts, plain text formatting, and the uv-managed Python
+environment internally.
 
 Expected artifacts:
 
@@ -167,10 +167,19 @@ Expected artifacts:
 - [00:00:01.200 - 00:00:03.600] This is the transcript.
 ```
 
-This command uses the production Python helper at `scripts/youtube_transcript_fetcher.py`, which depends on `youtube-transcript-api`. Install it with:
+This command uses the production Python helper at `scripts/youtube_transcript_fetcher.py`, which depends on `youtube-transcript-api`. Install the uv-managed Python environment with:
 
 ```bash
-python3 -m pip install -r requirements-youtube-transcript.txt
+uv sync
+```
+
+Then run the command normally. The TypeScript runtime invokes the Python helper
+through `uv run python`.
+
+```bash
+npx tsx src/cli.ts youtube-transcript \
+  --url "https://www.youtube.com/watch?v=cg6MD07Vz6U" \
+  --out ./artifacts/runtime
 ```
 
 The Python helper's direct-debug interface is preserved separately from the

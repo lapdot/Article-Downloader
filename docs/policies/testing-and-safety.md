@@ -69,6 +69,7 @@ Rules:
 
 Validation expectation:
 - Any policy-compliant test update must keep `npm test` and `npm run test:closed-loop` passing.
+- Python helper changes must keep `uv run poe check` passing.
 - Add focused coverage when fetch-time normalization is introduced for a supported source. For Substack aggregator URLs, tests should cover successful canonical normalization, graceful fallback to the original fetched shell when lookup data is insufficient, and synthetic article fallback when canonical-page refetch fails after a successful lookup.
 - For fetch-only PDF sources such as Foreign Affairs, tests should cover link extraction, source filename preservation, non-PDF response rejection, no-PDF failure, and preservation of upstream HTML/meta artifacts.
 - For deterministic-link fetch-only PDF sources such as Foreign Policy, tests should cover generated PDF URL construction, slug filename preservation, HTML-stage failure, non-PDF response rejection, and preservation of upstream HTML/meta artifacts after PDF-stage failure.

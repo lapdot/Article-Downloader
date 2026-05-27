@@ -21,7 +21,7 @@ ArticleDownloader is a Node.js (TypeScript + ESM) project for turning article UR
 
 - Node.js `>=20`
 - npm
-- Optional for YouTube transcripts: Python 3 with `youtube-transcript-api`
+- Optional for YouTube transcripts: Python `>=3.11` managed with uv
 
 ## Install
 
@@ -29,10 +29,10 @@ ArticleDownloader is a Node.js (TypeScript + ESM) project for turning article UR
 npm install
 ```
 
-For YouTube transcript support, install the Python helper dependency:
+For YouTube transcript support, install uv and sync the Python environment:
 
 ```bash
-python3 -m pip install -r requirements-youtube-transcript.txt
+uv sync
 ```
 
 ## Quickstart
@@ -87,7 +87,8 @@ npx tsx src/cli.ts youtube-transcript \
   --out ./artifacts/runtime
 ```
 
-The Node.js CLI uses English transcripts, plain text formatting, and `python3` internally.
+The Node.js CLI uses English transcripts and plain text formatting. It invokes
+the Python helper through `uv run python`, so uv must be available on `PATH`.
 
 Expected artifacts:
 
@@ -116,6 +117,12 @@ Run the stricter closed test loop:
 
 ```bash
 npm run test:closed-loop
+```
+
+Run Python helper checks:
+
+```bash
+uv run poe check
 ```
 
 For validation expectations and safety rules, see `docs/policies/testing-and-safety.md`.

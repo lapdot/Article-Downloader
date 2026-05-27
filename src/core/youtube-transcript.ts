@@ -11,7 +11,8 @@ import type {
 } from "../types.js";
 
 const execFileAsync = promisify(execFile);
-const DEFAULT_PYTHON_PATH = "python3";
+const PYTHON_COMMAND = "uv run python";
+const UV_COMMAND = "uv";
 const DEFAULT_LANGUAGES = ["en"];
 
 interface HelperTranscriptPayload {
@@ -145,8 +146,9 @@ function metadataFromPayload(payload: HelperSuccessPayload): YoutubeTranscriptMe
 }
 
 export async function fetchYoutubeTranscript(input: YoutubeTranscriptInput): Promise<YoutubeTranscriptResult> {
-  const pythonPath = DEFAULT_PYTHON_PATH;
   const args = [
+    "run",
+    "python",
     helperPath(),
     input.url,
     "--languages",
@@ -157,7 +159,7 @@ export async function fetchYoutubeTranscript(input: YoutubeTranscriptInput): Pro
   let stderr = "";
   let payload: HelperPayload;
   try {
-    const result = await execFileAsync(pythonPath, args, {
+    const result = await execFileAsync(UV_COMMAND, args, {
       maxBuffer: 20 * 1024 * 1024,
     });
     stdout = result.stdout;
@@ -176,7 +178,7 @@ export async function fetchYoutubeTranscript(input: YoutubeTranscriptInput): Pro
         reason: message,
         errorCode: "E_YOUTUBE_TRANSCRIPT",
         diagnostics: {
-          pythonPath,
+          pythonCommand: PYTHON_COMMAND,
           stderr: stderr.trim(),
         },
       };
@@ -191,7 +193,7 @@ export async function fetchYoutubeTranscript(input: YoutubeTranscriptInput): Pro
       reason: errorReason(payload),
       errorCode: "E_YOUTUBE_TRANSCRIPT",
       diagnostics: {
-        pythonPath,
+        pythonCommand: PYTHON_COMMAND,
         helperErrorType: payload.error?.type ?? "",
         stderr: stderr.trim(),
       },

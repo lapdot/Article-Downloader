@@ -6,7 +6,7 @@ from __future__ import annotations
 import argparse
 import json
 from dataclasses import asdict, dataclass
-from datetime import datetime, timezone
+from datetime import UTC, datetime
 from importlib.metadata import PackageNotFoundError, version
 from typing import Any
 from urllib.parse import parse_qs, urlparse
@@ -31,7 +31,7 @@ class TranscriptSnippet:
 
 
 def utc_now() -> str:
-    return datetime.now(timezone.utc).isoformat()
+    return datetime.now(UTC).isoformat()
 
 
 def package_version(package_name: str) -> str:
@@ -115,16 +115,13 @@ def parse_args() -> argparse.Namespace:
 def ok_payload(args: argparse.Namespace, video_id: str) -> dict[str, Any]:
     if YouTubeTranscriptApi is None:
         raise RuntimeError(
-            "missing python dependency: install youtube-transcript-api with "
-            "python3 -m pip install -r requirements-youtube-transcript.txt"
+            "missing python dependency: run `uv sync` from the repository root"
         ) from IMPORT_ERROR
 
     api = YouTubeTranscriptApi()
     transcript_list = api.list(video_id)
     selected_transcript = transcript_list.find_transcript(args.languages)
-    fetched_transcript = selected_transcript.fetch(
-        preserve_formatting=args.preserve_formatting
-    )
+    fetched_transcript = selected_transcript.fetch(preserve_formatting=args.preserve_formatting)
     transcript_data = [
         TranscriptSnippet(
             text=str(snippet["text"]),
@@ -150,12 +147,8 @@ def ok_payload(args: argparse.Namespace, video_id: str) -> dict[str, Any]:
             "is_generated": fetched_transcript.is_generated,
             "snippet_count": len(fetched_transcript),
             "character_count": len(transcript_text),
-            "first_timestamp": fetched_transcript[0].start
-            if len(fetched_transcript)
-            else None,
-            "last_timestamp": fetched_transcript[-1].start
-            if len(fetched_transcript)
-            else None,
+            "first_timestamp": fetched_transcript[0].start if len(fetched_transcript) else None,
+            "last_timestamp": fetched_transcript[-1].start if len(fetched_transcript) else None,
             "snippets": [asdict(snippet) for snippet in transcript_data],
         },
     }

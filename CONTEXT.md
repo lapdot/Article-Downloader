@@ -13,6 +13,7 @@ ArticleDownloader is a Node.js + TypeScript project for downloading article page
 - `npm test`
 - `npm run test:closed-loop`
 - `npm run gui:test:e2e`
+- Python helper checks when touching Python code: `uv run poe check`
 
 ## Source Of Truth
 
