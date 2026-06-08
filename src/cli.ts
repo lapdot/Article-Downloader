@@ -401,10 +401,11 @@ export function createProgram(): Command {
     .command("transform-notion")
     .requiredOption("--md <path>", "path to markdown file")
     .requiredOption("--out <dir>", "output base directory")
+    .option("--source-url <url>", "source article URL used to resolve relative markdown links")
     .action(async (opts) => {
       try {
         const markdown = await readRequiredTextInput("input markdown", opts.md);
-        const blocks = markdownToNotionBlocks(markdown);
+        const blocks = markdownToNotionBlocks(markdown, { baseUrl: opts.sourceUrl });
         const outputDir = await createOutputDir(opts.out, opts.md);
         const blocksPath = path.join(outputDir, "notion-blocks.json");
         await writeJsonFile(blocksPath, blocks);

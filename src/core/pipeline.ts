@@ -87,7 +87,9 @@ export async function runPipeline(input: PipelineInput): Promise<PipelineResult>
   const databaseId = input.runtimeConfig.notion.databaseId;
   const uploadAttempted = parse.ok && Boolean(parse.markdown);
   if (uploadAttempted && parse.markdown) {
-    const blocks = markdownToNotionBlocks(parse.markdown);
+    const blocks = markdownToNotionBlocks(parse.markdown, {
+      baseUrl: metadata.metadata?.articleUrl ?? sourceUrl,
+    });
     await writeJsonFile(notionBlocksPath, blocks);
     if (input.notionSetupError) {
       upload = {

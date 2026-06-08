@@ -39,7 +39,7 @@ vi.mock("../src/core/notion.js", () => ({
 }));
 
 import { runPipeline } from "../src/core/pipeline.js";
-import { uploadNotionBlocksToNotion } from "../src/core/notion.js";
+import { markdownToNotionBlocks, uploadNotionBlocksToNotion } from "../src/core/notion.js";
 
 describe("pipeline run upload behavior", () => {
   test("parse success + missing credentials => upload failure and ok=false", async () => {
@@ -91,6 +91,28 @@ describe("pipeline run upload behavior", () => {
     expect(result.ok).toBe(false);
     expect(result.reason).toBe("notion upload failed");
     expect(result.upload?.ok).toBe(false);
+  });
+
+  test("passes article URL into Notion transform for relative link rewriting", async () => {
+    const outDir = await mkdtemp(path.join(tmpdir(), "pipeline-upload-test-"));
+    vi.mocked(markdownToNotionBlocks).mockClear();
+
+    await runPipeline({
+      url: "https://zhuanlan.zhihu.com/p/123",
+      runtimeConfig: {
+        pipeline: {
+          outDir,
+          useHtmlStyleForImage: false,
+          downloadMethod: "cookieproxy",
+          cookieproxyPath: "/tmp/cookieproxy",
+        },
+        notion: {},
+      },
+    });
+
+    expect(markdownToNotionBlocks).toHaveBeenCalledWith("# Title", {
+      baseUrl: "https://zhuanlan.zhihu.com/p/123",
+    });
   });
 
   test("parse success + upload api success => ok=true", async () => {

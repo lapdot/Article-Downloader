@@ -4,6 +4,43 @@ import {
   markdownToNotionBlocksMartian,
 } from "../src/core/notion.js";
 
+function collectRichTextLinks(value: unknown): Array<{ content: string; url?: string }> {
+  const links: Array<{ content: string; url?: string }> = [];
+  const walk = (nested: unknown): void => {
+    if (Array.isArray(nested)) {
+      for (const item of nested) {
+        walk(item);
+      }
+      return;
+    }
+
+    if (!nested || typeof nested !== "object") {
+      return;
+    }
+
+    const record = nested as Record<string, unknown>;
+    const text = record.text;
+    if (text && typeof text === "object") {
+      const textRecord = text as Record<string, unknown>;
+      const content = textRecord.content;
+      const link = textRecord.link;
+      if (typeof content === "string" && link && typeof link === "object") {
+        links.push({
+          content,
+          url: (link as Record<string, unknown>).url as string | undefined,
+        });
+      }
+    }
+
+    for (const child of Object.values(record)) {
+      walk(child);
+    }
+  };
+
+  walk(value);
+  return links;
+}
+
 describe("markdownToNotionBlocks", () => {
   test("converts headings, lists, and code fences", () => {
     const markdown = [
@@ -94,6 +131,72 @@ describe("markdownToNotionBlocks", () => {
     expect(text?.type).toBe("text");
     expect(text?.text.content).toBe("Example");
     expect(text?.text.link?.url).toBe("https://example.com/path?q=1");
+  });
+
+  test("rewrites fragment-only links to absolute source URLs", () => {
+    const markdown = [
+      "Footnote [\\[1\\]](#ref_1)",
+      "",
+      "1. [^](#ref_1_0) Details",
+    ].join("\n");
+
+    const blocks = markdownToNotionBlocks(markdown, {
+      baseUrl: "https://www.zhihu.com/question/53362161/answer/2023382339456091047",
+    });
+    const links = collectRichTextLinks(blocks);
+
+    expect(links).toEqual(
+      expect.arrayContaining([
+        {
+          content: "[1]",
+          url: "https://www.zhihu.com/question/53362161/answer/2023382339456091047#ref_1",
+        },
+        {
+          content: "^",
+          url: "https://www.zhihu.com/question/53362161/answer/2023382339456091047#ref_1_0",
+        },
+      ]),
+    );
+  });
+
+  test("rewrites relative markdown links to absolute source URLs", () => {
+    const markdown = "[Next](/articles/next)";
+
+    const blocks = markdownToNotionBlocks(markdown, {
+      baseUrl: "https://example.com/articles/current",
+    });
+    const [link] = collectRichTextLinks(blocks);
+
+    expect(link).toEqual({
+      content: "Next",
+      url: "https://example.com/articles/next",
+    });
+  });
+
+  test("keeps absolute markdown links unchanged when a source URL is provided", () => {
+    const markdown = "[Example](https://example.net/path)";
+
+    const blocks = markdownToNotionBlocks(markdown, {
+      baseUrl: "https://example.com/articles/current",
+    });
+    const [link] = collectRichTextLinks(blocks);
+
+    expect(link).toEqual({
+      content: "Example",
+      url: "https://example.net/path",
+    });
+  });
+
+  test("drops invalid relative link annotations when no source URL is provided", () => {
+    const markdown = "[\\[1\\]](#ref_1)";
+
+    const blocks = markdownToNotionBlocks(markdown);
+    const paragraph = blocks[0]?.type === "paragraph" ? blocks[0].paragraph.rich_text : [];
+    const text = paragraph[0];
+
+    expect(text?.type).toBe("text");
+    expect(text?.text.content).toBe("[1]");
+    expect(text?.text.link).toBeNull();
   });
 
   test("does not change markdown image syntax", () => {

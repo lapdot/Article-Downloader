@@ -799,6 +799,7 @@ describe("cli", () => {
     mustRequireOption(parseCommand!, "--out");
     mustRequireOption(transformCommand!, "--md");
     mustRequireOption(transformCommand!, "--out");
+    mustHaveOption(transformCommand!, "--source-url");
     mustRequireOption(uploadCommand!, "--blocks");
     mustHaveOption(uploadCommand!, "--config");
     mustRequireOption(youtubeTranscriptCommand!, "--url");

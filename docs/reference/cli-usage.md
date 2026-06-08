@@ -120,7 +120,8 @@ Transform Markdown into Notion block JSON.
 ```bash
 npx tsx src/cli.ts transform-notion \
   --md ./artifacts/runtime/<run>/article.md \
-  --out ./artifacts/runtime
+  --out ./artifacts/runtime \
+  --source-url https://example.com/article
 ```
 
 Expected artifact:
@@ -128,6 +129,8 @@ Expected artifact:
 - `artifacts/runtime/<transform-run>/notion-blocks.json`
 
 Current note: dollar-delimited inline Markdown spans are preserved as inline equations in Notion block output. See `../decisions/0005-inline-equation-markdown-policy.md`.
+
+Relative Markdown links, including fragment-only links such as footnote anchors, are resolved against `--source-url` because Notion rich text links require absolute URLs. When no source URL is provided, invalid relative link annotations are removed while the visible link text is preserved.
 
 ## `youtube-transcript`
 
