@@ -1,5 +1,5 @@
 import path from "node:path";
-import { mkdtemp } from "node:fs/promises";
+import { mkdtemp, writeFile } from "node:fs/promises";
 import { tmpdir } from "node:os";
 import { describe, expect, test, vi } from "vitest";
 
@@ -40,21 +40,41 @@ vi.mock("../src/core/notion.js", () => ({
 
 import { runPipeline } from "../src/core/pipeline.js";
 import { markdownToNotionBlocks, uploadNotionBlocksToNotion } from "../src/core/notion.js";
+import { parseHtmlToMetadata } from "../src/core/parser.js";
+import type { ResolvedRuntimeConfig } from "../src/types.js";
+
+function runtimeConfig(
+  outDir: string,
+  notion: ResolvedRuntimeConfig["notion"] = {},
+  experimental: ResolvedRuntimeConfig["experimental"] = {
+    author: {
+      enabled: false,
+      notionUpload: {
+        enabled: false,
+        propertyName: "Author",
+        propertyType: "multi_select",
+      },
+    },
+  },
+): ResolvedRuntimeConfig {
+  return {
+    pipeline: {
+      outDir,
+      useHtmlStyleForImage: false,
+      downloadMethod: "cookieproxy",
+      cookieproxyPath: "/tmp/cookieproxy",
+    },
+    notion,
+    experimental,
+  };
+}
 
 describe("pipeline run upload behavior", () => {
   test("parse success + missing credentials => upload failure and ok=false", async () => {
     const outDir = await mkdtemp(path.join(tmpdir(), "pipeline-upload-test-"));
     const result = await runPipeline({
       url: "https://zhuanlan.zhihu.com/p/123",
-      runtimeConfig: {
-        pipeline: {
-          outDir,
-          useHtmlStyleForImage: false,
-          downloadMethod: "cookieproxy",
-          cookieproxyPath: "/tmp/cookieproxy",
-        },
-        notion: {},
-      },
+      runtimeConfig: runtimeConfig(outDir),
     });
 
     expect(result.ok).toBe(false);
@@ -74,18 +94,10 @@ describe("pipeline run upload behavior", () => {
 
     const result = await runPipeline({
       url: "https://zhuanlan.zhihu.com/p/123",
-      runtimeConfig: {
-        pipeline: {
-          outDir,
-          useHtmlStyleForImage: false,
-          downloadMethod: "cookieproxy",
-          cookieproxyPath: "/tmp/cookieproxy",
-        },
-        notion: {
-          notionToken: "invalid",
-          databaseId: "db",
-        },
-      },
+      runtimeConfig: runtimeConfig(outDir, {
+        notionToken: "invalid",
+        databaseId: "db",
+      }),
     });
 
     expect(result.ok).toBe(false);
@@ -99,19 +111,120 @@ describe("pipeline run upload behavior", () => {
 
     await runPipeline({
       url: "https://zhuanlan.zhihu.com/p/123",
-      runtimeConfig: {
-        pipeline: {
-          outDir,
-          useHtmlStyleForImage: false,
-          downloadMethod: "cookieproxy",
-          cookieproxyPath: "/tmp/cookieproxy",
-        },
-        notion: {},
-      },
+      runtimeConfig: runtimeConfig(outDir),
     });
 
     expect(markdownToNotionBlocks).toHaveBeenCalledWith("# Title", {
       baseUrl: "https://zhuanlan.zhihu.com/p/123",
+    });
+  });
+
+  test("does not pass author whitelist when experimental author is disabled", async () => {
+    const outDir = await mkdtemp(path.join(tmpdir(), "pipeline-upload-test-"));
+    vi.mocked(parseHtmlToMetadata).mockClear();
+
+    await runPipeline({
+      url: "https://zhuanlan.zhihu.com/p/123",
+      runtimeConfig: runtimeConfig(outDir),
+    });
+
+    expect(parseHtmlToMetadata).toHaveBeenCalledWith({
+      html: "<html><body><h1>Title</h1></body></html>",
+      sourceUrl: "https://zhuanlan.zhihu.com/p/123",
+      authorWhitelist: undefined,
+    });
+  });
+
+  test("passes whitelisted author to Notion multi-select property when both gates are enabled", async () => {
+    const outDir = await mkdtemp(path.join(tmpdir(), "pipeline-upload-test-"));
+    const whitelistPath = path.join(outDir, "authors.json");
+    await writeFile(
+      whitelistPath,
+      JSON.stringify({
+        authors: [
+          {
+            id: "canonical-author",
+            canonicalName: "Canonical Author",
+            notionName: "Canonical Author",
+            sources: {
+              zhihu: {
+                names: ["Source Author"],
+              },
+            },
+          },
+        ],
+      }),
+      "utf8",
+    );
+    vi.mocked(parseHtmlToMetadata).mockResolvedValueOnce({
+      ok: true,
+      metadata: {
+        articleUrl: "https://zhuanlan.zhihu.com/p/123",
+        authorId: "Source Author",
+        authorHomepage: "https://www.zhihu.com/people/source-author",
+        author: {
+          id: "canonical-author",
+          name: "Canonical Author",
+          notionName: "Canonical Author",
+        },
+      },
+    });
+    vi.mocked(uploadNotionBlocksToNotion).mockResolvedValueOnce({
+      ok: true,
+      pageId: "ok-page",
+      blocksAppended: 0,
+    });
+
+    const result = await runPipeline({
+      url: "https://zhuanlan.zhihu.com/p/123",
+      runtimeConfig: runtimeConfig(
+        outDir,
+        {
+          notionToken: "token",
+          databaseId: "db",
+        },
+        {
+          author: {
+            enabled: true,
+            whitelistPath,
+            notionUpload: {
+              enabled: true,
+              propertyName: "Author",
+              propertyType: "multi_select",
+            },
+          },
+        },
+      ),
+    });
+
+    expect(result.ok).toBe(true);
+    expect(parseHtmlToMetadata).toHaveBeenCalledWith({
+      html: "<html><body><h1>Title</h1></body></html>",
+      sourceUrl: "https://zhuanlan.zhihu.com/p/123",
+      authorWhitelist: {
+        authors: [
+          {
+            id: "canonical-author",
+            canonicalName: "Canonical Author",
+            notionName: "Canonical Author",
+            sources: {
+              zhihu: {
+                names: ["Source Author"],
+              },
+            },
+          },
+        ],
+      },
+    });
+    expect(uploadNotionBlocksToNotion).toHaveBeenCalledWith({
+      blocks: [],
+      notionToken: "token",
+      databaseId: "db",
+      pageProperties: {
+        Author: {
+          multi_select: [{ name: "Canonical Author" }],
+        },
+      },
     });
   });
 
@@ -125,18 +238,10 @@ describe("pipeline run upload behavior", () => {
 
     const result = await runPipeline({
       url: "https://zhuanlan.zhihu.com/p/123",
-      runtimeConfig: {
-        pipeline: {
-          outDir,
-          useHtmlStyleForImage: false,
-          downloadMethod: "cookieproxy",
-          cookieproxyPath: "/tmp/cookieproxy",
-        },
-        notion: {
-          notionToken: "token",
-          databaseId: "db",
-        },
-      },
+      runtimeConfig: runtimeConfig(outDir, {
+        notionToken: "token",
+        databaseId: "db",
+      }),
     });
 
     expect(result.ok).toBe(true);

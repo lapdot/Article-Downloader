@@ -20,6 +20,32 @@ const publicConfigSchema = z.object({
       downloadMethod: z.literal("cookieproxy").optional(),
     })
     .optional(),
+  experimental: z
+    .object({
+      author: z
+        .object({
+          enabled: z.boolean().optional(),
+          whitelistPath: z.string().trim().min(1).optional(),
+          notionUpload: z
+            .object({
+              enabled: z.boolean().optional(),
+              propertyName: z.string().trim().min(1).optional(),
+              propertyType: z.literal("multi_select").optional(),
+            })
+            .optional(),
+        })
+        .optional(),
+    })
+    .optional(),
+}).superRefine((config, ctx) => {
+  const author = config.experimental?.author;
+  if (author?.enabled === true && !author.whitelistPath) {
+    ctx.addIssue({
+      code: z.ZodIssueCode.custom,
+      path: ["experimental", "author", "whitelistPath"],
+      message: "Required when experimental.author.enabled is true",
+    });
+  }
 });
 
 const notionSecretsSchema = z.object({
@@ -164,6 +190,17 @@ export async function resolveRuntimeConfig(
     notion: {
       notionToken,
       databaseId,
+    },
+    experimental: {
+      author: {
+        enabled: publicConfig.experimental?.author?.enabled ?? false,
+        whitelistPath: publicConfig.experimental?.author?.whitelistPath,
+        notionUpload: {
+          enabled: publicConfig.experimental?.author?.notionUpload?.enabled ?? false,
+          propertyName: publicConfig.experimental?.author?.notionUpload?.propertyName ?? "Author",
+          propertyType: publicConfig.experimental?.author?.notionUpload?.propertyType ?? "multi_select",
+        },
+      },
     },
   };
 }

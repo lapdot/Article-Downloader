@@ -16,6 +16,7 @@ ArticleDownloader is a Node.js (TypeScript + ESM) project for turning article UR
 - Fetch official PDFs from Foreign Affairs and Foreign Policy article pages. These sources are fetch-only.
 - Fetch public YouTube transcripts into readable Markdown through the `youtube-transcript` command.
 - Optionally upload generated Notion blocks to a Notion database.
+- Experimentally deduce whitelisted article authors and fill a Notion author multi-select property when explicitly enabled.
 
 ## Requirements
 
@@ -41,9 +42,11 @@ Prepare these local config files first:
 
 - public config: `config/public.config.json`
 - optional Notion secrets for upload flows: `config/notion.secrets.local.json`
+- optional experimental author whitelist: `config/authors.json`
 - templates:
   - `config/public.config.example.json`
   - `config/notion.secrets.local.example.json`
+  - `config/authors.example.json`
 
 Typical local-artifacts-first flow:
 

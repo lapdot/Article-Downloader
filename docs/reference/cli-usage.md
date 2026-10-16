@@ -18,6 +18,7 @@ For authoritative rules about config precedence, required flags, output-path pol
   - `run`
 - `pipeline.downloadMethod` currently supports only `cookieproxy`.
 - Current recommendation: keep `--use-html-style-for-image` off for downstream compatibility.
+- Experimental author deduction is disabled by default. Enable it through public config under `experimental.author` and provide an author whitelist path.
 
 ## `fetch`
 
@@ -219,6 +220,7 @@ Behavior notes:
 - `run` always executes the Notion upload stage after Markdown generation.
 - If Notion secrets are missing or invalid, or the Notion API rejects the request, `run` ends with `ok: false` and reason `notion upload failed`.
 - Artifacts are preserved for inspection and retry when downstream upload fails.
+- When `experimental.author.enabled` and `experimental.author.notionUpload.enabled` are both true, `run` may set a Notion multi-select page property from a whitelisted metadata author. The default property name is `Author`; the target Notion database must already have a matching multi-select property.
 
 ## `browse-path`
 

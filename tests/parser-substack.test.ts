@@ -118,6 +118,36 @@ describe("substack metadata parsing", () => {
     });
   });
 
+  test("adds canonical author when whitelist matches while preserving source author fields", async () => {
+    const result = await parseHtmlToMetadata({
+      html: substackFixture,
+      sourceUrl: "https://substack.com/@michaeljburry/p-196918166",
+      authorWhitelist: {
+        authors: [
+          {
+            id: "sanitized-substack-author",
+            canonicalName: "Canonical Substack Author",
+            notionName: "Canonical Substack Author",
+            sources: {
+              substack: {
+                handles: ["michaeljburry"],
+              },
+            },
+          },
+        ],
+      },
+    });
+
+    expect(result.ok).toBe(true);
+    expect(result.metadata?.authorId).toBe("Michael Burry");
+    expect(result.metadata?.authorHomepage).toBe("https://substack.com/@michaeljburry");
+    expect(result.metadata?.author).toEqual({
+      id: "sanitized-substack-author",
+      name: "Canonical Substack Author",
+      notionName: "Canonical Substack Author",
+    });
+  });
+
   test("extracts substack metadata from preload fallback", async () => {
     const result = await parseHtmlToMetadata({
       html: substackPreloadOnlyFixture,

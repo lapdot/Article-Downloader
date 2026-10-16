@@ -60,6 +60,16 @@ describe("pipeline redaction", () => {
           notionToken: secretToken,
           databaseId: "database_x",
         },
+        experimental: {
+          author: {
+            enabled: false,
+            notionUpload: {
+              enabled: false,
+              propertyName: "Author",
+              propertyType: "multi_select",
+            },
+          },
+        },
       },
       notionSetupError: `E_FILE_NOT_FOUND: notion secrets: ${secretPath}; token=${secretToken}`,
     });

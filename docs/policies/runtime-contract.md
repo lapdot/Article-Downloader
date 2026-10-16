@@ -63,6 +63,26 @@ If code and docs diverge, align code to this document unless a newer repo decisi
 - `http` is no longer supported and must fail validation early when supplied through CLI, config, or bridge inputs.
 - Method-dependent runtime behavior must always use the effective resolved value after precedence is applied.
 
+### 2.5.1 Experimental author policy
+- `experimental.author` is a defaults-off public runtime feature gate.
+- When `experimental.author.enabled` is missing or `false`, runtime metadata and Notion upload behavior must remain unchanged.
+- When `experimental.author.enabled` is `true`, public config must provide `experimental.author.whitelistPath`.
+- The author whitelist is public configuration, not a secret file.
+- Whitelisted matches may enrich extracted metadata with:
+  - `author.id`
+  - `author.name`
+  - `author.notionName`
+- Existing source-extracted metadata fields keep their current meanings:
+  - `authorId`: source-extracted author display name
+  - `authorHomepage`: source-extracted author URL
+- Experimental Notion author upload is separately gated by `experimental.author.notionUpload.enabled`.
+- When both author deduction and author Notion upload are enabled, the upload stage may set a Notion multi-select page property during page creation. The default property name is `Author`, overridable by `experimental.author.notionUpload.propertyName`.
+- The only supported experimental author Notion property type is currently `multi_select`, represented by `experimental.author.notionUpload.propertyType`.
+- If no whitelisted author matches, upload proceeds without the author page property.
+- If Notion rejects the page property, the existing upload failure contract applies:
+  - `ok: false`
+  - `reason: "notion upload failed"`
+
 ### 2.6 Default local artifact layout
 - The default runtime artifact base directory is `artifacts/runtime`.
 - LLM-oriented local materials should live under `artifacts/llm/`.

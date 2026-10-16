@@ -1,0 +1,27 @@
+{
+  "authors": [
+    {
+      "id": "trita-parsi",
+      "canonicalName": "Trita Parsi",
+      "notionName": "Trita Parsi",
+      "sources": {
+        "substack": {
+          "handles": ["tritaparsi"],
+          "names": ["Trita Parsi"],
+          "urls": ["https://substack.com/@tritaparsi"]
+        }
+      }
+    },
+    {
+      "id": "saechia",
+      "canonicalName": "Saechia",
+      "notionName": "saechia",
+      "sources": {
+        "zhihu": {
+          "names": ["Saechia"],
+          "urls": ["https://www.zhihu.com/people/xielida"]
+        }
+      }
+    }
+  ]
+}

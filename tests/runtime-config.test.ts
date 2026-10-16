@@ -31,6 +31,89 @@ describe("runtime config", () => {
 
     expect(runtimeConfig.pipeline.userAgent).toBe("UA_TEST");
     expect(runtimeConfig.pipeline.downloadMethod).toBe("cookieproxy");
+    expect(runtimeConfig.experimental.author.enabled).toBe(false);
+    expect(runtimeConfig.experimental.author.notionUpload.enabled).toBe(false);
+    expect(runtimeConfig.experimental.author.notionUpload.propertyName).toBe("Author");
+    expect(runtimeConfig.experimental.author.notionUpload.propertyType).toBe("multi_select");
+  });
+
+  test("resolves experimental author config when enabled", async () => {
+    const root = await mkdtemp(path.join(tmpdir(), "runtime-config-test-"));
+    const configPath = path.join(root, "public.config.json");
+
+    await writeJson(configPath, {
+      pipeline: {
+        downloadMethod: "cookieproxy",
+      },
+      experimental: {
+        author: {
+          enabled: true,
+          whitelistPath: "./config/authors.json",
+          notionUpload: {
+            enabled: true,
+            propertyName: "Writer",
+            propertyType: "multi_select",
+          },
+        },
+      },
+    });
+
+    const runtimeConfig = await resolveRuntimeConfig({ configPath });
+
+    expect(runtimeConfig.experimental.author).toEqual({
+      enabled: true,
+      whitelistPath: "./config/authors.json",
+      notionUpload: {
+        enabled: true,
+        propertyName: "Writer",
+        propertyType: "multi_select",
+      },
+    });
+  });
+
+  test("rejects unsupported experimental author notion property type", async () => {
+    const root = await mkdtemp(path.join(tmpdir(), "runtime-config-test-"));
+    const configPath = path.join(root, "public.config.json");
+
+    await writeJson(configPath, {
+      pipeline: {
+        downloadMethod: "cookieproxy",
+      },
+      experimental: {
+        author: {
+          enabled: true,
+          whitelistPath: "./config/authors.json",
+          notionUpload: {
+            enabled: true,
+            propertyType: "select",
+          },
+        },
+      },
+    });
+
+    await expect(resolveRuntimeConfig({ configPath })).rejects.toThrowError(
+      'invalid public config: experimental.author.notionUpload.propertyType: Invalid literal value, expected "multi_select"',
+    );
+  });
+
+  test("requires author whitelist path when experimental author is enabled", async () => {
+    const root = await mkdtemp(path.join(tmpdir(), "runtime-config-test-"));
+    const configPath = path.join(root, "public.config.json");
+
+    await writeJson(configPath, {
+      pipeline: {
+        downloadMethod: "cookieproxy",
+      },
+      experimental: {
+        author: {
+          enabled: true,
+        },
+      },
+    });
+
+    await expect(resolveRuntimeConfig({ configPath })).rejects.toThrowError(
+      "invalid public config: experimental.author.whitelistPath: Required when experimental.author.enabled is true",
+    );
   });
 
   test("supports env override for public config path", async () => {

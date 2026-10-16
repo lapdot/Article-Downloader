@@ -37,6 +37,7 @@ interface UploadBlocksInput {
   blocks: NotionBlock[];
   notionToken: string;
   databaseId: string;
+  pageProperties?: Record<string, unknown>;
 }
 
 export async function uploadNotionBlocksToNotion(input: UploadBlocksInput): Promise<UploadResult> {
@@ -47,7 +48,7 @@ export async function uploadNotionBlocksToNotion(input: UploadBlocksInput): Prom
     const page = await withRateLimitRetry(() =>
       client.pages.create({
         parent: { database_id: input.databaseId },
-        properties: {},
+        properties: (input.pageProperties ?? {}) as never,
       }),
     );
 

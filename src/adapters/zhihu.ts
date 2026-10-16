@@ -31,7 +31,7 @@ const ZHIHU_BASE_REMOVE_SELECTORS = [
 export const ZHIHU_SELECTORS_BY_TYPE: Record<ZhihuContentType, SelectorSet> = {
   answer: {
     title: "h1.QuestionHeader-title, h1.ContentItem-title, h1.ztext-title",
-    content: "div.AnswerItem span.RichText, div.AnswerItem div.RichText, span.RichText",
+    content: "div.AnswerItem span.RichText, div.AnswerItem div.RichText",
     remove: [...ZHIHU_BASE_REMOVE_SELECTORS],
     authorMetaContainer: "div.AnswerItem-authorInfo",
     timeContainer: "div.AnswerItem div.ContentItem-time",
@@ -155,7 +155,7 @@ function getAnswerTitle($: ReturnType<typeof load>): string {
 }
 
 function getAnswerContentNode($: ReturnType<typeof load>): ReturnType<ReturnType<typeof load>> {
-  return $("div.AnswerItem span.RichText, div.AnswerItem div.RichText, span.RichText").first();
+  return $("div.AnswerItem").first().find("span.RichText, div.RichText").first();
 }
 
 function getPinTitle($: ReturnType<typeof load>): string {

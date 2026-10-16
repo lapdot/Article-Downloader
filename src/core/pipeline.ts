@@ -1,9 +1,15 @@
 import path from "node:path";
+import { readAuthorWhitelist } from "./author.js";
 import { downloadHtml } from "./fetcher.js";
 import { parseHtmlToMarkdown, parseHtmlToMetadata } from "./parser.js";
 import { markdownToNotionBlocks, uploadNotionBlocksToNotion } from "./notion.js";
 import { createOutputDir, writeJsonFile, writeTextFile } from "../utils/fs.js";
-import type { PipelineInput, PipelineResult, UploadResult } from "../types.js";
+import type {
+  PipelineInput,
+  PipelineResult,
+  ResolvedExperimentalAuthorConfig,
+  UploadResult,
+} from "../types.js";
 
 const REDACTED = "[REDACTED]";
 const SENSITIVE_TEXT_PATTERNS = [
@@ -13,6 +19,15 @@ const SENSITIVE_TEXT_PATTERNS = [
   /\bsecret[-_][A-Za-z0-9._-]+\b/gi,
   /\bz_c0\s*[=:]\s*[^;\s"]+/gi,
 ];
+
+const DISABLED_EXPERIMENTAL_AUTHOR: ResolvedExperimentalAuthorConfig = {
+  enabled: false,
+  notionUpload: {
+    enabled: false,
+    propertyName: "Author",
+    propertyType: "multi_select",
+  },
+};
 
 function redactSensitiveText(value: string): string {
   let redacted = value;
@@ -37,10 +52,34 @@ function redactForMeta(value: unknown): unknown {
   return Object.fromEntries(entries);
 }
 
+function buildAuthorNotionProperties(
+  propertyName: string,
+  propertyType: "multi_select",
+  notionName: string | undefined,
+): Record<string, unknown> | undefined {
+  if (!notionName) {
+    return undefined;
+  }
+  switch (propertyType) {
+    case "multi_select":
+      return {
+        [propertyName]: {
+          multi_select: [{ name: notionName }],
+        },
+      };
+  }
+}
+
 export async function runPipeline(input: PipelineInput): Promise<PipelineResult> {
   const useHtmlStyleForImage =
     input.useHtmlStyleForImage ?? input.runtimeConfig.pipeline.useHtmlStyleForImage;
   const baseOutputDir = input.outDir ?? input.runtimeConfig.pipeline.outDir;
+  const experimentalAuthor =
+    input.runtimeConfig.experimental?.author ?? DISABLED_EXPERIMENTAL_AUTHOR;
+  const authorWhitelist =
+    experimentalAuthor.enabled && experimentalAuthor.whitelistPath
+      ? await readAuthorWhitelist(experimentalAuthor.whitelistPath)
+      : undefined;
 
   const download = await downloadHtml({
     url: input.url,
@@ -68,6 +107,7 @@ export async function runPipeline(input: PipelineInput): Promise<PipelineResult>
   const metadata = await parseHtmlToMetadata({
     html: download.html,
     sourceUrl,
+    authorWhitelist,
   });
   if (metadata.ok && metadata.metadata) {
     await writeJsonFile(metadataPath, metadata.metadata);
@@ -108,6 +148,13 @@ export async function runPipeline(input: PipelineInput): Promise<PipelineResult>
         blocks,
         notionToken,
         databaseId,
+        pageProperties: experimentalAuthor.notionUpload.enabled
+          ? buildAuthorNotionProperties(
+              experimentalAuthor.notionUpload.propertyName,
+              experimentalAuthor.notionUpload.propertyType,
+              metadata.metadata?.author?.notionName,
+            )
+          : undefined,
       });
     }
   }

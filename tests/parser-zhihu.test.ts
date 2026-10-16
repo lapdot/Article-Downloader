@@ -33,6 +33,32 @@ describe("zhihu markdown parsing", () => {
     expect(result.stats?.removedNodes).toBe(0);
   });
 
+  test("extracts the answer body instead of the question excerpt", async () => {
+    const html = `<!doctype html>
+<html>
+  <body>
+    <h1 class="QuestionHeader-title">Question title</h1>
+    <div class="QuestionRichText"><span class="RichText">Question excerpt.</span></div>
+    <div class="AnswerItem">
+      <div class="AnswerItem-authorInfo">
+        <meta itemprop="name" content="Answer Author" />
+        <meta itemprop="url" content="https://www.zhihu.com/people/answer-author" />
+      </div>
+      <span class="RichText"><p>Complete answer body.</p></span>
+    </div>
+  </body>
+</html>`;
+
+    const result = await parseHtmlToMarkdown({
+      html,
+      sourceUrl: "https://www.zhihu.com/question/1/answer/2",
+    });
+
+    expect(result.ok).toBe(true);
+    expect(result.markdown).toContain("Complete answer body.");
+    expect(result.markdown).not.toContain("Question excerpt.");
+  });
+
   test("parses answer markdown from alternate title and content containers", async () => {
     const result = await parseHtmlToMarkdown({
       html: zhihuAnswerAlternateStructureFixture,
@@ -312,6 +338,37 @@ describe("zhihu metadata parsing", () => {
       authorHomepage: "https://www.zhihu.com/people/sanitized-author-a",
       publishTime: "2026-01-15",
       editTime: "编辑于 2026-01-16",
+    });
+  });
+
+  test("adds canonical author when whitelist matches while preserving source author fields", async () => {
+    const result = await parseHtmlToMetadata({
+      html: zhihuAnswerFixture,
+      sourceUrl: "https://www.zhihu.com/question/1/answer/2",
+      authorWhitelist: {
+        authors: [
+          {
+            id: "sanitized-zhihu-author",
+            canonicalName: "Canonical Zhihu Author",
+            notionName: "Canonical Zhihu Author",
+            sources: {
+              zhihu: {
+                names: ["Sanitized Author A"],
+                urls: ["https://www.zhihu.com/people/sanitized-author-a"],
+              },
+            },
+          },
+        ],
+      },
+    });
+
+    expect(result.ok).toBe(true);
+    expect(result.metadata?.authorId).toBe("Sanitized Author A");
+    expect(result.metadata?.authorHomepage).toBe("https://www.zhihu.com/people/sanitized-author-a");
+    expect(result.metadata?.author).toEqual({
+      id: "sanitized-zhihu-author",
+      name: "Canonical Zhihu Author",
+      notionName: "Canonical Zhihu Author",
     });
   });
 

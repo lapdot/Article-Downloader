@@ -65,6 +65,9 @@ Key exported types include:
   - `YoutubeTranscriptSnippet`
 - metadata and source identity types:
   - `HtmlMetadata`
+  - `HtmlCanonicalAuthor`
+  - `AuthorWhitelist`
+  - `AuthorWhitelistEntry`
   - `SourceIdentity`
   - `SourceId`
   - `ZhihuContentType`

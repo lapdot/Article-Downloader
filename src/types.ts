@@ -52,12 +52,20 @@ export interface ParseResult {
 export interface MetadataInput {
   html: string;
   sourceUrl: string;
+  authorWhitelist?: AuthorWhitelist;
+}
+
+export interface HtmlCanonicalAuthor {
+  id: string;
+  name: string;
+  notionName: string;
 }
 
 export interface HtmlMetadata {
   articleUrl: string;
   authorId?: string;
   authorHomepage?: string;
+  author?: HtmlCanonicalAuthor;
   publishTime?: string;
   editTime?: string;
 }
@@ -92,6 +100,9 @@ export interface PublicConfig {
     userAgent?: string;
     downloadMethod?: DownloadMethod;
   };
+  experimental?: {
+    author?: ExperimentalAuthorPublicConfig;
+  };
 }
 
 export interface NotionSecretsConfig {
@@ -110,6 +121,9 @@ export interface ResolvedRuntimeConfig {
   notion: {
     notionToken?: string;
     databaseId?: string;
+  };
+  experimental: {
+    author: ResolvedExperimentalAuthorConfig;
   };
 }
 
@@ -138,6 +152,46 @@ export interface PipelineResult {
   parse?: ParseResult;
   upload?: UploadResult;
   reason?: string;
+}
+
+export interface AuthorSourceAliases {
+  handles?: string[];
+  names?: string[];
+  urls?: string[];
+}
+
+export interface AuthorWhitelistEntry {
+  id: string;
+  canonicalName: string;
+  notionName: string;
+  sources?: {
+    substack?: AuthorSourceAliases;
+    zhihu?: AuthorSourceAliases;
+  };
+}
+
+export interface AuthorWhitelist {
+  authors: AuthorWhitelistEntry[];
+}
+
+export interface ExperimentalAuthorPublicConfig {
+  enabled?: boolean;
+  whitelistPath?: string;
+  notionUpload?: {
+    enabled?: boolean;
+    propertyName?: string;
+    propertyType?: "multi_select";
+  };
+}
+
+export interface ResolvedExperimentalAuthorConfig {
+  enabled: boolean;
+  whitelistPath?: string;
+  notionUpload: {
+    enabled: boolean;
+    propertyName: string;
+    propertyType: "multi_select";
+  };
 }
 
 export interface YoutubeTranscriptSnippet {

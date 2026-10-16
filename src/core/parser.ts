@@ -1,4 +1,5 @@
 import { parseSourceUrl, resolveSource } from "../adapters/resolve-source.js";
+import { enrichMetadataWithAuthor } from "./author.js";
 import type {
   MetadataInput,
   MetadataResult,
@@ -55,5 +56,17 @@ export async function parseHtmlToMetadata(input: MetadataInput): Promise<Metadat
     ...input,
     source: resolved.source,
   });
-  return result.source ? result : { ...result, source: resolved.source };
+  const resultWithSource = result.source ? result : { ...result, source: resolved.source };
+  if (!input.authorWhitelist || !resultWithSource.ok || !resultWithSource.metadata) {
+    return resultWithSource;
+  }
+  return {
+    ...resultWithSource,
+    metadata: enrichMetadataWithAuthor({
+      metadata: resultWithSource.metadata,
+      sourceUrl: input.sourceUrl,
+      source: resultWithSource.source,
+      whitelist: input.authorWhitelist,
+    }),
+  };
 }
