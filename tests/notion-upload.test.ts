@@ -39,7 +39,7 @@ describe("uploadNotionBlocksToNotion", () => {
     });
   });
 
-  test("sets author multi-select property when pageProperties are provided", async () => {
+  test("forwards author and topic multi-select properties when provided", async () => {
     pagesCreate.mockClear();
 
     const result = await uploadNotionBlocksToNotion({
@@ -50,6 +50,9 @@ describe("uploadNotionBlocksToNotion", () => {
         Author: {
           multi_select: [{ name: "Canonical Author" }],
         },
+        Topics: {
+          multi_select: [{ name: "Thailand" }, { name: "Southeast Asia" }],
+        },
       },
     });
 
@@ -59,6 +62,9 @@ describe("uploadNotionBlocksToNotion", () => {
       properties: {
         Author: {
           multi_select: [{ name: "Canonical Author" }],
+        },
+        Topics: {
+          multi_select: [{ name: "Thailand" }, { name: "Southeast Asia" }],
         },
       },
     });

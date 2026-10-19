@@ -16,7 +16,7 @@ ArticleDownloader is a Node.js (TypeScript + ESM) project for turning article UR
 - Fetch official PDFs from Foreign Affairs and Foreign Policy article pages. These sources are fetch-only.
 - Fetch public YouTube transcripts into readable Markdown through the `youtube-transcript` command.
 - Optionally upload generated Notion blocks to a Notion database.
-- Experimentally deduce whitelisted article authors and fill a Notion author multi-select property when explicitly enabled.
+- Experimentally deduce whitelisted article authors and fill Notion author and default-topic multi-select properties when explicitly enabled.
 
 ## Requirements
 
@@ -57,6 +57,8 @@ npx tsx src/cli.ts migrate-author-config \
 ```
 
 Legacy files remain readable for one compatibility release and emit a deprecation warning. The command never overwrites its output unless `--force` is supplied.
+
+An author's Notion destination may include `topics`, such as `"topics": ["Thailand"]` for `saechia`. Those defaults are sent to the `Topics` multi-select property when author enrichment and Notion upload are enabled; a single author may have several topics. The database must already define the configured `Author` and `Topics` properties as multi-selects.
 
 Typical local-artifacts-first flow:
 

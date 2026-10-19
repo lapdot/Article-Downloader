@@ -20,6 +20,7 @@ const authorPlatformSchema = z.object({
   source: authorAliasesSchema.optional(),
   destination: z.object({
     name: z.string().trim().min(1),
+    topics: z.array(z.string().trim().min(1)).min(1).optional(),
   }).strict().optional(),
 }).strict();
 
@@ -280,6 +281,9 @@ export function matchAuthor(input: AuthorMatchInput): HtmlCanonicalAuthor | unde
         id: entry.id,
         name: entry.canonicalName,
         notionName,
+        ...(entry.platforms.notion?.destination?.topics
+          ? { defaultTopics: entry.platforms.notion.destination.topics }
+          : {}),
       };
     }
   }

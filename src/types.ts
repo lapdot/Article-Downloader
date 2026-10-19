@@ -59,6 +59,7 @@ export interface HtmlCanonicalAuthor {
   id: string;
   name: string;
   notionName: string;
+  defaultTopics?: string[];
 }
 
 export interface HtmlMetadata {
@@ -162,6 +163,7 @@ export interface AuthorSourceAliases {
 
 export interface AuthorPlatformDestination {
   name: string;
+  topics?: string[];
 }
 
 export interface AuthorPlatform {
@@ -191,6 +193,7 @@ export interface ExperimentalAuthorPublicConfig {
   notionUpload?: {
     enabled?: boolean;
     propertyName?: string;
+    topicsPropertyName?: string;
     propertyType?: "multi_select";
   };
 }
@@ -201,6 +204,7 @@ export interface ResolvedExperimentalAuthorConfig {
   notionUpload: {
     enabled: boolean;
     propertyName: string;
+    topicsPropertyName: string;
     propertyType: "multi_select";
   };
 }

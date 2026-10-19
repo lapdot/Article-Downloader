@@ -30,6 +30,7 @@ const publicConfigSchema = z.object({
             .object({
               enabled: z.boolean().optional(),
               propertyName: z.string().trim().min(1).optional(),
+              topicsPropertyName: z.string().trim().min(1).optional(),
               propertyType: z.literal("multi_select").optional(),
             })
             .optional(),
@@ -198,6 +199,8 @@ export async function resolveRuntimeConfig(
         notionUpload: {
           enabled: publicConfig.experimental?.author?.notionUpload?.enabled ?? false,
           propertyName: publicConfig.experimental?.author?.notionUpload?.propertyName ?? "Author",
+          topicsPropertyName:
+            publicConfig.experimental?.author?.notionUpload?.topicsPropertyName ?? "Topics",
           propertyType: publicConfig.experimental?.author?.notionUpload?.propertyType ?? "multi_select",
         },
       },

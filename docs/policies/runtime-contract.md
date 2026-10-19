@@ -68,19 +68,20 @@ If code and docs diverge, align code to this document unless a newer repo decisi
 - When `experimental.author.enabled` is missing or `false`, runtime metadata and Notion upload behavior must remain unchanged.
 - When `experimental.author.enabled` is `true`, public config must provide `experimental.author.whitelistPath`.
 - The author whitelist is public configuration, not a secret file.
-- Author entries use a `platforms` map. A platform can declare independent `source` and `destination` capabilities, so a website can be both without a schema change. Current source aliases live under `platforms.substack.source` or `platforms.zhihu.source`; the current Notion upload label lives under `platforms.notion.destination.name`.
+- Author entries use a `platforms` map. A platform can declare independent `source` and `destination` capabilities, so a website can be both without a schema change. Current source aliases live under `platforms.substack.source` or `platforms.zhihu.source`; the current Notion upload label lives under `platforms.notion.destination.name`, and optional default topics live under `platforms.notion.destination.topics` as a non-empty array of names.
 - During the compatibility window, wholly legacy entries using `sources` and `notionName` are normalized on read and emit a deprecation warning. Entries that mix legacy fields with `platforms` are invalid.
 - Whitelisted matches may enrich extracted metadata with:
   - `author.id`
   - `author.name`
   - `author.notionName`
+  - `author.defaultTopics` when configured
 - Existing source-extracted metadata fields keep their current meanings:
   - `authorId`: source-extracted author display name
   - `authorHomepage`: source-extracted author URL
 - Experimental Notion author upload is separately gated by `experimental.author.notionUpload.enabled`.
-- When both author deduction and author Notion upload are enabled, the upload stage may set a Notion multi-select page property during page creation. The default property name is `Author`, overridable by `experimental.author.notionUpload.propertyName`.
+- When both author deduction and author Notion upload are enabled, the upload stage may set Notion multi-select page properties during page creation. The author property defaults to `Author`, overridable by `experimental.author.notionUpload.propertyName`. Configured default topics are emitted to the `Topics` property, overridable by `experimental.author.notionUpload.topicsPropertyName`; multiple configured topic names produce multiple multi-select entries in their configured order.
 - The only supported experimental author Notion property type is currently `multi_select`, represented by `experimental.author.notionUpload.propertyType`.
-- If no whitelisted author matches, upload proceeds without the author page property.
+- If no whitelisted author matches, upload proceeds without author or topic page properties. A matched author without configured topics receives only the author page property.
 - If Notion rejects the page property, the existing upload failure contract applies:
   - `ok: false`
   - `reason: "notion upload failed"`

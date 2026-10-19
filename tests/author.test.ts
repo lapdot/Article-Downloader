@@ -85,6 +85,52 @@ describe("author whitelist matching", () => {
     expect(author?.id).toBe("trita-parsi");
   });
 
+  test("returns configured default topics for a matched author", () => {
+    const author = matchAuthor({
+      sourceUrl: "https://zhuanlan.zhihu.com/p/123",
+      source: { sourceId: "zhihu", contentType: "post" },
+      whitelist: {
+        authors: [
+          {
+            id: "saechia",
+            canonicalName: "Saechia",
+            platforms: {
+              zhihu: { source: { names: ["Saechia"] } },
+              notion: {
+                destination: {
+                  name: "saechia",
+                  topics: ["Thailand", "Southeast Asia"],
+                },
+              },
+            },
+          },
+        ],
+      },
+      metadata: {
+        articleUrl: "https://zhuanlan.zhihu.com/p/123",
+        authorId: "Saechia",
+      },
+    });
+
+    expect(author?.defaultTopics).toEqual(["Thailand", "Southeast Asia"]);
+  });
+
+  test("rejects an empty default topic list", () => {
+    expect(() =>
+      parseAuthorWhitelist({
+        authors: [
+          {
+            id: "saechia",
+            canonicalName: "Saechia",
+            platforms: {
+              notion: { destination: { name: "saechia", topics: [] } },
+            },
+          },
+        ],
+      }),
+    ).toThrowError("platforms.notion.destination.topics: Array must contain at least 1 element(s)");
+  });
+
   test("returns undefined for unknown authors", () => {
     const author = matchAuthor({
       sourceUrl: "https://substack.com/@unknown/p-201184379",

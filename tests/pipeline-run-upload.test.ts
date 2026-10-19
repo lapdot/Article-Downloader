@@ -52,6 +52,7 @@ function runtimeConfig(
       notionUpload: {
         enabled: false,
         propertyName: "Author",
+        topicsPropertyName: "Topics",
         propertyType: "multi_select",
       },
     },
@@ -190,6 +191,7 @@ describe("pipeline run upload behavior", () => {
             notionUpload: {
               enabled: true,
               propertyName: "Author",
+              topicsPropertyName: "Topics",
               propertyType: "multi_select",
             },
           },
@@ -229,6 +231,81 @@ describe("pipeline run upload behavior", () => {
       pageProperties: {
         Author: {
           multi_select: [{ name: "Canonical Author" }],
+        },
+      },
+    });
+  });
+
+  test("passes ordered default topics with the matched author", async () => {
+    const outDir = await mkdtemp(path.join(tmpdir(), "pipeline-upload-test-"));
+    const whitelistPath = path.join(outDir, "authors.json");
+    await writeFile(
+      whitelistPath,
+      JSON.stringify({
+        authors: [
+          {
+            id: "saechia",
+            canonicalName: "Saechia",
+            platforms: {
+              zhihu: { source: { names: ["Saechia"] } },
+              notion: {
+                destination: {
+                  name: "saechia",
+                  topics: ["Thailand", "Southeast Asia"],
+                },
+              },
+            },
+          },
+        ],
+      }),
+      "utf8",
+    );
+    vi.mocked(parseHtmlToMetadata).mockResolvedValueOnce({
+      ok: true,
+      metadata: {
+        articleUrl: "https://zhuanlan.zhihu.com/p/123",
+        author: {
+          id: "saechia",
+          name: "Saechia",
+          notionName: "saechia",
+          defaultTopics: ["Thailand", "Southeast Asia"],
+        },
+      },
+    });
+    vi.mocked(uploadNotionBlocksToNotion).mockResolvedValueOnce({
+      ok: true,
+      pageId: "ok-page",
+      blocksAppended: 0,
+    });
+
+    await runPipeline({
+      url: "https://zhuanlan.zhihu.com/p/123",
+      runtimeConfig: runtimeConfig(
+        outDir,
+        { notionToken: "token", databaseId: "db" },
+        {
+          author: {
+            enabled: true,
+            whitelistPath,
+            notionUpload: {
+              enabled: true,
+              propertyName: "Author",
+              topicsPropertyName: "Topics",
+              propertyType: "multi_select",
+            },
+          },
+        },
+      ),
+    });
+
+    expect(uploadNotionBlocksToNotion).toHaveBeenLastCalledWith({
+      blocks: [],
+      notionToken: "token",
+      databaseId: "db",
+      pageProperties: {
+        Author: { multi_select: [{ name: "saechia" }] },
+        Topics: {
+          multi_select: [{ name: "Thailand" }, { name: "Southeast Asia" }],
         },
       },
     });

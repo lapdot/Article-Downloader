@@ -66,6 +66,7 @@ describe("pipeline redaction", () => {
             notionUpload: {
               enabled: false,
               propertyName: "Author",
+              topicsPropertyName: "Topics",
               propertyType: "multi_select",
             },
           },

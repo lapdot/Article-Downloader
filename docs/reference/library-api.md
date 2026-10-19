@@ -88,3 +88,4 @@ Key exported types include:
 - Treat CLI/runtime contract docs as the authority for config precedence and failure semantics.
 - Treat source-specific parsing behavior as adapter-owned and subject to the current supported-source set.
 - When changing exported behavior, keep library, CLI, GUI wrapper, tests, and docs aligned.
+- `HtmlCanonicalAuthor.defaultTopics` carries optional ordered default Notion topic names resolved from `platforms.notion.destination.topics`.

@@ -30,7 +30,8 @@
         },
         "notion": {
           "destination": {
-            "name": "saechia"
+            "name": "saechia",
+            "topics": ["Thailand"]
           }
         }
       }

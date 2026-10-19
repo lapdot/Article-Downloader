@@ -34,6 +34,7 @@ describe("runtime config", () => {
     expect(runtimeConfig.experimental.author.enabled).toBe(false);
     expect(runtimeConfig.experimental.author.notionUpload.enabled).toBe(false);
     expect(runtimeConfig.experimental.author.notionUpload.propertyName).toBe("Author");
+    expect(runtimeConfig.experimental.author.notionUpload.topicsPropertyName).toBe("Topics");
     expect(runtimeConfig.experimental.author.notionUpload.propertyType).toBe("multi_select");
   });
 
@@ -52,6 +53,7 @@ describe("runtime config", () => {
           notionUpload: {
             enabled: true,
             propertyName: "Writer",
+            topicsPropertyName: "Subjects",
             propertyType: "multi_select",
           },
         },
@@ -66,6 +68,7 @@ describe("runtime config", () => {
       notionUpload: {
         enabled: true,
         propertyName: "Writer",
+        topicsPropertyName: "Subjects",
         propertyType: "multi_select",
       },
     });

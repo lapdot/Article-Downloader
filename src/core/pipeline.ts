@@ -25,6 +25,7 @@ const DISABLED_EXPERIMENTAL_AUTHOR: ResolvedExperimentalAuthorConfig = {
   notionUpload: {
     enabled: false,
     propertyName: "Author",
+    topicsPropertyName: "Topics",
     propertyType: "multi_select",
   },
 };
@@ -53,20 +54,27 @@ function redactForMeta(value: unknown): unknown {
 }
 
 function buildAuthorNotionProperties(
-  propertyName: string,
+  notionUpload: ResolvedExperimentalAuthorConfig["notionUpload"],
   propertyType: "multi_select",
-  notionName: string | undefined,
+  author: { notionName: string; defaultTopics?: string[] } | undefined,
 ): Record<string, unknown> | undefined {
-  if (!notionName) {
+  if (!author) {
     return undefined;
   }
   switch (propertyType) {
-    case "multi_select":
-      return {
-        [propertyName]: {
-          multi_select: [{ name: notionName }],
+    case "multi_select": {
+      const properties: Record<string, unknown> = {
+        [notionUpload.propertyName]: {
+          multi_select: [{ name: author.notionName }],
         },
       };
+      if (author.defaultTopics && author.defaultTopics.length > 0) {
+        properties[notionUpload.topicsPropertyName] = {
+          multi_select: author.defaultTopics.map((name) => ({ name })),
+        };
+      }
+      return properties;
+    }
   }
 }
 
@@ -150,9 +158,9 @@ export async function runPipeline(input: PipelineInput): Promise<PipelineResult>
         databaseId,
         pageProperties: experimentalAuthor.notionUpload.enabled
           ? buildAuthorNotionProperties(
-              experimentalAuthor.notionUpload.propertyName,
+              experimentalAuthor.notionUpload,
               experimentalAuthor.notionUpload.propertyType,
-              metadata.metadata?.author?.notionName,
+              metadata.metadata?.author,
             )
           : undefined,
       });
