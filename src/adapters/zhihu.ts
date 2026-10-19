@@ -61,6 +61,7 @@ interface MarkdownContext {
   authorBlock: string;
   contentTimeBlock: string;
   includeTitleInMarkdown?: boolean;
+  convertHardLineBreaksToParagraphs?: boolean;
 }
 
 interface ExtractSuccess {
@@ -309,6 +310,7 @@ function extractPinMarkdownContext(
       authorBlock: buildAuthorBlock($, pinNode.find("div.PinItem-authorInfo").first()),
       contentTimeBlock: buildTimeBlock($, turndownService, pinNode.find("div.ContentItem-time").first()),
       includeTitleInMarkdown: false,
+      convertHardLineBreaksToParagraphs: true,
     },
   };
 }

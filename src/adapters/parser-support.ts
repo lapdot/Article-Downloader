@@ -168,6 +168,7 @@ export interface MarkdownContext {
   authorBlock: string;
   contentTimeBlock: string;
   includeTitleInMarkdown?: boolean;
+  convertHardLineBreaksToParagraphs?: boolean;
 }
 
 export function buildMarkdownResult(
@@ -175,7 +176,10 @@ export function buildMarkdownResult(
   turndownService: TurndownService,
   source?: SourceIdentity,
 ): ParseResult {
-  const markdownBody = turndownService.turndown(context.contentHtml).trim();
+  const convertedMarkdownBody = turndownService.turndown(context.contentHtml).trim();
+  const markdownBody = context.convertHardLineBreaksToParagraphs
+    ? convertedMarkdownBody.replace(/ {2}\n/gu, "\n\n")
+    : convertedMarkdownBody;
   const includeTitleInMarkdown = context.includeTitleInMarkdown ?? true;
   const markdownSegments = [
     includeTitleInMarkdown && context.title ? `# ${escapeMarkdownPlainText(context.title)}` : "",

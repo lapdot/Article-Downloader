@@ -227,9 +227,32 @@ describe("zhihu markdown parsing", () => {
     expect(result.title).toContain("Sanitized Pin Title");
     expect(result.markdown).toContain("Pin first line.");
     expect(result.markdown).toContain("Pin second line");
+    expect(result.markdown).toContain("Pin first line.\n\nPin second line");
+    expect(result.markdown).not.toContain("Pin first line.  \nPin second line");
     expect(result.markdown).toContain("$x+y=z$");
     expect(result.markdown).toContain("发布于 2026-01-15 10:00");
     expect(result.markdown).not.toContain("# Sanitized Pin Title");
+  });
+
+  test("keeps hard line breaks in non-pin Zhihu content", async () => {
+    const html = `<!doctype html>
+<html>
+  <body>
+    <h1 class="QuestionHeader-title">Answer with a line break</h1>
+    <div class="AnswerItem">
+      <span class="RichText">First answer line.<br />Second answer line.</span>
+    </div>
+  </body>
+</html>`;
+
+    const result = await parseHtmlToMarkdown({
+      html,
+      sourceUrl: "https://www.zhihu.com/question/1/answer/2",
+    });
+
+    expect(result.ok).toBe(true);
+    expect(result.markdown).toContain("First answer line.  \nSecond answer line.");
+    expect(result.markdown).not.toContain("First answer line.\n\nSecond answer line.");
   });
 
   test("parses zhihu post markdown", async () => {
