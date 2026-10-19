@@ -127,10 +127,16 @@ describe("substack metadata parsing", () => {
           {
             id: "sanitized-substack-author",
             canonicalName: "Canonical Substack Author",
-            notionName: "Canonical Substack Author",
-            sources: {
+            platforms: {
               substack: {
-                handles: ["michaeljburry"],
+                source: {
+                  handles: ["michaeljburry"],
+                },
+              },
+              notion: {
+                destination: {
+                  name: "Canonical Substack Author",
+                },
               },
             },
           },

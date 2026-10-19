@@ -48,6 +48,16 @@ Prepare these local config files first:
   - `config/notion.secrets.local.example.json`
   - `config/authors.example.json`
 
+Author whitelist entries use a `platforms` map. Each platform may have a `source`, a `destination`, or both; currently Notion is represented as a destination. To convert a legacy file using `sources` and `notionName`, run:
+
+```bash
+npx tsx src/cli.ts migrate-author-config \
+  --input ./config/authors.json \
+  --out ./config/authors.v2.json
+```
+
+Legacy files remain readable for one compatibility release and emit a deprecation warning. The command never overwrites its output unless `--force` is supplied.
+
 Typical local-artifacts-first flow:
 
 ```bash

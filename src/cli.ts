@@ -1,4 +1,5 @@
 #!/usr/bin/env node
+import { access } from "node:fs/promises";
 import path from "node:path";
 import { Command } from "commander";
 import { downloadHtml, downloadPdf } from "./core/fetcher.js";
@@ -11,6 +12,7 @@ import {
 import { runPipeline } from "./core/pipeline.js";
 import { browsePath } from "./core/browse-path.js";
 import { fetchYoutubeTranscript } from "./core/youtube-transcript.js";
+import { migrateLegacyAuthorWhitelist } from "./core/author.js";
 import { resolveEffectiveDownloadMethod, resolveRuntimeConfig } from "./core/runtime-config.js";
 import {
   extractForeignAffairsPdfUrl,
@@ -118,6 +120,25 @@ async function readRequiredJsonInput<T>(kind: string, filePath: string): Promise
   }
 }
 
+async function assertMigrationOutputPath(inputPath: string, outputPath: string, force: boolean): Promise<void> {
+  if (path.resolve(inputPath) === path.resolve(outputPath)) {
+    throw new Error("migration output path must differ from the input path");
+  }
+
+  try {
+    await access(outputPath);
+  } catch (error) {
+    if (isNotFoundError(error)) {
+      return;
+    }
+    throw error;
+  }
+
+  if (!force) {
+    throw new Error(`migration output already exists: ${outputPath}; use --force to overwrite it`);
+  }
+}
+
 interface RuntimeConfigOptions {
   config?: string;
   notionSecrets?: string;
@@ -182,6 +203,30 @@ function getRequiredNotionSecrets(runtimeConfig: ResolvedRuntimeConfig): {
 export function createProgram(): Command {
   const program = new Command();
   program.name("article-downloader").description("Download and process articles").version("0.1.0");
+
+  program
+    .command("migrate-author-config")
+    .description("Convert a legacy author whitelist to the platform-capability schema")
+    .requiredOption("--input <path>", "path to legacy author config JSON")
+    .requiredOption("--out <path>", "path for migrated author config JSON")
+    .option("--force", "overwrite an existing output file", false)
+    .action(async (opts) => {
+      try {
+        const raw = await readRequiredJsonInput<unknown>("legacy author config", opts.input);
+        const migrated = migrateLegacyAuthorWhitelist(raw);
+        await assertMigrationOutputPath(opts.input, opts.out, opts.force);
+        await writeJsonFile(opts.out, migrated);
+        printResult({
+          ok: true,
+          inputPath: opts.input,
+          outputPath: opts.out,
+          authorCount: migrated.authors.length,
+        });
+      } catch (error) {
+        logError(error instanceof Error ? error.message : "unknown error");
+        process.exitCode = 1;
+      }
+    });
 
   program
     .command("fetch")

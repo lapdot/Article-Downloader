@@ -20,6 +20,18 @@ For authoritative rules about config precedence, required flags, output-path pol
 - Current recommendation: keep `--use-html-style-for-image` off for downstream compatibility.
 - Experimental author deduction is disabled by default. Enable it through public config under `experimental.author` and provide an author whitelist path.
 
+## `migrate-author-config`
+
+Convert a legacy author whitelist using root-level `notionName` and `sources` into the platform-capability schema. The migrated schema puts source aliases under `platforms.<platform>.source` and the current Notion upload identity under `platforms.notion.destination.name`.
+
+```bash
+npx tsx src/cli.ts migrate-author-config \
+  --input ./config/authors.json \
+  --out ./config/authors.v2.json
+```
+
+The command validates both the legacy input and converted result. It leaves the input unchanged and refuses to overwrite `--out` unless `--force` is supplied. A migration output path may not equal the input path.
+
 ## `fetch`
 
 Fetch a supported source URL and write fetch-stage artifacts.

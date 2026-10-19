@@ -206,10 +206,16 @@ describe("pipeline run upload behavior", () => {
           {
             id: "canonical-author",
             canonicalName: "Canonical Author",
-            notionName: "Canonical Author",
-            sources: {
+            platforms: {
               zhihu: {
-                names: ["Source Author"],
+                source: {
+                  names: ["Source Author"],
+                },
+              },
+              notion: {
+                destination: {
+                  name: "Canonical Author",
+                },
               },
             },
           },

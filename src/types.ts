@@ -160,14 +160,25 @@ export interface AuthorSourceAliases {
   urls?: string[];
 }
 
+export interface AuthorPlatformDestination {
+  name: string;
+}
+
+export interface AuthorPlatform {
+  source?: AuthorSourceAliases;
+  destination?: AuthorPlatformDestination;
+}
+
+export interface AuthorPlatforms {
+  substack?: AuthorPlatform;
+  zhihu?: AuthorPlatform;
+  notion?: AuthorPlatform;
+}
+
 export interface AuthorWhitelistEntry {
   id: string;
   canonicalName: string;
-  notionName: string;
-  sources?: {
-    substack?: AuthorSourceAliases;
-    zhihu?: AuthorSourceAliases;
-  };
+  platforms: AuthorPlatforms;
 }
 
 export interface AuthorWhitelist {

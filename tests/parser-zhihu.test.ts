@@ -373,11 +373,17 @@ describe("zhihu metadata parsing", () => {
           {
             id: "sanitized-zhihu-author",
             canonicalName: "Canonical Zhihu Author",
-            notionName: "Canonical Zhihu Author",
-            sources: {
+            platforms: {
               zhihu: {
-                names: ["Sanitized Author A"],
-                urls: ["https://www.zhihu.com/people/sanitized-author-a"],
+                source: {
+                  names: ["Sanitized Author A"],
+                  urls: ["https://www.zhihu.com/people/sanitized-author-a"],
+                },
+              },
+              notion: {
+                destination: {
+                  name: "Canonical Zhihu Author",
+                },
               },
             },
           },

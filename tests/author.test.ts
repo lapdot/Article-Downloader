@@ -1,5 +1,9 @@
 import { describe, expect, test } from "vitest";
-import { matchAuthor } from "../src/core/author.js";
+import {
+  matchAuthor,
+  migrateLegacyAuthorWhitelist,
+  parseAuthorWhitelist,
+} from "../src/core/author.js";
 import type { AuthorWhitelist } from "../src/types.js";
 
 const whitelist: AuthorWhitelist = {
@@ -7,16 +11,24 @@ const whitelist: AuthorWhitelist = {
     {
       id: "trita-parsi",
       canonicalName: "Trita Parsi",
-      notionName: "Trita Parsi",
-      sources: {
+      platforms: {
         substack: {
-          handles: ["tritaparsi"],
-          names: ["Trita Parsi"],
-          urls: ["https://substack.com/@tritaparsi"],
+          source: {
+            handles: ["tritaparsi"],
+            names: ["Trita Parsi"],
+            urls: ["https://substack.com/@tritaparsi"],
+          },
         },
         zhihu: {
-          names: ["Trita Parsi"],
-          urls: ["https://www.zhihu.com/people/trita-parsi"],
+          source: {
+            names: ["Trita Parsi"],
+            urls: ["https://www.zhihu.com/people/trita-parsi"],
+          },
+        },
+        notion: {
+          destination: {
+            name: "Trita Parsi",
+          },
         },
       },
     },
@@ -86,5 +98,69 @@ describe("author whitelist matching", () => {
     });
 
     expect(author).toBeUndefined();
+  });
+
+  test("migrates legacy source aliases and Notion name into platform capabilities", () => {
+    expect(
+      migrateLegacyAuthorWhitelist({
+        authors: [
+          {
+            id: "trita-parsi",
+            canonicalName: "Trita Parsi",
+            notionName: "Trita Parsi",
+            sources: {
+              substack: {
+                handles: ["tritaparsi"],
+              },
+              zhihu: {
+                names: ["Trita Parsi"],
+              },
+            },
+          },
+        ],
+      }),
+    ).toEqual({
+      authors: [
+        {
+          id: "trita-parsi",
+          canonicalName: "Trita Parsi",
+          platforms: {
+            substack: { source: { handles: ["tritaparsi"] } },
+            zhihu: { source: { names: ["Trita Parsi"] } },
+            notion: { destination: { name: "Trita Parsi" } },
+          },
+        },
+      ],
+    });
+  });
+
+  test("normalizes a legacy whitelist during normal parsing", () => {
+    const parsed = parseAuthorWhitelist({
+      authors: [
+        {
+          id: "trita-parsi",
+          canonicalName: "Trita Parsi",
+          notionName: "Trita Parsi",
+        },
+      ],
+    });
+
+    expect(parsed.legacy).toBe(true);
+    expect(parsed.whitelist.authors[0]?.platforms.notion?.destination?.name).toBe("Trita Parsi");
+  });
+
+  test("rejects mixed legacy and platform-capability author entries", () => {
+    expect(() =>
+      parseAuthorWhitelist({
+        authors: [
+          {
+            id: "trita-parsi",
+            canonicalName: "Trita Parsi",
+            notionName: "Trita Parsi",
+            platforms: {},
+          },
+        ],
+      }),
+    ).toThrowError("entries cannot mix legacy sources/notionName with platforms");
   });
 });

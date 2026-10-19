@@ -14,9 +14,30 @@ const authorAliasesSchema = z.object({
   handles: z.array(z.string().trim().min(1)).optional(),
   names: z.array(z.string().trim().min(1)).optional(),
   urls: z.array(z.string().trim().min(1)).optional(),
-});
+}).strict();
+
+const authorPlatformSchema = z.object({
+  source: authorAliasesSchema.optional(),
+  destination: z.object({
+    name: z.string().trim().min(1),
+  }).strict().optional(),
+}).strict();
 
 const authorWhitelistSchema = z.object({
+  authors: z.array(
+    z.object({
+      id: z.string().trim().min(1),
+      canonicalName: z.string().trim().min(1),
+      platforms: z.object({
+        substack: authorPlatformSchema.optional(),
+        zhihu: authorPlatformSchema.optional(),
+        notion: authorPlatformSchema.optional(),
+      }).strict(),
+    }).strict(),
+  ),
+}).strict();
+
+const legacyAuthorWhitelistSchema = z.object({
   authors: z.array(
     z.object({
       id: z.string().trim().min(1),
@@ -25,10 +46,10 @@ const authorWhitelistSchema = z.object({
       sources: z.object({
         substack: authorAliasesSchema.optional(),
         zhihu: authorAliasesSchema.optional(),
-      }).optional(),
-    }),
+      }).strict().optional(),
+    }).strict(),
   ),
-});
+}).strict();
 
 interface AuthorMatchInput {
   metadata: HtmlMetadata;
@@ -120,14 +141,83 @@ function aliasesForSource(
   if (sourceId !== "substack" && sourceId !== "zhihu") {
     return undefined;
   }
-  return entry.sources?.[sourceId];
+  return entry.platforms[sourceId]?.source;
 }
 
 function aliasNames(entry: AuthorWhitelistEntry, aliases: AuthorSourceAliases): Set<string> {
   return normalizedValues(
-    [...(aliases.names ?? []), entry.canonicalName, entry.notionName],
+    [
+      ...(aliases.names ?? []),
+      entry.canonicalName,
+      ...(entry.platforms.notion?.destination?.name
+        ? [entry.platforms.notion.destination.name]
+        : []),
+    ],
     normalizeName,
   );
+}
+
+function isRecord(value: unknown): value is Record<string, unknown> {
+  return Boolean(value) && typeof value === "object" && !Array.isArray(value);
+}
+
+function hasMixedAuthorSchema(raw: unknown): boolean {
+  if (!isRecord(raw) || !Array.isArray(raw.authors)) {
+    return false;
+  }
+  return raw.authors.some(
+    (author) =>
+      isRecord(author) &&
+      "platforms" in author &&
+      ("sources" in author || "notionName" in author),
+  );
+}
+
+export function migrateLegacyAuthorWhitelist(raw: unknown): AuthorWhitelist {
+  if (hasMixedAuthorSchema(raw)) {
+    throw new Error(
+      "invalid legacy author whitelist: entries cannot mix legacy sources/notionName with platforms",
+    );
+  }
+
+  const parsed = legacyAuthorWhitelistSchema.safeParse(raw);
+  if (!parsed.success) {
+    throw new Error(`invalid legacy author whitelist: ${formatZodError(parsed.error)}`);
+  }
+
+  return {
+    authors: parsed.data.authors.map((author) => ({
+      id: author.id,
+      canonicalName: author.canonicalName,
+      platforms: {
+        ...(author.sources?.substack
+          ? { substack: { source: author.sources.substack } }
+          : {}),
+        ...(author.sources?.zhihu ? { zhihu: { source: author.sources.zhihu } } : {}),
+        notion: { destination: { name: author.notionName } },
+      },
+    })),
+  };
+}
+
+export function parseAuthorWhitelist(raw: unknown): { whitelist: AuthorWhitelist; legacy: boolean } {
+  const current = authorWhitelistSchema.safeParse(raw);
+  if (current.success) {
+    return { whitelist: current.data, legacy: false };
+  }
+
+  if (hasMixedAuthorSchema(raw)) {
+    throw new Error(
+      "invalid author whitelist: entries cannot mix legacy sources/notionName with platforms",
+    );
+  }
+
+  const legacy = legacyAuthorWhitelistSchema.safeParse(raw);
+  if (legacy.success) {
+    return { whitelist: migrateLegacyAuthorWhitelist(raw), legacy: true };
+  }
+
+  throw new Error(`invalid author whitelist: ${formatZodError(current.error)}`);
 }
 
 export async function readAuthorWhitelist(filePath: string): Promise<AuthorWhitelist> {
@@ -141,14 +231,13 @@ export async function readAuthorWhitelist(filePath: string): Promise<AuthorWhite
     throw error;
   }
 
-  try {
-    return authorWhitelistSchema.parse(raw);
-  } catch (error) {
-    if (error instanceof ZodError) {
-      throw new Error(`invalid author whitelist: ${formatZodError(error)}`);
-    }
-    throw error;
+  const parsed = parseAuthorWhitelist(raw);
+  if (parsed.legacy) {
+    console.warn(
+      `deprecated author whitelist schema: ${filePath}; run migrate-author-config --input ${filePath} --out ${filePath}.v2.json`,
+    );
   }
+  return parsed.whitelist;
 }
 
 export function matchAuthor(input: AuthorMatchInput): HtmlCanonicalAuthor | undefined {
@@ -183,10 +272,14 @@ export function matchAuthor(input: AuthorMatchInput): HtmlCanonicalAuthor | unde
     const urlMatched = candidateUrl ? urls.has(candidateUrl) : false;
     const handleMatched = [...candidateHandles].some((handle) => handles.has(handle));
     if (nameMatched || urlMatched || handleMatched) {
+      const notionName = entry.platforms.notion?.destination?.name;
+      if (!notionName) {
+        continue;
+      }
       return {
         id: entry.id,
         name: entry.canonicalName,
-        notionName: entry.notionName,
+        notionName,
       };
     }
   }

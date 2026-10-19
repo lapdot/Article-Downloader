@@ -280,6 +280,129 @@ describe("cli", () => {
     expect(option, `missing option ${longOption}`).toBeDefined();
   }
 
+  test("migrate-author-config writes a platform-capability config without changing input", async () => {
+    const root = await mkdtemp(path.join(tmpdir(), "author-config-migration-test-"));
+    const inputPath = path.join(root, "authors.json");
+    const outputPath = path.join(root, "authors.v2.json");
+    const legacy = {
+      authors: [
+        {
+          id: "example-author",
+          canonicalName: "Example Author",
+          notionName: "Example Author",
+          sources: {
+            substack: {
+              handles: ["exampleauthor"],
+            },
+          },
+        },
+      ],
+    };
+    await writeTextFile(inputPath, JSON.stringify(legacy, null, 2));
+
+    const stdout = await captureStdout(async () => {
+      await runCli([
+        "node",
+        "article-downloader",
+        "migrate-author-config",
+        "--input",
+        inputPath,
+        "--out",
+        outputPath,
+      ]);
+    });
+
+    expect(JSON.parse(await readFile(inputPath, "utf8"))).toEqual(legacy);
+    expect(JSON.parse(await readFile(outputPath, "utf8"))).toEqual({
+      authors: [
+        {
+          id: "example-author",
+          canonicalName: "Example Author",
+          platforms: {
+            substack: {
+              source: {
+                handles: ["exampleauthor"],
+              },
+            },
+            notion: {
+              destination: {
+                name: "Example Author",
+              },
+            },
+          },
+        },
+      ],
+    });
+    expect(JSON.parse(stdout)).toMatchObject({
+      ok: true,
+      inputPath,
+      outputPath,
+      authorCount: 1,
+    });
+  });
+
+  test("migrate-author-config refuses to overwrite output without --force", async () => {
+    const root = await mkdtemp(path.join(tmpdir(), "author-config-migration-test-"));
+    const inputPath = path.join(root, "authors.json");
+    const outputPath = path.join(root, "authors.v2.json");
+    await writeTextFile(
+      inputPath,
+      JSON.stringify({
+        authors: [{ id: "author", canonicalName: "Author", notionName: "Author" }],
+      }),
+    );
+    await writeTextFile(outputPath, "preserved");
+
+    const stderr = await captureStderr(async () => {
+      await runCli([
+        "node",
+        "article-downloader",
+        "migrate-author-config",
+        "--input",
+        inputPath,
+        "--out",
+        outputPath,
+      ]);
+    });
+
+    expect(process.exitCode).toBe(1);
+    expect(stderr).toContain(`migration output already exists: ${outputPath}; use --force`);
+    expect(await readFile(outputPath, "utf8")).toBe("preserved");
+  });
+
+  test("migrate-author-config overwrites output only with --force", async () => {
+    const root = await mkdtemp(path.join(tmpdir(), "author-config-migration-test-"));
+    const inputPath = path.join(root, "authors.json");
+    const outputPath = path.join(root, "authors.v2.json");
+    await writeTextFile(
+      inputPath,
+      JSON.stringify({
+        authors: [{ id: "author", canonicalName: "Author", notionName: "Author" }],
+      }),
+    );
+    await writeTextFile(outputPath, "old output");
+
+    await runCli([
+      "node",
+      "article-downloader",
+      "migrate-author-config",
+      "--input",
+      inputPath,
+      "--out",
+      outputPath,
+      "--force",
+    ]);
+
+    expect(JSON.parse(await readFile(outputPath, "utf8"))).toMatchObject({
+      authors: [
+        {
+          id: "author",
+          platforms: { notion: { destination: { name: "Author" } } },
+        },
+      ],
+    });
+  });
+
   test("fetch command uses cookieproxy and writes output artifacts", async () => {
     const root = await mkdtemp(path.join(tmpdir(), "article-downloader-test-"));
     const outDir = path.join(root, "output");
@@ -774,6 +897,9 @@ describe("cli", () => {
     const parseCommand = program.commands.find((command) => command.name() === "parse");
     const transformCommand = program.commands.find((command) => command.name() === "transform-notion");
     const uploadCommand = program.commands.find((command) => command.name() === "upload-notion");
+    const migrateAuthorConfigCommand = program.commands.find(
+      (command) => command.name() === "migrate-author-config",
+    );
     const youtubeTranscriptCommand = program.commands.find((command) => command.name() === "youtube-transcript");
     const runCommand = program.commands.find((command) => command.name() === "run");
     const runOptionNames = runCommand?.options.map((option) => option.long);
@@ -784,6 +910,7 @@ describe("cli", () => {
     expect(parseCommand).toBeDefined();
     expect(transformCommand).toBeDefined();
     expect(uploadCommand).toBeDefined();
+    expect(migrateAuthorConfigCommand).toBeDefined();
     expect(youtubeTranscriptCommand).toBeDefined();
     expect(runCommand).toBeDefined();
 
@@ -802,6 +929,9 @@ describe("cli", () => {
     mustHaveOption(transformCommand!, "--source-url");
     mustRequireOption(uploadCommand!, "--blocks");
     mustHaveOption(uploadCommand!, "--config");
+    mustRequireOption(migrateAuthorConfigCommand!, "--input");
+    mustRequireOption(migrateAuthorConfigCommand!, "--out");
+    mustHaveOption(migrateAuthorConfigCommand!, "--force");
     mustRequireOption(youtubeTranscriptCommand!, "--url");
     mustRequireOption(youtubeTranscriptCommand!, "--out");
     expect(youtubeTranscriptCommand?.options.map((option) => option.long)).not.toEqual(

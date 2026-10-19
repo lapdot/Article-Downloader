@@ -3,23 +3,35 @@
     {
       "id": "trita-parsi",
       "canonicalName": "Trita Parsi",
-      "notionName": "Trita Parsi",
-      "sources": {
+      "platforms": {
         "substack": {
-          "handles": ["tritaparsi"],
-          "names": ["Trita Parsi"],
-          "urls": ["https://substack.com/@tritaparsi"]
+          "source": {
+            "handles": ["tritaparsi"],
+            "names": ["Trita Parsi"],
+            "urls": ["https://substack.com/@tritaparsi"]
+          }
+        },
+        "notion": {
+          "destination": {
+            "name": "Trita Parsi"
+          }
         }
       }
     },
     {
       "id": "saechia",
       "canonicalName": "Saechia",
-      "notionName": "saechia",
-      "sources": {
+      "platforms": {
         "zhihu": {
-          "names": ["Saechia"],
-          "urls": ["https://www.zhihu.com/people/xielida"]
+          "source": {
+            "names": ["Saechia"],
+            "urls": ["https://www.zhihu.com/people/xielida"]
+          }
+        },
+        "notion": {
+          "destination": {
+            "name": "saechia"
+          }
         }
       }
     }

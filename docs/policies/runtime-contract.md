@@ -68,6 +68,8 @@ If code and docs diverge, align code to this document unless a newer repo decisi
 - When `experimental.author.enabled` is missing or `false`, runtime metadata and Notion upload behavior must remain unchanged.
 - When `experimental.author.enabled` is `true`, public config must provide `experimental.author.whitelistPath`.
 - The author whitelist is public configuration, not a secret file.
+- Author entries use a `platforms` map. A platform can declare independent `source` and `destination` capabilities, so a website can be both without a schema change. Current source aliases live under `platforms.substack.source` or `platforms.zhihu.source`; the current Notion upload label lives under `platforms.notion.destination.name`.
+- During the compatibility window, wholly legacy entries using `sources` and `notionName` are normalized on read and emit a deprecation warning. Entries that mix legacy fields with `platforms` are invalid.
 - Whitelisted matches may enrich extracted metadata with:
   - `author.id`
   - `author.name`

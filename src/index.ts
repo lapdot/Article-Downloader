@@ -12,6 +12,11 @@ export {
 } from "./core/notion.js";
 export { runPipeline } from "./core/pipeline.js";
 export { fetchYoutubeTranscript } from "./core/youtube-transcript.js";
+export {
+  readAuthorWhitelist,
+  parseAuthorWhitelist,
+  migrateLegacyAuthorWhitelist,
+} from "./core/author.js";
 export type {
   DownloadMethod,
   DownloadInput,
@@ -30,6 +35,9 @@ export type {
   AuthorWhitelist,
   AuthorWhitelistEntry,
   AuthorSourceAliases,
+  AuthorPlatform,
+  AuthorPlatformDestination,
+  AuthorPlatforms,
   ExperimentalAuthorPublicConfig,
   ResolvedExperimentalAuthorConfig,
   UploadInput,

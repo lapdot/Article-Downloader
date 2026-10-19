@@ -34,6 +34,9 @@ import {
 - `resolveRuntimeConfig`: load and resolve public config, secrets config, and effective runtime selectors.
 - `readPublicConfig`: read public config JSON directly.
 - `readNotionSecretsConfig`: read Notion secrets JSON directly.
+- `readAuthorWhitelist`: read a current or legacy author whitelist; legacy files are normalized and emit a deprecation warning.
+- `parseAuthorWhitelist`: validate a current or legacy author whitelist already held in memory.
+- `migrateLegacyAuthorWhitelist`: convert a validated legacy author whitelist to the platform-capability schema.
 - `runPipeline`: run the end-to-end URL-to-artifacts pipeline with downstream Notion upload.
 - `fetchYoutubeTranscript`: fetch a YouTube transcript through the production Python helper and write Markdown/runtime artifacts using fixed Node-facing defaults.
 
@@ -68,6 +71,9 @@ Key exported types include:
   - `HtmlCanonicalAuthor`
   - `AuthorWhitelist`
   - `AuthorWhitelistEntry`
+  - `AuthorPlatform`
+  - `AuthorPlatformDestination`
+  - `AuthorPlatforms`
   - `SourceIdentity`
   - `SourceId`
   - `ZhihuContentType`
