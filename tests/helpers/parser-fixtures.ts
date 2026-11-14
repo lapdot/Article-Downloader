@@ -2,6 +2,7 @@ import { readFileSync } from "node:fs";
 
 export const zhihuAnswerFixture = readFileSync("tests/fixtures/zhihu-answer.html", "utf8");
 export const zhihuPinFixture = readFileSync("tests/fixtures/zhihu-pin.html", "utf8");
+export const zhihuPinNestedAuthorFixture = readFileSync("tests/fixtures/zhihu-pin-nested-author.html", "utf8");
 export const zhihuZhuanlanFixture = readFileSync("tests/fixtures/zhihu-zhuanlan.html", "utf8");
 export const zhihuZhuanlanSampleLikeFixture = readFileSync("tests/fixtures/zhihu-zhuanlan-sample-like.html", "utf8");
 

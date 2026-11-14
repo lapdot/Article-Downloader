@@ -121,20 +121,18 @@ export async function runPipeline(input: PipelineInput): Promise<PipelineResult>
     await writeJsonFile(metadataPath, metadata.metadata);
   }
 
-  const parse = await parseHtmlToMarkdown({
-    html: download.html,
-    sourceUrl,
-    useHtmlStyleForImage,
-  });
-  if (parse.ok && parse.markdown) {
+  const parse = metadata.ok
+    ? await parseHtmlToMarkdown({ html: download.html, sourceUrl, useHtmlStyleForImage })
+    : undefined;
+  if (parse?.ok && parse.markdown) {
     await writeTextFile(markdownPath, parse.markdown);
   }
 
   let upload: UploadResult | undefined;
   const notionToken = input.runtimeConfig.notion.notionToken;
   const databaseId = input.runtimeConfig.notion.databaseId;
-  const uploadAttempted = parse.ok && Boolean(parse.markdown);
-  if (uploadAttempted && parse.markdown) {
+  const uploadAttempted = parse?.ok === true && Boolean(parse.markdown);
+  if (uploadAttempted && parse?.markdown) {
     const blocks = markdownToNotionBlocks(parse.markdown, {
       baseUrl: metadata.metadata?.articleUrl ?? sourceUrl,
     });
@@ -169,11 +167,11 @@ export async function runPipeline(input: PipelineInput): Promise<PipelineResult>
 
   const resultOk =
     metadata.ok &&
-    parse.ok &&
-    (!!upload && upload.ok);
+    parse?.ok === true &&
+    upload?.ok === true;
   const reason =
     !metadata.ok ? "metadata failed" :
-    !parse.ok ? "parse failed" :
+    !parse?.ok ? "parse failed" :
     upload && !upload.ok ? "notion upload failed" :
     undefined;
 
@@ -189,7 +187,7 @@ export async function runPipeline(input: PipelineInput): Promise<PipelineResult>
       html: undefined,
     },
     metadata,
-    parse: {
+    parse: parse && {
       ...parse,
       markdown: undefined,
     },
@@ -207,7 +205,7 @@ export async function runPipeline(input: PipelineInput): Promise<PipelineResult>
     outputDir,
     htmlPath,
     metadataPath: metadata.ok && metadata.metadata ? metadataPath : undefined,
-    markdownPath: parse.ok && parse.markdown ? markdownPath : undefined,
+    markdownPath: parse?.ok && parse.markdown ? markdownPath : undefined,
     notionBlocksPath: uploadAttempted ? notionBlocksPath : undefined,
     metaPath,
     reason,

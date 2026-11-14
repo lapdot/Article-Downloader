@@ -229,7 +229,8 @@ npx tsx src/cli.ts run \
 
 Behavior notes:
 
-- `run` always executes the Notion upload stage after Markdown generation.
+- `run` requires successful metadata extraction before Markdown generation. If metadata extraction fails, `run` saves `page.html` and the error in `meta.json`, then stops before Markdown conversion and Notion delivery.
+- After generating Markdown, `run` generates Notion blocks and proceeds to the upload stage.
 - If Notion secrets are missing or invalid, or the Notion API rejects the request, `run` ends with `ok: false` and reason `notion upload failed`.
 - Artifacts are preserved for inspection and retry when downstream upload fails.
 - When `experimental.author.enabled` and `experimental.author.notionUpload.enabled` are both true, `run` may set Notion multi-select page properties from a whitelisted metadata author. The author property defaults to `Author`; configured `platforms.notion.destination.topics` values are sent to the `Topics` property. Both names are configurable through `experimental.author.notionUpload`, support multi-select values, and must already exist in the target Notion database. A matched author may provide multiple default topics.

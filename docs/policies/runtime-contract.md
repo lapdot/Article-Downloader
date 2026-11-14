@@ -161,7 +161,9 @@ Default-layout note:
 - This applies only when the file is required by the active command flow.
 
 ### 4.2 Run pipeline and Notion policy
-- `run` does not silently skip upload after markdown generation.
+- `run` requires successful metadata extraction before Markdown conversion. If metadata extraction fails, it returns `ok: false` with reason `metadata failed`, preserves `page.html`, and records the metadata error in `meta.json`. It skips Markdown conversion, Notion block generation, and upload.
+- The standalone `parse` command can convert saved HTML to Markdown without extracting metadata first.
+- After successful metadata extraction and Markdown generation, `run` generates Notion blocks and proceeds to the upload stage.
 - `run` reaches upload stage and reports explicit failure when Notion cannot succeed:
   - missing notion setup
   - invalid notion credentials

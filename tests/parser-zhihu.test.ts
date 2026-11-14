@@ -11,6 +11,7 @@ import {
   zhihuFixtureWithStickerButNotBracketAlt,
   zhihuPinFixture,
   zhihuPinFixtureWithEmojiImage,
+  zhihuPinNestedAuthorFixture,
   zhihuZhuanlanFixture,
   zhihuZhuanlanFixtureWithEmojiImage,
   zhihuZhuanlanSampleLikeFixture,
@@ -175,6 +176,17 @@ describe("zhihu markdown parsing", () => {
     expect(result.ok).toBe(true);
     expect(result.markdown).toContain("\\[捂脸\\]");
     expect(result.markdown).not.toContain("<img src=");
+  });
+
+  test("includes the nested pin author in Markdown", async () => {
+    const result = await parseHtmlToMarkdown({
+      html: zhihuPinNestedAuthorFixture,
+      sourceUrl: "https://www.zhihu.com/pin/2222222222222222222",
+    });
+
+    expect(result.ok).toBe(true);
+    expect(result.markdown).toContain("[Sanitized Pin Author](https://www.zhihu.com/people/sanitized-pin-author)");
+    expect(result.markdown).toContain("Pin body.");
   });
 
   test("converts pin sticker image with ascii-bracket alt to emoji text", async () => {
@@ -415,6 +427,30 @@ describe("zhihu metadata parsing", () => {
       publishTime: "发布于 2026-01-15 10:00",
       editTime: undefined,
     });
+  });
+
+  test("extracts metadata for a pin with a nested author", async () => {
+    const sourceUrl = "https://www.zhihu.com/pin/2222222222222222222";
+    const result = await parseHtmlToMetadata({ html: zhihuPinNestedAuthorFixture, sourceUrl });
+
+    expect(result.ok).toBe(true);
+    expect(result.metadata).toEqual({
+      articleUrl: sourceUrl,
+      authorId: "Sanitized Pin Author",
+      authorHomepage: "https://www.zhihu.com/people/sanitized-pin-author",
+      publishTime: "发布于 2026-01-15 10:00",
+      editTime: undefined,
+    });
+  });
+
+  test("rejects a pin whose author container lacks a profile URL", async () => {
+    const result = await parseHtmlToMetadata({
+      html: zhihuPinNestedAuthorFixture.replace('itemprop="url"', 'itemprop="image"'),
+      sourceUrl: "https://www.zhihu.com/pin/2222222222222222222",
+    });
+
+    expect(result).toMatchObject({ ok: false, errorCode: "E_PARSE_SELECTOR" });
+    expect(result.reason).toContain("found no author name or homepage");
   });
 
   test("extracts metadata for zhihu post", async () => {

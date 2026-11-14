@@ -1,5 +1,5 @@
 import path from "node:path";
-import { mkdtemp, writeFile } from "node:fs/promises";
+import { mkdtemp, readFile, readdir, writeFile } from "node:fs/promises";
 import { tmpdir } from "node:os";
 import { describe, expect, test, vi } from "vitest";
 
@@ -40,7 +40,7 @@ vi.mock("../src/core/notion.js", () => ({
 
 import { runPipeline } from "../src/core/pipeline.js";
 import { markdownToNotionBlocks, uploadNotionBlocksToNotion } from "../src/core/notion.js";
-import { parseHtmlToMetadata } from "../src/core/parser.js";
+import { parseHtmlToMarkdown, parseHtmlToMetadata } from "../src/core/parser.js";
 import type { ResolvedRuntimeConfig } from "../src/types.js";
 
 function runtimeConfig(
@@ -71,6 +71,47 @@ function runtimeConfig(
 }
 
 describe("pipeline run upload behavior", () => {
+  test("metadata failure preserves HTML and diagnostics and skips all later stages", async () => {
+    const outDir = await mkdtemp(path.join(tmpdir(), "pipeline-upload-test-"));
+    const metadataFailure = {
+      ok: false,
+      reason: "author selector returned no nodes for zhihu type: pin",
+      errorCode: "E_PARSE_SELECTOR",
+    } as const;
+    vi.mocked(parseHtmlToMetadata).mockResolvedValueOnce(metadataFailure);
+    vi.mocked(parseHtmlToMarkdown).mockClear();
+    vi.mocked(markdownToNotionBlocks).mockClear();
+    vi.mocked(uploadNotionBlocksToNotion).mockClear();
+
+    const result = await runPipeline({
+      url: "https://www.zhihu.com/pin/2222222222222222222",
+      runtimeConfig: runtimeConfig(outDir, { notionToken: "token", databaseId: "db" }),
+    });
+
+    expect(result).toMatchObject({
+      ok: false,
+      reason: "metadata failed",
+      metadata: metadataFailure,
+    });
+    expect(result.parse).toBeUndefined();
+    expect(result.upload).toBeUndefined();
+    expect(result.markdownPath).toBeUndefined();
+    expect(result.notionBlocksPath).toBeUndefined();
+    expect(parseHtmlToMarkdown).not.toHaveBeenCalled();
+    expect(markdownToNotionBlocks).not.toHaveBeenCalled();
+    expect(uploadNotionBlocksToNotion).not.toHaveBeenCalled();
+    expect((await readdir(result.outputDir!)).sort()).toEqual(["meta.json", "page.html"]);
+    expect(await readFile(result.htmlPath!, "utf8")).toBe("<html><body><h1>Title</h1></body></html>");
+    const report = JSON.parse(await readFile(result.metaPath!, "utf8"));
+    expect(report).toMatchObject({
+      input: { notionUploadAttempted: false },
+      metadata: metadataFailure,
+      reason: "metadata failed",
+    });
+    expect(report).not.toHaveProperty("parse");
+    expect(report).not.toHaveProperty("upload");
+  });
+
   test("parse success + missing credentials => upload failure and ok=false", async () => {
     const outDir = await mkdtemp(path.join(tmpdir(), "pipeline-upload-test-"));
     const result = await runPipeline({

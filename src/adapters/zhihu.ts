@@ -41,7 +41,7 @@ export const ZHIHU_SELECTORS_BY_TYPE: Record<ZhihuContentType, SelectorSet> = {
     title: "h1.ContentItem-title, h1.ztext-title",
     content: "div.PinItem span.RichText, div.PinItem div.RichText, div.PinItem div.RichContent",
     remove: [...ZHIHU_BASE_REMOVE_SELECTORS],
-    authorMetaContainer: "div.PinItem-authorInfo",
+    authorMetaContainer: "div.PinItem-authorInfo, div.PinItem-author",
     timeContainer: "div.PinItem div.ContentItem-time",
     timeLink: "a",
   },
@@ -169,6 +169,12 @@ function getPinTitle($: ReturnType<typeof load>): string {
 
 function getPinContentNode($: ReturnType<typeof load>): ReturnType<ReturnType<typeof load>> {
   return $("div.PinItem span.RichText.ztext").first();
+}
+
+function getPinAuthorMetaContainer(
+  pinNode: ReturnType<ReturnType<typeof load>>,
+): ReturnType<ReturnType<typeof load>> {
+  return pinNode.find(ZHIHU_SELECTORS_BY_TYPE.pin.authorMetaContainer).first();
 }
 
 function getZhuanlanTitle($: ReturnType<typeof load>): string {
@@ -307,7 +313,7 @@ function extractPinMarkdownContext(
     context: {
       title,
       contentHtml,
-      authorBlock: buildAuthorBlock($, pinNode.find("div.PinItem-authorInfo").first()),
+      authorBlock: buildAuthorBlock($, getPinAuthorMetaContainer(pinNode)),
       contentTimeBlock: buildTimeBlock($, turndownService, pinNode.find("div.ContentItem-time").first()),
       includeTitleInMarkdown: false,
       convertHardLineBreaksToParagraphs: true,
@@ -442,7 +448,9 @@ export async function parseZhihuMetadata(
   const $ = load(input.html);
   const selectors = getSelectorsForZhihuType(input.source.contentType);
 
-  const authorMetaContainer = $(selectors.authorMetaContainer).first();
+  const authorMetaContainer = input.source.contentType === "pin"
+    ? getPinAuthorMetaContainer($("div.PinItem").first())
+    : $(selectors.authorMetaContainer).first();
   if (authorMetaContainer.length === 0) {
     return {
       ok: false,
