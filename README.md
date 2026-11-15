@@ -90,6 +90,8 @@ Typical artifacts:
 - Markdown: `artifacts/runtime/<run>/article.md`
 - Notion blocks: `artifacts/runtime/<transform-run>/notion-blocks.json`
 
+In Zhihu column Markdown, the timestamp links to the article URL when the source HTML supplies no timestamp link.
+
 The end-to-end [`run` command](docs/reference/cli-usage.md#run) requires successful metadata extraction before it generates Markdown or uploads to Notion. If metadata extraction fails, use the saved `page.html` with the standalone `parse` command to recover Markdown.
 
 Foreign Affairs and Foreign Policy fetch flows write `page.html`, the official PDF, and `meta.json`; Markdown, metadata, Notion transform, and `run` are not supported for these fetch-only PDF sources. Foreign Affairs uses the official PDF filename linked from the HTML, such as `105301.pdf`; Foreign Policy generates the PDF URL from the article URL and saves a slug filename such as `trump-china-hawk-xi-jinping-covid.pdf`.

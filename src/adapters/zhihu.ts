@@ -219,9 +219,14 @@ function buildTimeBlock(
   $: ReturnType<typeof load>,
   turndownService: TurndownService,
   timeNode: ReturnType<ReturnType<typeof load>>,
+  fallbackUrl?: string,
 ): string {
   if (timeNode.length === 0) {
     return "";
+  }
+  if (fallbackUrl && timeNode.find('a[href]:not([href=""])').length === 0) {
+    const timestamp = $("<a>").attr("href", fallbackUrl).text(timeNode.text());
+    return turndownService.turndown($.html(timestamp)).trim();
   }
   normalizeProtocolRelativeHrefs(timeNode);
   return turndownService.turndown($.html(timeNode)).trim();
@@ -324,6 +329,7 @@ function extractPinMarkdownContext(
 function extractZhuanlanMarkdownContext(
   $: ReturnType<typeof load>,
   turndownService: TurndownService,
+  sourceUrl: string,
 ): ExtractResult {
   let title: string;
   try {
@@ -368,7 +374,7 @@ function extractZhuanlanMarkdownContext(
       title,
       contentHtml,
       authorBlock: buildAuthorBlock($, $("div.Post-Author").first()),
-      contentTimeBlock: buildTimeBlock($, turndownService, zhuanlanTimeNode),
+      contentTimeBlock: buildTimeBlock($, turndownService, zhuanlanTimeNode, sourceUrl),
     },
   };
 }
@@ -387,7 +393,7 @@ export async function parseZhihuMarkdown(
   } else if (input.source.contentType === "pin") {
     extractResult = extractPinMarkdownContext($, turndownService);
   } else {
-    extractResult = extractZhuanlanMarkdownContext($, turndownService);
+    extractResult = extractZhuanlanMarkdownContext($, turndownService, input.sourceUrl);
   }
 
   if (!extractResult.ok) {

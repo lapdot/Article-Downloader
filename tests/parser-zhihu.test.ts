@@ -277,6 +277,9 @@ describe("zhihu markdown parsing", () => {
     expect(result.title).toBe("Sanitized Zhuanlan Title");
     expect(result.markdown).toContain("Zhuanlan first paragraph.");
     expect(result.markdown).toContain("$a^2+b^2=c^2$");
+    expect(result.markdown).toContain(
+      "[发布于 2026-01-20 14:30](https://zhuanlan.zhihu.com/p/3333333333333333333)",
+    );
     expect(result.markdown).not.toContain(".css-");
     expect(result.markdown).not.toContain("position:absolute");
     expect(result.markdown).not.toContain("<style>");
@@ -303,7 +306,7 @@ describe("zhihu markdown parsing", () => {
   <body>
     <h1 class="Post-Title">Zhuanlan Variant Title</h1>
     <article class="Post-Main Post-NormalMain">
-      <div class="ContentItem-time">发布于 2026-02-03 20:37・广东</div>
+      <div class="ContentItem-time" role="button" tabindex="0">发布于 2026-02-03 20:37<!-- -->・<!-- -->广东</div>
     </article>
     <div class="Post-content">
       <div class="RichText ztext">
@@ -320,7 +323,22 @@ describe("zhihu markdown parsing", () => {
     expect(result.ok).toBe(true);
     expect(result.title).toBe("Zhuanlan Variant Title");
     expect(result.markdown).toContain("Zhuanlan variant paragraph.");
-    expect(result.markdown).toContain("发布于 2026-02-03 20:37");
+    expect(result.markdown).toContain(
+      "[发布于 2026-02-03 20:37・广东](https://zhuanlan.zhihu.com/p/3333333333333333333)",
+    );
+  });
+
+  test("preserves the link already present on a zhihu post timestamp", async () => {
+    const result = await parseHtmlToMarkdown({
+      html: zhihuZhuanlanFixture.replace(
+        "发布于 2026-01-20 14:30",
+        '<a href="//zhuanlan.zhihu.com/p/123">发布于 2026-01-20 14:30</a>',
+      ),
+      sourceUrl: "https://zhuanlan.zhihu.com/p/123?from=feed",
+    });
+
+    expect(result.ok).toBe(true);
+    expect(result.markdown).toContain("[发布于 2026-01-20 14:30](https://zhuanlan.zhihu.com/p/123)");
   });
 
   test("fails fast on strict selector misses", async () => {
