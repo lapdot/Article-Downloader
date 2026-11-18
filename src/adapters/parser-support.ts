@@ -28,6 +28,79 @@ export function buildMarkdownLink(label: string, url: string): string {
   return `[${escapeMarkdownPlainText(label)}](${url})`;
 }
 
+const UNSUPPORTED_TABLE_CELL_CONTENT =
+  "img, ul, ol, dl, pre, blockquote, hr, h1, h2, h3, h4, h5, h6, figure, audio, video, iframe";
+
+function renderMarkdownTable(
+  table: HTMLTableElement,
+  turndownService: TurndownService,
+): string | undefined {
+  const rows = Array.from(table.querySelectorAll<HTMLTableRowElement>("tr"));
+  const grid: Array<Array<string | undefined>> = rows.map(() => []);
+  let groupEnd = 0;
+  let width = 0;
+
+  for (const [rowIndex, row] of rows.entries()) {
+    if (rowIndex === groupEnd) {
+      do {
+        groupEnd += 1;
+      } while (rows[groupEnd]?.parentElement === row.parentElement);
+    }
+
+    const slots = grid[rowIndex];
+    let column = 0;
+    for (const cell of Array.from(row.cells)) {
+      if (cell.querySelector(UNSUPPORTED_TABLE_CELL_CONTENT)) {
+        return undefined;
+      }
+      const markdown = turndownService.turndown(cell.innerHTML);
+      // An odd run of backslashes before a pipe is already an escape in GFM.
+      // Adding another would split the cell, while reusing it can lose a literal backslash in code.
+      if (/^\$\$$/mu.test(markdown) || /(?<!\\)(?:\\\\)*\\\|/u.test(markdown)) {
+        return undefined;
+      }
+      const content = markdown.replace(/\s*\n\s*/gu, " ").replace(/\|/gu, "\\|");
+      const columnSpan = Math.min(1000, Math.max(1, cell.colSpan || 1));
+      const rowsRemaining = groupEnd - rowIndex;
+      const rowSpan = cell.rowSpan === 0
+        ? rowsRemaining
+        : Math.min(rowsRemaining, Math.max(1, cell.rowSpan || 1));
+
+      // Find a contiguous span so an irregular row cannot overwrite earlier cells.
+      for (let candidate = column; candidate < column + columnSpan; candidate += 1) {
+        if (slots[candidate] !== undefined) {
+          column = candidate + 1;
+        }
+      }
+      for (let rowOffset = 0; rowOffset < rowSpan; rowOffset += 1) {
+        const coveredSlots = grid[rowIndex + rowOffset];
+        coveredSlots.length = Math.max(coveredSlots.length, column + columnSpan);
+        coveredSlots.fill("", column, column + columnSpan);
+      }
+      slots[column] = content;
+      column += columnSpan;
+      width = Math.max(width, column);
+    }
+  }
+
+  if (!width) {
+    return undefined;
+  }
+  const firstRow = rows[0];
+  const hasHeader = firstRow.parentElement?.tagName === "THEAD"
+    || (firstRow.cells.length > 0 && Array.from(firstRow.cells).every((cell) => cell.tagName === "TH"));
+  const formatRow = (cells: Array<string | undefined>) => {
+    return `| ${Array.from({ length: width }, (_, index) => cells[index] ?? "").join(" | ")} |`;
+  };
+  const header = hasHeader ? grid[0] : [];
+  const body = hasHeader ? grid.slice(1) : grid;
+  const separator = Array<string>(width).fill("---");
+  const caption = table.querySelector("caption");
+  const captionMarkdown = caption ? turndownService.turndown(caption.innerHTML) : "";
+  const tableMarkdown = [header, separator, ...body].map(formatRow).join("\n");
+  return `\n\n${captionMarkdown ? `${captionMarkdown}\n\n` : ""}${tableMarkdown}\n\n`;
+}
+
 export function createTurndownService(options: { useHtmlStyleForImage: boolean }): TurndownService {
   const turndownService = new TurndownService({
     headingStyle: "atx",
@@ -141,6 +214,16 @@ export function createTurndownService(options: { useHtmlStyleForImage: boolean }
         style += `width: ${rawWidth};`;
       }
       return `<img src="${src}" style="${style}">`;
+    },
+  });
+
+  turndownService.addRule("table", {
+    filter: (node) => node.tagName === "TABLE"
+      && !node.parentElement?.closest("table")
+      && !node.querySelector("table"),
+    replacement: (content, node) => {
+      return renderMarkdownTable(node as HTMLTableElement, turndownService)
+        ?? `\n\n${content}\n\n`;
     },
   });
 

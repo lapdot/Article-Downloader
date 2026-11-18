@@ -153,6 +153,13 @@ Default-layout note:
   - Foreign Policy article page -> `sourceId: "foreignpolicy"`, `contentType: "post"`
 - Source identity is additional result context and does not change existing artifact meanings or stage failure semantics by itself.
 
+### 3.6 HTML tables in Markdown
+
+- Zhihu and Substack emit GitHub Flavored Markdown tables for cells that can be represented on one line. Captions appear above the table. Inline formatting is converted normally, and cell line breaks become spaces.
+- The first row supplies the header if it is in `thead` or contains only `th` cells. Other tables get a blank Markdown header so every source data row remains in the body.
+- Merged cells keep their content in the upper-left slot. Covered slots and any padding needed for shorter rows are blank. Row spans stop at the end of their row group, including `rowspan="0"`.
+- Nested tables and cells with images or block content such as lists, code blocks, and display equations use the standard HTML-to-Markdown conversion. The same fallback preserves cell content when escaping a pipe would change an existing backslash. Supported Markdown tables become native table blocks during Notion conversion.
+
 ## 4. Failure And Error Semantics
 
 ### 4.1 Missing-file policy
